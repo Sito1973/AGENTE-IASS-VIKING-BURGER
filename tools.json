@@ -1,0 +1,75 @@
+[
+  {
+    "name": "crear_contacto",
+    "description": "Crea un nuevo contacto en el CRM de Odoo, con la información proporcionada del cliente. Esta herramienta actualiza los campos personalizados en Odoo para el seguimiento de clientes. Asegúrate de que tienes el consentimiento de forma explícita del cliente para guardar los datos y que todos los campos estén correctamente formateados antes de crear el contacto.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "nombre": {
+          "type": "string",
+          "description": "Nombre del contacto"
+        },
+        "apellido": {
+          "type": "string",
+          "description": "Apellido del contacto"
+        },
+        "cedula": {
+          "type": "integer",
+          "description": "Número de cédula del contacto, o responde 0"
+        },
+        "ciudad": {
+          "type": "string",
+          "description": "Ciudad de residencia del contacto"
+        },
+        "solicitud": {
+          "type": "string",
+          "description": "Información sobre lo que el cliente está interesado de acuerdo a la conversacion, incluyendo un resumen completo de la conversación y análisis de sentimiento: BAJA PROBABILIDAD, MEDIA PROBABILIDAD y ALTA PROBABILIDAD, explicando por qué"
+        },
+        "contactar": {
+          "type": "string",
+          "description": "Indicador si se debe contactar al cliente (Si/No)",
+          "enum": [
+            "Si",
+            "No"
+          ]
+        }
+      },
+      "required": [
+        "nombre",
+        "solicitud"
+      ]
+    }
+  },
+  {
+    "name": "crear_link_pago",
+    "description": "Crea un enlace de pago para el contacto proporcionado y envía un flujo específico en ManyChat.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "nombre_del_contacto": {
+          "type": "string",
+          "description": "Nombre del contacto"
+        }
+      },
+      "required": [
+        "nombre_del_contacto"
+      ]
+    }
+  },
+  {
+    "name": "crear_actividad",
+    "description": " esta funcion solo se debe usar con la autorizacion explicita del usuario. la funcion es crear una actividad en una oportunidad/lead en el CRM de Odoo, con la  el resumen completo de la conversacion del cliente  ",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "solicitud": {
+          "type": "string",
+          "description": "se llena con el resumen completo de la conversacion que se tuvo con el cliente. Y cuando el cliente autorice el uso de esta herramientasobre"
+        }
+      },
+      "required": [
+        "solicitud"
+      ]
+    }
+  }
+]

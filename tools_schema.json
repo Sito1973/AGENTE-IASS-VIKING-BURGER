@@ -1,0 +1,16 @@
+ {
+    "name": "crear_actividad",
+    "description": " esta funcion solo se debe usar con la autorizacion explicita del usuario. la funcion es crear una actividad en una oportunidad/lead en el CRM de Odoo, con la  el resumen completo de la conversacion del cliente  ",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "solicitud": {
+          "type": "string",
+          "description": "Información completa sobre lo que el cliente está quiere, incluyendo un resumen de la conversación y y explicando para que nos contacto"
+        }
+      },
+      "required": [
+        "solicitud"
+      ]
+    }
+  }
