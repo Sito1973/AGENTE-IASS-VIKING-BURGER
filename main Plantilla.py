@@ -1,6 +1,8 @@
 import json
 import requests
 import random
+import google.genai as genai
+from google.genai import types
 import base64
 import os
 import time
@@ -15,6 +17,8 @@ import pytz
 from datetime import timedelta
 import xmlrpc.client
 from bs4 import BeautifulSoup  # Importar BeautifulSoup para convertir HTML a texto
+
+#https://github.com/googleapis/python-genai
 
 app = Flask(__name__)
 
@@ -90,6 +94,29 @@ class ManyChatAPI:
                     response.text)
         return response
 
+    def set_custom_fields_agendar_llamada(self, subscriber_id, contact_data):
+        """Guarda los campos personalizados en ManyChat para agendar llamada"""
+        logger.debug("Enviando set_custom_fields_agendar_llamada para subscriber_id: %s", subscriber_id)
+        url = f'{self.base_url}/subscriber/setCustomFields'
+        payload = {
+            "subscriber_id": subscriber_id,
+            "fields": [
+               
+                {
+                    "field_name": "fecha_llamada",
+                    "field_value": contact_data["fecha_llamada"]
+                },
+                {
+                    "field_name": "hora_llamada",
+                    "field_value": contact_data["hora_llamada"]
+                }
+            ]
+        }
+        logger.debug("Enviando set_custom_fields_agendar_llamada con payload: %s", payload)
+        response = requests.post(url, headers=self.headers, json=payload)
+        logger.info("Respuesta set_custom_fields_agendar_llamada: %s %s", response.status_code, response.text)
+        return response
+
     def send_flow(self, subscriber_id, flow_ns="content20241029204321_898129"):
         """Envía un flujo específico al suscriptor para crear contacto"""
         url = f'{self.base_url}/sending/sendFlow'
@@ -134,13 +161,22 @@ class ManyChatAPI:
                     response.text)
         return response
 
+import re
+
 def remove_thinking_block(text):
     """
-    Elimina el bloque <thinking>...</thinking> del texto.
+    Elimina todos los bloques <thinking>...</thinking> del texto.
+
+    Args:
+        text (str): El texto del cual se eliminarán los bloques <thinking>.
+
+    Returns:
+        str: El texto limpio sin los bloques <thinking>.
     """
     pattern = re.compile(r'<thinking>.*?</thinking>', re.DOTALL | re.IGNORECASE)
     cleaned_text = pattern.sub('', text).strip()
     return cleaned_text
+
 
 
 
@@ -218,48 +254,77 @@ def save_contact(contact_data, subscriber_id):
         }
 
 
-def crear_link_pago(tool_input, subscriber_id):
+def agendar_llamada(tool_input, subscriber_id):
     """
-    Función para crear un enlace de pago y enviar un flujo específico en ManyChat
+    Función para agendar una llamada y enviar un flujo específico en ManyChat
     """
-    logger.info("Iniciando crear_link_pago con datos: %s", tool_input)
-    logger.debug("subscriber_id en crear_link_pago: %s", subscriber_id)
+    logger.info("Iniciando agendar_llamada con datos: %s", tool_input)
+    logger.debug("subscriber_id en agendar_llamada: %s", subscriber_id)
     try:
         manychat = ManyChatAPI()
-        flow_ns = "content20241105191240_679356"  # El flujo específico que deseas enviar
+        # **AQUI CAMBIAS EL FLOW_NS AL QUE DESEAS**
+        flow_ns = "content20241105191240_679356"  # **Este es el flujo para agendar llamada**
 
-        # Acceder a 'nombre_del_contacto' sin espacios
+        # Extraer los datos del input
         nombre_contacto = tool_input.get("nombre_del_contacto")
+        #telefono_contacto = tool_input.get("telefono_contacto")
+        fecha_llamada = tool_input.get("fecha_llamada")
+        hora_llamada = tool_input.get("hora_llamada")
 
-        # Aquí podrías incluir lógica adicional utilizando 'nombre_contacto' si es necesario
-
-        # Enviar el flujo al suscriptor
-        flow_response = manychat.send_flow(subscriber_id, flow_ns)
-
-        if flow_response.status_code in [200, 201]:
-            result = {
-                "status": "success",
-                "message":
-                "Enlace de pago creado y flujo enviado exitosamente",
-                "flow_response": flow_response.json()
-            }
-        else:
-            result = {
+        # Validar que los datos obligatorios estén presentes
+        if not all([nombre_contacto, fecha_llamada, hora_llamada]):
+            return {
                 "status": "error",
-                "message": f"Error al enviar el flujo: {flow_response.text}",
-                "status_code": flow_response.status_code
+                "message": "Faltan datos obligatorios para agendar la llamada."
             }
 
-        logger.info("Resultado de crear_link_pago: %s", result)
+        # Crear un diccionario con los datos para ManyChat
+        contact_data = {
+            #"telefono_contacto": telefono_contacto,
+            "fecha_llamada": fecha_llamada,
+            "hora_llamada": hora_llamada
+        }
+
+        # Paso 1: Guardar campos personalizados en ManyChat usando la función específica
+        fields_response = manychat.set_custom_fields_agendar_llamada(subscriber_id, contact_data)
+        if fields_response.status_code not in [200, 201]:
+            logger.error("Error al guardar campos en ManyChat: %s", fields_response.text)
+            return {
+                "status": "error",
+                "message": f"Error al guardar campos en ManyChat: {fields_response.text}",
+                "status_code": fields_response.status_code
+            }
+
+        # Paso 2: Enviar el flujo en ManyChat
+        flow_response = manychat.send_flow(subscriber_id, flow_ns)
+        if flow_response.status_code not in [200, 201]:
+            logger.error("Error al enviar el flujo en ManyChat: %s", flow_response.text)
+            return {
+                "status": "partial_success",
+                "message": f"Campos guardados pero error al enviar flujo en ManyChat: {flow_response.text}",
+                "fields_response": fields_response.json(),
+                "flow_response": flow_response.text,
+                "data": contact_data
+            }
+
+        # Construir respuesta final
+        result = {
+            "status": "success",
+            "message": "Llamada agendada exitosamente",
+            "fields_response": fields_response.json(),
+            "flow_response": flow_response.json(),
+            "data": contact_data
+        }
+
+        logger.info("agendar_llamada result: %s", result)
         return result
 
     except Exception as e:
-        logger.exception("Error en crear_link_pago: %s", e)
+        logger.exception("Error en agendar_llamada: %s", e)
         return {
             "status": "error",
             "message": f"Error al procesar la solicitud: {str(e)}"
         }
-
 
 def update_contact(contact_data, subscriber_id):
     """
@@ -350,7 +415,7 @@ def generate_response(api_key, message, assistant_content_text, thread_id,
         # Mapear nombres de herramientas a funciones
         tool_functions = {
             "crear_contacto": save_contact,
-            "crear_link_pago": crear_link_pago,
+            "agendar_llamada": agendar_llamada,
             "crear_actividad": update_contact
         }
 
@@ -366,7 +431,7 @@ def generate_response(api_key, message, assistant_content_text, thread_id,
         while True:
             # logger.info("IGRESE TY3TRTR2YTR432RYT4R23TR4Y23YT4RY2RYT4RYRY3RY32RY32RY")
 
-            response = client.beta.prompt_caching.messages.create(
+            response = client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1000,
                 temperature=0.8,
@@ -500,7 +565,207 @@ def generate_response(api_key, message, assistant_content_text, thread_id,
 
 
 
+def generate_response_gemini(api_key, message, assistant_content_text, thread_id,
+                             event, subscriber_id, use_cache_control):
+    logger.info("Generando respuesta con Gemini para thread_id: %s", thread_id)
+    logger.debug("subscriber_id en generate_response_gemini: %s", subscriber_id)
 
+    try:
+        # Configurar las credenciales de autenticación
+        if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service_account.json"
+
+        # Leer proyecto y ubicación desde variables de entorno o usar valores por defecto
+        project = os.environ.get('GCP_PROJECT', 'gemini-cocoson')  # Reemplaza con tu ID de proyecto
+        location = os.environ.get('GCP_LOCATION', 'us-central1')
+
+        client = genai.Client(
+            vertexai=True,
+            project=project,
+            location=location
+        )
+
+        model = os.environ.get('GEMINI_MODEL', 'gemini-2.0-flash-exp')
+
+        conversation_history = conversations[thread_id]["messages"]
+
+        # Agregar el mensaje del usuario al historial de conversación
+        user_message_content = {"type": "text", "text": message}
+        if use_cache_control:
+            user_message_content["cache_control"] = {"type": "ephemeral"}
+
+        conversation_history.append({
+            "role": "user",
+            "content": [user_message_content]
+        })
+        logger.debug("Historial de conversación actualizado: %s", conversation_history)
+
+        # Leer las herramientas desde el archivo gemini.json
+        tools_file_path = os.path.join(os.path.dirname(__file__), 'gemini.json')
+        with open(tools_file_path, 'r', encoding='utf-8') as tools_file:
+            tools_json = json.load(tools_file)
+        logger.info("Herramientas cargadas desde gemini.json")
+
+        # Mapear las herramientas a la estructura esperada por Gemini
+        tools = []
+        function_definitions = []
+        for tool in tools_json:
+            # Crear la definición de la función
+            function = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": tool["parameters"]
+            }
+            function_definitions.append(function)
+
+            # Agregar la función como herramienta
+            tools.append(types.Tool(function_declarations=[function]))
+
+        logger.debug("Herramientas procesadas para Gemini: %s", function_definitions)
+
+        # Construir la lista de contenidos para la API de Gemini
+        contents = []
+        for msg in conversation_history:
+            role = msg['role']
+            content_blocks = msg['content']
+            message_text = ''
+            for block in content_blocks:
+                if block['type'] == 'text':
+                    message_text += block['text']
+
+            # Mapear roles a los esperados por Gemini
+            if role == 'assistant':
+                gemini_role = 'model'
+            elif role == 'user':
+                gemini_role = 'user'
+            else:
+                gemini_role = role  # En caso de otros roles
+
+            contents.append(types.Content(
+                role=gemini_role,
+                parts=[types.Part.from_text(message_text)]
+            ))
+
+        # Construir la instrucción del sistema
+        system_instruction = [types.Part.from_text(assistant_content_text)]
+
+        # Configurar los parámetros de generación, incluyendo las herramientas
+        generate_content_config = types.GenerateContentConfig(
+            temperature=0.8,
+            top_p=0.95,
+            max_output_tokens=1000,
+            response_modalities=["TEXT"],
+            tools=tools,
+            safety_settings=[
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HATE_SPEECH",
+                    threshold="BLOCK_NONE"
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold="BLOCK_NONE"
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold="BLOCK_NONE"
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HARASSMENT",
+                    threshold="BLOCK_NONE"
+                )
+            ],
+            system_instruction=system_instruction,
+        )
+
+        # Generar la respuesta
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=generate_content_config,
+        )
+
+        # Manejar la respuesta y posibles llamadas a funciones
+        assistant_response = ''
+        for part in response.candidates[0].content.parts:
+            if part.function_call:
+                # El modelo quiere usar una herramienta
+                function_name = part.function_call.name
+                function_args = part.function_call.args
+
+                logger.info("Uso de herramienta detectado: %s", function_name)
+                logger.debug("Argumentos de la herramienta: %s", function_args)
+
+                # Mapear nombres de herramientas a funciones
+                tool_functions = {
+                    "crear_contacto": save_contact,
+                    "agendar_llamada": agendar_llamada,
+                    "crear_actividad": update_contact
+                }
+
+                if function_name in tool_functions:
+                    # Ejecutar la función correspondiente
+                    function_args_dict = function_args
+                    result = tool_functions[function_name](function_args_dict, subscriber_id)
+                    logger.debug("Resultado de la herramienta %s: %s", function_name, result)
+
+                    # Enviar el resultado de la función al modelo
+                    function_response_part = types.Part.from_function_response(
+                        name=function_name,
+                        response=result
+                    )
+
+                    # Agregar la llamada de función y la respuesta al historial
+                    contents.append(types.Content(
+                        role='model',
+                        parts=[part]
+                    ))
+                    contents.append(types.Content(
+                        role='user',
+                        parts=[function_response_part]
+                    ))
+
+                    # Generar la siguiente respuesta del modelo
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=contents,
+                        config=generate_content_config,
+                    )
+
+                    # Obtener la nueva respuesta del asistente
+                    assistant_response = ''
+                    for new_part in response.candidates[0].content.parts:
+                        if new_part.text:
+                            assistant_response += new_part.text
+                else:
+                    logger.warning("Herramienta desconocida: %s", function_name)
+                    assistant_response += f"No se reconoce la herramienta {function_name}."
+            else:
+                if part.text:
+                    assistant_response += part.text
+
+        # Agregar la respuesta del asistente al historial de conversación
+        assistant_message_content = {"type": "text", "text": assistant_response}
+        if use_cache_control:
+            assistant_message_content["cache_control"] = {"type": "ephemeral"}
+
+        conversation_history.append({
+            "role": "assistant",
+            "content": [assistant_message_content]
+        })
+        logger.debug("Respuesta del asistente añadida al historial")
+
+        # Actualizar el estado de la conversación
+        conversations[thread_id]["response"] = assistant_response
+        conversations[thread_id]["status"] = "completed"
+        logger.info("Respuesta generada para thread_id: %s", thread_id)
+
+    except Exception as e:
+        logger.exception("Error en generate_response_gemini para thread_id %s: %s", thread_id, e)
+        conversations[thread_id]["response"] = f"Error: {str(e)}"
+        conversations[thread_id]["status"] = "error"
+    finally:
+        event.set()
+        logger.debug("Evento establecido para thread_id: %s", thread_id)
 
 @app.route('/sendmensaje', methods=['POST'])
 def send_message():
@@ -511,10 +776,14 @@ def send_message():
     assistant_value = data.get('assistant')
     thread_id = data.get('thread_id')
     subscriber_id = data.get('subscriber_id')  # Nuevo parámetro
+    thinking = data.get('thinking', 1)  # Nuevo parámetro con valor por defecto 1
+    modelID = data.get('modelID', 'anthropic')  # Nuevo parámetro con valor por defecto 'anthropic'
     logger.info("subscriber_id recibido: %s", subscriber_id)
+    logger.info("thinking recibido: %s", thinking)
+    logger.info("ModelID recibido: %s", modelID)
     use_cache_control = data.get('use_cache_control', False)
     logger.info("Cache control es %s", use_cache_control)
-    logger.info("ppppppppppppppppppppppppppppppppp %s", message)
+    logger.info("Mensaje recibido: %s", message)
 
     # Extraer las variables adicionales
     variables = data.copy()
@@ -523,6 +792,8 @@ def send_message():
     variables.pop('assistant', None)
     variables.pop('thread_id', None)
     variables.pop('subscriber_id', None)
+    variables.pop('thinking', None)
+    variables.pop('modelID', None)  # Remover 'modelID' de las variables adicionales
 
     if not subscriber_id:
         logger.warning("Falta el 'subscriber_id' en la solicitud")
@@ -584,23 +855,34 @@ def send_message():
             "status": "processing",
             "response": None,
             "messages": [],
-            "assistant": assistant_value
+            "assistant": assistant_value,
+            "thinking": thinking  # Almacenar el valor de 'thinking'
         }
         logger.info("Creada nueva conversación para thread_id: %s", thread_id)
     else:
         if assistant_value is not None:
             conversations[thread_id]["assistant"] = assistant_value
-            logger.debug("Actualizado valor de assistant para thread_id: %s",
+            conversations[thread_id]["thinking"] = thinking  # Actualizar el valor de 'thinking'
+            logger.debug("Actualizado valor de assistant y thinking para thread_id: %s",
                          thread_id)
         else:
             assistant_value = conversations[thread_id]["assistant"]
+            thinking = conversations[thread_id].get("thinking", 0)  # Obtener el valor actual de 'thinking'
 
     conversations[thread_id]["status"] = "processing"
     event = Event()
 
-    thread = Thread(target=generate_response,
-                    args=(api_key, message, assistant_content, thread_id,
-                          event, subscriber_id, use_cache_control))
+    # Decidir qué función de generación de respuesta usar según modelID
+    if modelID.lower() == 'gemini':
+        thread = Thread(target=generate_response_gemini,
+                        args=(api_key, message, assistant_content, thread_id,
+                              event, subscriber_id, use_cache_control))
+        logger.info("Usando generate_response_gemini para thread_id: %s", thread_id)
+    else:
+        thread = Thread(target=generate_response,
+                        args=(api_key, message, assistant_content, thread_id,
+                              event, subscriber_id, use_cache_control))
+        logger.info("Usando generate_response (Anthropic) para thread_id: %s", thread_id)
 
     logger.info("Iniciando hilo con subscriber_id: %s", subscriber_id)
     thread.start()
@@ -617,12 +899,23 @@ def send_message():
 
     if conversations[thread_id]["status"] == "completed":
         logger.info("Proceso completado para thread_id: %s", thread_id)
+        # Obtener la respuesta original
+        original_response = conversations[thread_id].get("response", "")
+        # Obtener el valor de 'thinking'
+        current_thinking = conversations[thread_id].get("thinking", 0)
+        if current_thinking == 1:
+            # Limpiar la respuesta eliminando el bloque <thinking>
+            cleaned_response = remove_thinking_block(original_response)
+        else:
+            # No limpiar la respuesta
+            cleaned_response = original_response
+
         response_data = {
-            "response": conversations[thread_id]["response"],
+            "response": cleaned_response,
             "thread_id": thread_id,
             "usage": conversations[thread_id].get("usage")
         }
-        #ogger.info("Datos de respuesta enviados al cliente: %s", response_data)
+        logger.info("Datos de respuesta enviados al cliente: %s", response_data)
         return jsonify(response_data)
     else:
         logger.info("Run_id en espera para thread_id: %s", thread_id)
@@ -630,7 +923,6 @@ def send_message():
             "response": "run_id en espera",
             "thread_id": thread_id
         })
-
 
 
 @app.route('/status', methods=['POST'])
@@ -648,15 +940,37 @@ def check_status():
         status = conversations[thread_id]["status"]
         if status == "completed":
             logger.info("Estado completed para thread_id: %s", thread_id)
+            # Obtener la respuesta original
+            original_response = conversations[thread_id].get("response", "")
+            # Obtener el valor de 'thinking'
+            current_thinking = conversations[thread_id].get("thinking", 0)
+            if current_thinking == 1:
+                # Limpiar la respuesta eliminando el bloque <thinking>
+                cleaned_response = remove_thinking_block(original_response)
+            else:
+                # No limpiar la respuesta
+                cleaned_response = original_response
+
             return jsonify({
-                "response": conversations[thread_id]["response"],
+                "response": cleaned_response,
                 "usage": conversations[thread_id].get("usage")
             })
         elif status == "error":
             logger.error("Estado error para thread_id: %s, mensaje: %s",
                          thread_id, conversations[thread_id]['response'])
+            # Obtener el mensaje de error original
+            original_error = conversations[thread_id].get('response', 'Error desconocido')
+            # Obtener el valor de 'thinking'
+            current_thinking = conversations[thread_id].get("thinking", 0)
+            if current_thinking == 1:
+                # Limpiar el mensaje de error eliminando el bloque <thinking>
+                cleaned_error = remove_thinking_block(original_error)
+            else:
+                # No limpiar el mensaje de error
+                cleaned_error = original_error
+
             return jsonify(
-                {"response": f"Error: {conversations[thread_id]['response']}"})
+                {"response": f"Error: {cleaned_error}"})
         time.sleep(0.5)
 
     logger.info("Run_id en espera tras timeout para thread_id: %s", thread_id)
@@ -940,6 +1254,75 @@ def crear_actividad():
     except xmlrpc.client.Fault as fault:
         return jsonify({'error':
                         f"Error al comunicarse con Odoo: {fault}"}), 500
+    except Exception as e:
+        return jsonify({'error': f"Ocurrió un error: {e}"}), 500
+
+@app.route('/crearevento', methods=['POST'])
+def crear_evento():
+    try:
+        # Obtener los datos del cuerpo de la solicitud
+        datos = request.get_json()
+        if not datos:
+            return jsonify({'error': 'El cuerpo de la solicitud debe ser JSON válido.'}), 400
+
+        # Extraer credenciales y parámetros del evento
+        url = datos.get('url')
+        db = datos.get('db')
+        username = datos.get('username')
+        password = datos.get('password')
+
+        # Datos del evento
+        name = datos.get('name') # Nombre del evento
+        start = datos.get('start') # Fecha y hora de inicio
+        stop = datos.get('stop') # Fecha y hora de fin
+        duration = datos.get('duration')
+        description = datos.get('description')
+        user_id = datos.get('user_id')
+
+        # Campos opcionales
+        allday = datos.get('allday', False) # Evento de todo el día (opcional)
+        partner_ids = datos.get('partner_ids', []) # Lista de IDs de partners (opcional)
+        location = datos.get('location', '')
+
+        # Verificar que todos los campos obligatorios están presentes
+        campos_obligatorios = [url, db, username, password, name, start, duration]
+        if not all(campos_obligatorios):
+            return jsonify({'error': 'Faltan campos obligatorios en la solicitud.'}), 400
+
+        # Autenticación con Odoo
+        common = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/common')
+        uid = common.authenticate(db, username, password, {})
+        if not uid:
+            return jsonify({'error': 'Autenticación fallida. Verifica tus credenciales.'}), 401
+
+        # Conexión con el modelo
+        models = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/object')
+
+        # Preparar datos del evento
+        datos_evento = {
+            'name': name,
+            'start': start,
+            'duration': duration,
+            'description': description or '',
+            'user_id': user_id or uid,
+            'allday': allday,
+            'partner_ids': [(6, 0, partner_ids)],
+            'location': location
+
+        }
+
+        if stop:
+            datos_evento['stop'] = stop
+        else:
+             datos_evento['stop'] =  (datetime.fromisoformat(start) + timedelta(hours=float(duration))).isoformat()
+
+        # Crear el evento en el calendario
+        evento_id = models.execute_kw(db, uid, password, 'calendar.event', 'create', [datos_evento])
+
+        return jsonify({'mensaje': f'Evento creado con ID: {evento_id}', 'id': evento_id}), 200
+
+    except xmlrpc.client.Fault as fault:
+        return jsonify({'error': f"Error al comunicarse con Odoo: {fault}"}), 500
     except Exception as e:
         return jsonify({'error': f"Ocurrió un error: {e}"}), 500
 

@@ -41,26 +41,18 @@
     }
   },
   {
-    "name": "agendar_llamada",
-    "description": "Crea una cita  el la aplicacion calendario para agendar llamada y terminar el proceso de asesoria",
+    "name": "crear_link_pago",
+    "description": "Crea un enlace de pago para el contacto proporcionado y envía un flujo específico en ManyChat.",
     "input_schema": {
       "type": "object",
       "properties": {
         "nombre_del_contacto": {
           "type": "string",
           "description": "Nombre del contacto"
-        },
-        "fecha_llamada": {
-          "type": "string",
-          "description": "Fecha agendamiento de la llamada al cliente"
-        },
-        "hora_llamada": {
-          "type": "string",
-          "description": "hora para la llamada con el cliente"
         }
       },
       "required": [
-        "nombre_del_contacto", "fecha_LLamada", "hora_llamada"
+        "nombre_del_contacto"
       ]
     }
   },

@@ -1,0 +1,64 @@
+[
+  {
+    "name": "crear_pedido",
+    "description": "Crea un pedido a partir de la solicitud del cliente esta funcion se debe usar para tomar el pedido del cliente, se debe tener la confirmacion  del cliente para guardar los datos y que todos los campos estén correctamente formateados antes de crear el pedido.",
+    "parameters": {
+      "type": "OBJECT",
+      "properties": {
+        "nombre": {
+          "type": "STRING",
+          "description": "Nombre del contacto"
+        },
+        "apellido": {
+          "type": "STRING",
+          "description": "Apellido del contacto"
+        },
+        "pedido_confirmado": {
+          "type": "STRING",
+          "description": "pedido completo de los productos con valores, obligatorio colocar todas las observaciones y recomendaciones realizadas por el cliente"
+        },
+        "valor_pedido": {
+          "type": "INTEGER",
+          "description": "VALOR TOTAL DEL PEDIDO"
+        }
+      },
+      "required": ["nombre", "apellido","pedido_confirmado", "valor_pedido"]
+    }
+  },
+  {
+    "name": "crear_link_pago",
+    "description": "esta funcio crea el link de pago , obligatorio usarse si se  uso la tools crear_pedido.",
+    "parameters": {
+      "type": "OBJECT",
+      "properties": {
+        "valor_pedido": {
+          "type": "INTEGER",
+          "description": "obligatorio "
+        },
+        "valor_domicilio": {
+          "type": "INTEGER",
+          "description": "VALOR DE DOMICILIO SINO SE PROVEE COLOCAR 0"
+        },
+        "valor_total": {
+          "type": "INTEGER",
+          "description": "SUMA DEL VALOR DEL PEDIDO + EL VALOR DEL DOMICILIO"
+        }
+      },
+      "required": ["valor_pedido", "valor_domicilio", "valor_total"]
+    }
+  },
+  {
+    "name": "crear_actividad",
+    "description": "Esta función solo se debe usar con la autorización explícita del usuario. La función es crear una actividad en una oportunidad (lead) en el CRM de Odoo, con el resumen completo de la conversación del cliente.",
+    "parameters": {
+      "type": "OBJECT",
+      "properties": {
+        "solicitud": {
+          "type": "STRING",
+          "description": "Se llena con el resumen completo de la conversación que se tuvo con el cliente, y cuando el cliente autorice el uso de esta herramienta"
+        }
+      },
+      "required": ["solicitud"]
+    }
+  }
+]
