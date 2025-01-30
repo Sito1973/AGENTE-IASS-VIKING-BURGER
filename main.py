@@ -469,7 +469,7 @@ def generate_response(
                 "messages": conversation_history,
                 "tools": tools,
             }
-            logger.info(f"Solicitud a Anthropic API Payload: {request_payload_log}")
+            #logger.info(f"Solicitud a Anthropic API Payload: {request_payload_log}")
 
             response = client.messages.create(
                 model="claude-3-5-haiku-20241022",
@@ -677,8 +677,7 @@ def generate_response_gemini(
 
             contents.append(
                 types.Content(
-                    role=gemini_role, parts=[types.Part.from_text(message_text)]
-                )
+                    role=gemini_role, parts=[types.Part.from_text(text=message_text)]
             )
 
         system_instruction = [types.Part.from_text(assistant_content_text)]
