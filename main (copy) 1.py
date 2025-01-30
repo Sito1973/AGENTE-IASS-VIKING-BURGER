@@ -55,9 +55,7 @@ ASSISTANT_FILES = {
     7: "ASISTENTE_LV_RECOGER.txt",
     8: "ASISTENTE_LV_RECOGER_PROMO.txt",
     9: "ASISTENTE_POSTVENTA_DOMICILIO.txt",
-    10: "ASISTENTE_POSTVENTA_RECOGER.txt",
-    11: 'ASISTENTE_FORMA_PAGO.txt',
-    12: "ASISTENTE_0_INICIAL_PROMO.txt"
+    10: "ASISTENTE_POSTVENTA_RECOGER.txt"
 }
 
 conversations = {}
@@ -66,18 +64,20 @@ conversations = {}
 class N8nAPI:
 
     def __init__(self):
-        self.crear_pedido_webhook_url = os.environ.get("N8N_CREAR_PEDIDO_WEBHOOK_URL")
-        self.link_pago_webhook_url = os.environ.get("N8N_LINK_PAGO_WEBHOOK_URL")
-        self.enviar_menu_webhook_url = os.environ.get("N8N_ENVIAR_MENU_WEBHOOK_URL")
-        self.crear_direccion_webhook_url =os.environ.get("N8N_CREAR_DIRECCION_WEBHOOK_URL")
-        self.eleccion_forma_pago_url =os.environ.get("N8N_ELECCION_FORMA_PAGO_WEBHOOK_URL")
+        self.webhook_url = os.environ.get(
+            'N8N_WEBHOOK_URL',
+            'https://n8n.cocinandosonrisas.co/webhook/creacionPedidoSPApi')
+        self.link_pago_webhook_url = os.environ.get(
+            'N8N_LINK_PAGO_WEBHOOK_URL',
+            'https://n8n.cocinandosonrisas.co/webhook/crearLinkPagoSPApi')
         # Puedes añadir más URLs de webhook si lo necesitas
-        logger.info("Inicializado N8nAPI con las URLs")
+        logger.info("Inicializado N8nAPI con las URLs: %s, %s",
+                    self.webhook_url, self.link_pago_webhook_url)
 
-    def crear_pedido(self, payload):
+    def enviar_pedido(self, payload):
         """Envía el pedido al webhook de n8n"""
         logger.debug("Enviando pedido a n8n con payload: %s", payload)
-        response = requests.post(self.crear_pedido_webhook_url, json=payload)
+        response = requests.post(self.webhook_url, json=payload)
         logger.info("Respuesta de n8n al enviar pedido: %s %s",
                     response.status_code, response.text)
         return response
@@ -88,33 +88,6 @@ class N8nAPI:
                      payload)
         response = requests.post(self.link_pago_webhook_url, json=payload)
         logger.info("Respuesta de n8n al enviar datos de link de pago: %s %s",
-                    response.status_code, response.text)
-        return response
-
-    def enviar_menu(self, payload):
-        """Envía los datos para generar el link de pago al webhook de n8n"""
-        logger.debug("Enviando datos de link de pago a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.enviar_menu_webhook_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos de link de pago: %s %s",
-                    response.status_code, response.text)
-        return response
-
-    def crear_direccion(self, payload):
-        """Envía los datos para generar el link de pago al webhook de n8n"""
-        logger.debug("Enviando datos para crear direccion a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.crear_direccion_webhook_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos crear direccion: %s %s",
-                    response.status_code, response.text)
-        return response
-
-    def eleccion_forma_pago(self, payload):
-        """Envía los datos para registrar la forma de pago al webhook de n8n"""
-        logger.debug("Enviando datos para eleccion forma de pago a n8n con payload: %s",
-                     payload)
-        response = requests.post( self.eleccion_forma_pago_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos eleccion_forma_pago: %s %s",
                     response.status_code, response.text)
         return response
 
@@ -158,7 +131,7 @@ def create_svg_base64(letter, width, height):
     return base64_string, svg_string
 
 
-def crear_pedido(tool_input, subscriber_id):
+def crear_pedido(tool_input, subscriber_id, telefono, direccionCliente):
     """
     Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
     """
@@ -170,17 +143,16 @@ def crear_pedido(tool_input, subscriber_id):
 
         # Construir el payload con la información del tool_input y las variables adicionales
         payload = {
-            "response": {
-                "tool_code": "crear_pedido",
-                "subscriber_id": subscriber_id,
-                "datos": tool_input  # Datos provenientes del LLM
-            }
+            "subscriber_id": subscriber_id,
+            "telefono": telefono,
+            "direccionCliente": direccionCliente,
+            "pedido": tool_input  # Datos provenientes del LLM
         }
 
         logger.debug("Payload para enviar al webhook de n8n: %s", payload)
 
         # Enviar el payload al webhook de n8n
-        response = n8n_api.crear_pedido(payload)
+        response = n8n_api.enviar_pedido(payload)
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
@@ -219,11 +191,8 @@ def crear_link_pago(tool_input, subscriber_id):
 
         # Construir el payload con la información del tool_input
         payload = {
-            "response": {
-                "tool_code": "crear_link_pago",
-                "subscriber_id": subscriber_id,
-                "datos": tool_input  # Datos provenientes del LLM
-            }
+            "subscriber_id": subscriber_id,
+            "datos_pago": tool_input  # Datos provenientes del LLM
         }
 
         logger.debug("Payload para enviar al webhook de n8n: %s", payload)
@@ -259,166 +228,10 @@ def crear_link_pago(tool_input, subscriber_id):
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
 
-def enviar_menu(tool_input, subscriber_id):
-    """
-    Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
-    """
-    logger.info("Iniciando enviar_menu con datos: %s", tool_input)
-    logger.debug("subscriber_id en crear_pedido: %s", subscriber_id)
-
-    try:
-        n8n_api = N8nAPI()
-
-        # Construir el payload con la información del tool_input y las variables adicionales
-        payload = {
-            "response": {
-                "tool_code": "enviar_menu",
-                "subscriber_id": subscriber_id,
-                "sede": tool_input  # Datos provenientes del LLM
-            }
-        }
-
-
-        logger.debug("Payload para enviar al webhook de n8n: %s", payload)
-
-        # Enviar el payload al webhook de n8n
-        response = n8n_api.enviar_menu(payload)
-
-        # Verificar si la respuesta es exitosa
-        if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s",
-                         response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
-            result = {"error": response.text}
-        else:
-            # Si todo va bien, retornamos el contenido de la respuesta de n8n
-            response_content = response.json(
-            ) if 'application/json' in response.headers.get(
-                'Content-Type', '') else {
-                    "message": response.text
-                }
-            result = {
-                "result": response_content.get('message', 'Operación exitosa.')
-            }
-
-        logger.info("enviar_menu result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
-
-    except Exception as e:
-        logger.exception("Error en enviar_menu: %s", e)
-        return {"error": f"Error al procesar la solicitud: {str(e)}"}
-
-def crear_direccion(tool_input, subscriber_id ):
-    """
-    Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
-    """
-    logger.info("Iniciando crear_direccion con datos: %s", tool_input)
-    logger.debug("subscriber_id en crear_pedido: %s", subscriber_id)
-
-    try:
-        n8n_api = N8nAPI()
-
-        # Construir el payload con la información del tool_input y las variables adicionales
-        payload = {
-            "response": {
-                "tool_code": "crear_direccion",
-                "subscriber_id": subscriber_id,
-                "sede": tool_input  # Datos provenientes del LLM
-            }
-        }
-
-
-        logger.debug("Payload para enviar al webhook de n8n: %s", payload)
-
-        # Enviar el payload al webhook de n8n
-        response = n8n_api.crear_direccion(payload)
-
-        # Verificar si la respuesta es exitosa
-        if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s",
-                         response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
-            result = {"error": response.text}
-        else:
-            # Si todo va bien, retornamos el contenido de la respuesta de n8n
-            response_content = response.json(
-            ) if 'application/json' in response.headers.get(
-                'Content-Type', '') else {
-                    "message": response.text
-                }
-            result = {
-                "result": response_content.get('message', 'Operación exitosa.')
-            }
-
-        logger.info("enviar_menu result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
-
-    except Exception as e:
-        logger.exception("Error en enviar_menu: %s", e)
-        return {"error": f"Error al procesar la solicitud: {str(e)}"}
-
-def eleccion_forma_pago(tool_input, subscriber_id ):
-    """
-    Función para enviar los datos de la froma de pago al webhook de n8n y devolver su respuesta al modelo
-    """
-    logger.info("Iniciando eleccion_forma_pago con datos: %s", tool_input)
-    logger.debug("subscriber_id en eleccion_forma_pago: %s", subscriber_id)
-
-    try:
-        n8n_api = N8nAPI()
-
-        # Construir el payload con la información del tool_input y las variables adicionales
-        payload = {
-            
-                "tool_code": "eleccion_forma_pago",
-                "id": subscriber_id,
-                "forma": tool_input  # Datos provenientes del LLM
-            
-        }
-
-
-        logger.debug("Payload para enviar al webhook de n8n: %s", payload)
-
-        # Enviar el payload al webhook de n8n
-        response = n8n_api.eleccion_forma_pago(payload)
-
-        # Verificar si la respuesta es exitosa
-        if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s",
-                         response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
-            result = {"error": response.text}
-        else:
-            # Si todo va bien, retornamos el contenido de la respuesta de n8n
-            response_content = response.json(
-            ) if 'application/json' in response.headers.get(
-                'Content-Type', '') else {
-                    "message": response.text
-                }
-            result = {
-                "result": response_content.get('message', 'Operación exitosa.')
-            }
-
-        logger.info("eleccion_forma_pagoresult: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
-
-    except Exception as e:
-        logger.exception("Error en enviar_menu: %s", e)
-        return {"error": f"Error al procesar la solicitud: {str(e)}"}
-
-def generate_response(
-    api_key,
-    message,
-    assistant_content_text,
-    thread_id,
-    event,
-    subscriber_id,
-    use_cache_control,  # Keep the parameter for function signature consistency, but we will ignore it for now
-):
+def generate_response(api_key, message, assistant_content_text, thread_id,
+                      event, subscriber_id, use_cache_control):
     logger.info("Generando respuesta para thread_id: %s", thread_id)
-    logger.info(
-        "CONTROL CACHING: %s", use_cache_control
-    )  # Keep the log for now, it will show 'False'
+
     logger.debug("subscriber_id en generate_response: %s", subscriber_id)
 
     try:
@@ -427,111 +240,108 @@ def generate_response(
 
         # Agregar el mensaje del usuario al historial de conversación
         user_message_content = {"type": "text", "text": message}
-        # REMOVE CACHE CONTROL FROM USER MESSAGE
         if use_cache_control:
-             user_message_content["cache_control"] = {"type": "ephemeral"}
+            user_message_content["cache_control"] = {"type": "ephemeral"}
 
-        conversation_history.append({"role": "user", "content": [user_message_content]})
-        logger.debug("Historial de conversación actualizado: %s", conversation_history)
+        conversation_history.append({
+            "role": "user",
+            "content": [user_message_content]
+        })
+        logger.debug("Historial de conversación actualizado: %s",
+                     conversation_history)
 
         # Leer las herramientas desde el archivo JSON
-        tools_file_path = os.path.join(os.path.dirname(__file__), "tools.json")
-        with open(tools_file_path, "r", encoding="utf-8") as tools_file:
+        tools_file_path = os.path.join(os.path.dirname(__file__), 'tools.json')
+        with open(tools_file_path, 'r', encoding='utf-8') as tools_file:
             tools = json.load(tools_file)
         logger.info("Herramientas cargadas desde tools.json")
 
+        # Obtener 'telefono' y 'direccionCliente' desde conversations
+        telefono = conversations.get(thread_id, {}).get('telefono')
+        direccionCliente = conversations.get(thread_id,
+                                             {}).get('direccionCliente')
+
         # Mapear nombres de herramientas a funciones
         tool_functions = {
-            "crear_pedido": crear_pedido,
-            "crear_link_pago": crear_link_pago,
-            "enviar_menu": enviar_menu,  # <--- Aquí está tu función
-            "crear_direccion": crear_direccion,
-            "eleccion_forma_pago": eleccion_forma_pago,
+            "crear_pedido":
+            lambda tool_input, subscriber_id: crear_pedido(
+                tool_input, subscriber_id, telefono, direccionCliente),
+            "crear_link_pago":
+            crear_link_pago
         }
 
         # Ajustar assistant_content para incluir cache_control si está habilitado
         assistant_content = [{"type": "text", "text": assistant_content_text}]
 
-        # REMOVE CACHE CONTROL FROM ASSISTANT CONTENT
-        # if use_cache_control:
-        #     assistant_content[0]["cache_control"] = {"type": "ephemeral"}
+        if use_cache_control:
+            assistant_content[0]["cache_control"] = {"type": "ephemeral"}
 
         # Iniciar la interacción con el modelo de Anthropic utilizando beta.prompt_caching
         while True:
-            # logger.info("IGRESE TY3TRTR2YTR432RYT4R23TR4Y23YT4RY2RYT4RYRY3RY32RY32RY")
-
-            # REGISTRO IMPORTANTE: Loguear la solicitud completa ANTES de enviarla a Anthropic
-            request_payload_log = {
-                "model": "claude-3-5-haiku-20241022",
-                "max_tokens": 1000,
-                "temperature": 0.8,
-                "system": assistant_content,
-                "messages": conversation_history,
-                "tools": tools,
-            }
-            logger.info(f"Solicitud a Anthropic API Payload: {request_payload_log}")
-
             response = client.messages.create(
-                model="claude-3-5-haiku-20241022",
+                #model="claude-3-5-haiku-latest",
+                model="claude-3-5-haiku-latest",
                 max_tokens=1000,
                 temperature=0.8,
                 system=assistant_content,
                 messages=conversation_history,
-                tools=tools,
+                #tools=tools
             )
-            # logger.info("Respuesta de Anthropic: %s", response)
+            #logger.info("Respuesta de Anthropic: %s", response)
 
             # Agregar la respuesta de Claude al historial de conversación
-            conversation_history.append(
-                {"role": "assistant", "content": response.content}
-            )
-            logger.info(
-                "Historial de conversación actualizado: %s", conversation_history
-            )
+            conversation_history.append({
+                "role": "assistant",
+                "content": response.content
+            })
+            logger.info("Historial de conversación actualizado: %s",
+                        conversation_history)
 
             # Extraer los tokens utilizados y otros valores de uso
             usage = {
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
-                "cache_creation_input_tokens": response.usage.cache_creation_input_tokens,
-                "cache_read_input_tokens": response.usage.cache_read_input_tokens,
+                "cache_creation_input_tokens":
+                response.usage.cache_creation_input_tokens,
+                "cache_read_input_tokens":
+                response.usage.cache_read_input_tokens
             }
 
             # Almacenar los valores de uso en el diccionario conversations
             conversations[thread_id]["usage"] = usage
 
-            logger.info(
-                "Tokens utilizados - Input: %d, Output: %d",
-                usage["input_tokens"],
-                usage["output_tokens"],
-            )
-            logger.info(
-                "Cache Creation Input Tokens: %d", usage["cache_creation_input_tokens"]
-            )
-            logger.info("Cache Read Input Tokens: %d", usage["cache_read_input_tokens"])
+            logger.info("Tokens utilizados - Input: %d, Output: %d",
+                        usage["input_tokens"], usage["output_tokens"])
+            logger.info("Cache Creation Input Tokens: %d",
+                        usage["cache_creation_input_tokens"])
+            logger.info("Cache Read Input Tokens: %d",
+                        usage["cache_read_input_tokens"])
 
             # Verificar el motivo de parada
             if response.stop_reason == "tool_use":
                 logger.info(
-                    "Respuesta ssssssssssssssssssssssssssssssssssssss %s", response
-                )
+                    "Respuesta ssssssssssssssssssssssssssssssssssssss %s",
+                    response)
                 # Procesar el uso de la herramienta
                 tool_use_blocks = [
-                    block for block in response.content if block.type == "tool_use"
+                    block for block in response.content
+                    if block.type == "tool_use"
                 ]
 
                 if not tool_use_blocks:
 
                     # Procesar la respuesta final sin herramientas
-                    assistant_response_text = ""
+                    assistant_response_text = ''
                     for content_block in response.content:
-                        if content_block.type == "text":
+                        if content_block.type == 'text':
                             assistant_response_text += content_block.text
 
                     # Guardar la respuesta generada y marcar la conversación como completada
-                    conversations[thread_id]["response"] = assistant_response_text
+                    conversations[thread_id][
+                        "response"] = assistant_response_text
                     conversations[thread_id]["status"] = "completed"
-                    logger.info("Respuesta generada para thread_id: %s", thread_id)
+                    logger.info("Respuesta generada para thread_id: %s",
+                                thread_id)
                     break  # Salir del bucle
 
                 tool_use = tool_use_blocks[0]
@@ -543,17 +353,16 @@ def generate_response(
                 logger.info("Entrada de la herramienta: %s", tool_input)
                 logger.info(
                     "Contenido completo de la respuesta del asistente: %s",
-                    response.content,
-                )
+                    response.content)
 
                 # Ejecutar la herramienta correspondiente
                 if tool_name in tool_functions:
 
                     # Llamar a la función correspondiente
-                    result = tool_functions[tool_name](tool_input, subscriber_id)
-                    logger.debug(
-                        "Resultado de la herramienta %s: %s", tool_name, result
-                    )
+                    result = tool_functions[tool_name](tool_input,
+                                                       subscriber_id)
+                    logger.debug("Resultado de la herramienta %s: %s",
+                                 tool_name, result)
                     logger.info(
                         f"Resultado de la herramienta {tool_name} ANTES de json.dumps(): {result}"
                     )  # Nuevo log
@@ -561,37 +370,33 @@ def generate_response(
                     logger.info(
                         f"Resultado de la herramienta {tool_name} DESPUÉS de json.dumps(): {result_json}"
                     )  # Nuevo log
-                    logger.debug(
-                        "Resultado de la herramienta %s: %s", tool_name, result
-                    )
+                    logger.debug("Resultado de la herramienta %s: %s",
+                                 tool_name, result)
 
                     # Agregar el resultado de la herramienta al historial de conversación
-                    conversation_history.append(
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": tool_use.id,
-                                    "content": json.dumps(result),
-                                }
-                            ],
-                        }
-                    )
+                    conversation_history.append({
+                        "role":
+                        "user",
+                        "content": [{
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": json.dumps(result)
+                        }]
+                    })
                     logger.info(
                         f"Contenido del mensaje enviado a Anthropic: {conversation_history[-1]}"
                     )  # Nuevo log
                     logger.debug(
-                        "Resultado de la herramienta %s añadido al historial", tool_name
-                    )
+                        "Resultado de la herramienta %s añadido al historial",
+                        tool_name)
                 else:
                     logger.warning("Herramienta desconocida: %s", tool_name)
                     break  # Salir del bucle si la herramienta no es reconocida
             else:
                 # No hay más herramientas por usar; obtener la respuesta final
-                assistant_response_text = ""
+                assistant_response_text = ''
                 for content_block in response.content:
-                    if content_block.type == "text":
+                    if content_block.type == 'text':
                         assistant_response_text += content_block.text
 
                 # Actualizar el estado de la conversación
@@ -601,14 +406,14 @@ def generate_response(
                 break  # Salir del bucle al completar la interacción
 
     except Exception as e:
-        logger.exception(
-            "Error en generate_response para thread_id %s: %s", thread_id, e
-        )
+        logger.exception("Error en generate_response para thread_id %s: %s",
+                         thread_id, e)
         conversations[thread_id]["response"] = f"Error: {str(e)}"
         conversations[thread_id]["status"] = "error"
     finally:
         event.set()
         logger.debug("Evento establecido para thread_id: %s", thread_id)
+
 
 def generate_response_gemini(
     api_key,
@@ -617,47 +422,55 @@ def generate_response_gemini(
     thread_id,
     event,
     subscriber_id,
+    use_cache_control,
 ):
     logger.info("Generando respuesta con Gemini para thread_id: %s", thread_id)
     logger.debug("subscriber_id en generate_response_gemini: %s", subscriber_id)
 
     try:
+        # 1) Configurar credenciales y cliente
         if "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ:
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service_account.json"
 
-        api_key = os.environ.get("GEMINI_API_KEY") or api_key
-        client = genai.Client(api_key=api_key)
+        project = os.environ.get("GCP_PROJECT", "gemini-cocoson")
+        location = os.environ.get("GCP_LOCATION", "us-central1")
+        api_key = os.environ.get("GEMINI_API_KEY")
+        client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
+       
+
+        # 2) Usar el modelo "thinking-exp" para obtener los "thoughts"
         model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash-exp")
+
+        # Recuperar historial
         conversation_history = conversations[thread_id].get("messages", [])
 
-        # 1) Agregar mensaje del usuario
+        # Agregar mensaje del usuario
         user_message_content = {"type": "text", "text": message}
-        # Eliminar la parte de cache control de user message
-        # if use_cache_control:
-        #     user_message_content["cache_control"] = {"type": "ephemeral"}
+        if use_cache_control:
+            user_message_content["cache_control"] = {"type": "ephemeral"}
 
         conversation_history.append({"role": "user", "content": [user_message_content]})
 
-        # 2) Cargar herramientas
+        # Cargar herramientas (opcional, si tu JSON las incluye)
         tools_file_path = os.path.join(os.path.dirname(__file__), "gemini.json")
         with open(tools_file_path, "r", encoding="utf-8") as tools_file:
             tools_json = json.load(tools_file)
         logger.info("Herramientas cargadas desde gemini.json")
 
-        # Crear Tools con FunctionDeclaration
+        # (Opcional) Mapeo de herramientas -> function_definitions (si lo requieres)
         tools = []
+        function_definitions = []
         for tool in tools_json:
-            fn_decl = types.FunctionDeclaration(
-                name=tool["name"],
-                description=tool["description"],
-                parameters=tool[
-                    "parameters"
-                ],  # dict con "type", "properties", "required", etc.
-            )
-            tools.append(types.Tool(function_declarations=[fn_decl]))
+            function = {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": tool["parameters"],
+            }
+            function_definitions.append(function)
+            tools.append(types.Tool(function_declarations=[function]))
 
-        # 3) Preparar contenidos
+        # Convertir historial a la estructura de "contents"
         contents = []
         for msg in conversation_history:
             role = msg["role"]
@@ -681,16 +494,17 @@ def generate_response_gemini(
                 )
             )
 
+        # Instrucción del sistema
         system_instruction = [types.Part.from_text(assistant_content_text)]
 
-        # 4) Configurar GenerateContent
+        # 3) Configuración para obtener "thoughts"
         generate_content_config = types.GenerateContentConfig(
             temperature=1.6,
             top_p=0.95,
-            max_output_tokens=1000,
+            max_output_tokens=2000,
             response_modalities=["TEXT"],
             system_instruction=system_instruction,
-            tools=tools,
+            #thinking_config={"include_thoughts": False},  # <- Importante
             safety_settings=[
                 types.SafetySetting(
                     category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"
@@ -705,74 +519,63 @@ def generate_response_gemini(
                     category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"
                 ),
             ],
+             tools=tools  # <- Agregar si lo usas
         )
 
-        # 5) Primera llamada a Gemini
+        # 4) Llamada inicial al modelo
         response = client.models.generate_content(
             model=model,
             contents=contents,
             config=generate_content_config,
         )
-        logger.info("Respuesta de GEMINI (1ra llamada): %s", response)
-
+        logger.info("Respuesta de GEMINI: %s", response)
+        # Variables para almacenar datos
+        chain_of_thought = ""
         assistant_response = ""
         function_calls = []
 
-        # Validar contenido
-        assistant_response = ""
-        function_calls = []
-
-        parts = []
-        if response.candidates:
-            candidate = response.candidates[0]
-            if candidate.content and candidate.content.parts:
-                parts = candidate.content.parts
-            else:
-                parts = [types.Part.from_text("Procesando...")]
-        else:
-            parts = [types.Part.from_text("Procesando...")]
-
+        # 5) Separar "thoughts" y "respuestas"
+        parts = response.candidates[0].content.parts if response.candidates else []
         for part in parts:
-            if part.function_call:
+            # Si es "thought", lo guardamos en chain_of_thought
+            if getattr(part, "thought", False):
+                chain_of_thought += part.text or ""
+            # Si hay una llamada a herramienta (function_call)
+            elif part.function_call:
                 function_calls.append(part.function_call)
+                # Añade el "part" al historial si necesitas
                 contents.append(types.Content(role="model", parts=[part]))
             else:
+                # Resto: asumimos que es la respuesta final al usuario
                 if part.text:
                     assistant_response += part.text
 
-        # AQUÍ agregamos la verificación final
-        if not assistant_response.strip():
-            assistant_response = "Procesando..."
+        # Guardar el razonamiento en la conversación
+        conversations[thread_id]["razonamiento"] = chain_of_thought
 
-        # 7) Si el modelo llama a herramientas
+        # 6) Manejar function calls si aparecen
         if function_calls:
-            # Mapa de funciones reales
+            # Mapea nombres de funciones a tus funciones reales
+            telefono = conversations.get(thread_id, {}).get("telefono")
+            direccionCliente = conversations.get(thread_id, {}).get("direccionCliente")
             tool_functions = {
-                "crear_pedido": crear_pedido,
+                "crear_pedido": lambda tool_input, subs_id: crear_pedido(
+                    tool_input, subs_id, telefono, direccionCliente
+                ),
                 "crear_link_pago": crear_link_pago,
-                "enviar_menu": enviar_menu,  # <--- Aquí está tu función
-                "crear_direccion": crear_direccion,
-                "eleccion_forma_pago": eleccion_forma_pago,
             }
 
+            # Ejecutar cada call
             function_responses = []
             for func_call in function_calls:
                 function_name = func_call.name
                 function_args = func_call.args
 
                 logger.info("Uso de herramienta: %s", function_name)
-                logger.debug("Argumentos recibidos del LLM: %s", function_args)
+                logger.debug("Argumentos: %s", function_args)
 
                 if function_name in tool_functions:
-                    # Ejecutar la herramienta y LOGUEAR la respuesta
                     result = tool_functions[function_name](function_args, subscriber_id)
-                    logger.info(
-                        "Respuesta devuelta por la herramienta '%s': %s",
-                        function_name,
-                        result,
-                    )
-
-                    # Armar la 'respuesta de la herramienta' para reenviarla al LLM
                     function_response_part = types.Part.from_function_response(
                         name=function_name, response=result
                     )
@@ -782,61 +585,57 @@ def generate_response_gemini(
                 else:
                     logger.warning("Herramienta desconocida: %s", function_name)
 
-            # Agregar esas respuestas de función al historial y regenerar
+            # Agregar las respuestas de las funciones al historial y regenerar
             contents.extend(function_responses)
             response = client.models.generate_content(
                 model=model,
                 contents=contents,
                 config=generate_content_config,
             )
-            logger.info(
-                "Respuesta de GEMINI (2da llamada tras herramienta): %s", response
-            )
 
-            # Procesar respuesta final
+            # Procesar la respuesta final
             assistant_response = ""
-            if response.candidates and response.candidates[0].content:
-                for part in response.candidates[0].content.parts:
-                    if part.text:
-                        assistant_response += part.text
+            for part in response.candidates[0].content.parts:
+                if getattr(part, "thought", False):
+                    # Agregar esos "thoughts" adicionales si siguió pensando
+                    chain_of_thought += part.text or ""
+                elif part.text:
+                    assistant_response += part.text
 
-        # 8) Agregar la respuesta final del asistente
+            # Actualizar "razonamiento" con posibles pensamientos adicionales
+            conversations[thread_id]["razonamiento"] = chain_of_thought
+
+        # Agregar la respuesta final del asistente al historial
         assistant_message_content = {"type": "text", "text": assistant_response}
-        
+        if use_cache_control:
+            assistant_message_content["cache_control"] = {"type": "ephemeral"}
+
         conversation_history.append(
             {"role": "assistant", "content": [assistant_message_content]}
         )
 
-        # Actualizar info en la conversación
+        # Actualizar la conversación
         conversations[thread_id]["messages"] = conversation_history
         conversations[thread_id]["response"] = assistant_response
         conversations[thread_id]["status"] = "completed"
 
-        logger.info(
-            "Respuesta generada (final) para thread_id %s: %s",
-            thread_id,
-            assistant_response,
-        )
+        logger.info("Respuesta generada para thread_id: %s", thread_id)
 
     except Exception as e:
         logger.exception(
             "Error en generate_response_gemini para thread_id %s: %s", thread_id, e
         )
-        conversations[thread_id]["response"] = f"Error: {str(e)}"
+        conversations[thread_id]["response"] = f"Error:g {str(e)}"
         conversations[thread_id]["status"] = "error"
     finally:
         event.set()
         logger.debug("Evento establecido para thread_id: %s", thread_id)
 
-def generate_response_deepseek(
-    api_key,
-    message,
-    assistant_content_text,
-    thread_id,
-    event,
-    subscriber_id,
-    modelId,
-):
+
+
+def generate_response_deepseek(api_key, message, assistant_content_text,
+                               thread_id, event, subscriber_id,
+                               use_cache_control, modelId):
     logger.info("Generando respuesta (Deepseek) para thread_id: %s", thread_id)
 
     try:
@@ -849,187 +648,143 @@ def generate_response_deepseek(
         client = OpenAI(
             api_key="sk-1ffe629918a242f9be0b281e506d2c03",
             base_url="https://api.deepseek.com",
-            #api_key="sk-97a0e68fa54a4dffba6f09f9768f9859",
-            #base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
         )
 
         # Obtener historial de conversación
         conversation_history = conversations[thread_id]["messages"]
 
         # Agregar system message si es necesario
-        if (
-            not any(msg["role"] == "system" for msg in conversation_history)
-            and assistant_content_text
-        ):
-            conversation_history.append(
-                {"role": "system", "content": assistant_content_text}
-            )
+        if not any(msg["role"] == "system"
+                   for msg in conversation_history) and assistant_content_text:
+            conversation_history.append({
+                "role": "system",
+                "content": assistant_content_text
+            })
 
         # Agregar user message
         conversation_history.append({"role": "user", "content": message})
 
         # Cargar herramientas específicas para DeepSeek
-        tools_file_path = os.path.join(os.path.dirname(__file__), "tools_deepseek.json")
-        with open(tools_file_path, "r", encoding="utf-8") as tools_file:
+        tools_file_path = os.path.join(os.path.dirname(__file__),
+                                       'tools_deepseek.json')
+        with open(tools_file_path, 'r', encoding='utf-8') as tools_file:
             tools = json.load(tools_file)
-            logger.info("Herramientas DeepSeek cargadas desde tools_deepseek.json")
+            logger.info(
+                "Herramientas DeepSeek cargadas desde tools_deepseek.json")
 
         # Validar estructura de herramientas
-        required_fields = ["type", "function"]
+        required_fields = ['type', 'function']
         for tool in tools:
             if not all(field in tool for field in required_fields):
                 raise ValueError(
-                    "Formato de herramienta inválido en tools_deepseek.json"
-                )
-            if tool["type"] != "function":
+                    "Formato de herramienta inválido en tools_deepseek.json")
+            if tool['type'] != 'function':
                 raise ValueError("Tipo de herramienta no soportado")
 
-        # Mapeo de funciones en tu backend
+        # Mapeo de funciones
         tool_functions = {
             "crear_pedido": crear_pedido,
-            "crear_link_pago": crear_link_pago,
-            "enviar_menu": enviar_menu,
-            "crear_direccion": crear_direccion,
-            "eleccion_forma_pago": eleccion_forma_pago,
+            "crear_link_pago": crear_link_pago
         }
 
+        max_loops = 3
+        loop_counter = 0
         final_response = None
 
-        # Configurar parámetros para la llamada a DeepSeek
-        request_params = {
-            #"model": "qwen-max",
-            "model": "deepseek-chat",
-            "messages": conversation_history,
-            "tools": tools,
-            "tool_choice": "auto",
-            "max_tokens": 1024,
-            "temperature": 0.7,
-            "stream": False,
-        }
+        while loop_counter < max_loops:
+            loop_counter += 1
 
-        try:
-            response = client.chat.completions.create(**request_params)
-            logger.info("Respuesta RAW de DeepSeek: %s", response)
-            message_response = response.choices[0].message
-
-            # Intentar obtener el reasoning_content si existe
-            reasoning_content = getattr(message_response, "reasoning_content", "")
-            conversations[thread_id]["razonamiento"] = reasoning_content
-
-        except Exception as e:
-            logger.error("Error en API Deepseek: %s", str(e))
-            conversations[thread_id].update(
-                {"response": f"Error en API Deepseek: {str(e)}", "status": "error"}
-            )
-            event.set()
-            return
-
-        # Verificamos si el modelo llamó a alguna herramienta
-        if message_response.tool_calls:
-            # Guardamos lo que el asistente "dijo" antes de la llamada
-            conversation_history.append(
-                {
-                    "role": "assistant",
-                    "content": message_response.content,
-                    "tool_calls": message_response.tool_calls,
-                }
-            )
-
-            # Por cada tool_call
-            for tool_call in message_response.tool_calls:
-                function_name = tool_call.function.name
-                try:
-                    function_args = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError:
-                    function_args = {}
-                    logger.error("Error decodificando argumentos JSON")
-
-                logger.info("Ejecutando herramienta: %s", function_name)
-                if function_name in tool_functions:
-                    try:
-                        tool_response = tool_functions[function_name](
-                            function_args, subscriber_id
-                        )
-                        # Extraemos el string final de la respuesta
-                        content = str(tool_response.get("result", tool_response))
-                    except Exception as e:
-                        content = f"Error: {str(e)}"
-                        logger.exception("Error en herramienta")
-                else:
-                    content = f"Error: Herramienta {function_name} no existe"
-                    logger.warning(content)
-
-                # Aquí va la respuesta de la herramienta con role="tool" y tool_call_id
-                conversation_history.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": content,
-                    }
-                )
-
-            # Realizar una última llamada a DeepSeek para obtener la respuesta final
+            # Configurar parámetros
             request_params = {
-                #"model": "qwen-max",
+                #"model": "deepseek-reasoner",
                 "model": "deepseek-chat",
                 "messages": conversation_history,
-                "tools": tools,
-                "tool_choice": "auto",
+                # "tools": tools,
+                #"tool_choice": "auto",
                 "max_tokens": 1024,
                 "temperature": 0.7,
-                "stream": False,
+                "stream": False
             }
 
             try:
                 response = client.chat.completions.create(**request_params)
-                logger.info("Respuesta final de DeepSeek: %s", response)
                 message_response = response.choices[0].message
-
-                final_response = message_response.content
-                conversation_history.append(
-                    {"role": "assistant", "content": final_response}
-                )
+                #logger.info("Respuesta inicial del modelo: %s", response)
+                # Intentar obtener el reasoning_content
+                reasoning_content = getattr(message_response, 'reasoning_content', '')
+                conversations[thread_id]["razonamiento"] = reasoning_content
 
             except Exception as e:
-                logger.error("Error en API Deepseek al obtener respuesta final: %s", str(e))
-                conversations[thread_id].update(
-                    {
-                        "response": f"Error en API Deepseek al obtener respuesta final: {str(e)}",
-                        "status": "error",
-                    }
-                )
-                event.set()
-                return
+                logger.error("Error en API Deepseek: %s", str(e))
+                break
 
-        else:
-            # Si no hay llamadas a herramientas, tomamos la respuesta directamente
-            final_response = message_response.content
-            conversation_history.append(
-                {"role": "assistant", "content": final_response}
-            )
+            # Manejar tool calls
+            if message_response.tool_calls:
+                conversation_history.append({
+                    "role":
+                    "assistant",
+                    "content":
+                    message_response.content,
+                    "tool_calls":
+                    message_response.tool_calls
+                })
 
-        # Actualizar estado de la conversación
+                for tool_call in message_response.tool_calls:
+                    function_name = tool_call.function.name
+                    try:
+                        function_args = json.loads(
+                            tool_call.function.arguments)
+                    except json.JSONDecodeError:
+                        function_args = {}
+                        logger.error("Error decodificando argumentos JSON")
+
+                    logger.info("Ejecutando herramienta: %s", function_name)
+
+                    if function_name in tool_functions:
+                        try:
+                            tool_response = tool_functions[function_name](
+                                function_args, subscriber_id)
+                            content = str(
+                                tool_response.get('result', tool_response))
+                        except Exception as e:
+                            content = f"Error: {str(e)}"
+                            logger.exception("Error en herramienta")
+                    else:
+                        content = f"Error: Herramienta {function_name} no existe"
+                        logger.warning(content)
+
+                    conversation_history.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": content
+                    })
+            else:
+                final_response = message_response.content
+                conversation_history.append({
+                    "role": "assistant",
+                    "content": final_response
+                })
+                break
+
+        # Actualizar estado
         if final_response:
-            conversations[thread_id].update(
-                {
-                    "response": final_response,
-                    "status": "completed",
-                    "messages": conversation_history,
-                }
-            )
+            conversations[thread_id].update({
+                "response": final_response,
+                "status": "completed",
+                "messages": conversation_history
+            })
         else:
-            conversations[thread_id].update(
-                {
-                    "response": "Error: No se pudo generar respuesta válida",
-                    "status": "error",
-                }
-            )
+            conversations[thread_id].update({
+                "response": "Error: No se pudo generar respuesta válida",
+                "status": "error"
+            })
 
     except Exception as e:
         logger.exception("Error crítico en Deepseek: %s", str(e))
-        conversations[thread_id].update(
-            {"response": f"Error: {str(e)}", "status": "error"}
-        )
+        conversations[thread_id].update({
+            "response": f"Error: {str(e)}",
+            "status": "error"
+        })
     finally:
         event.set()
 
@@ -1071,7 +826,7 @@ def send_message():
         return jsonify({"error": "Falta el subscriber_id"}), 400
 
     # Configuración especial para Deepseek
-    if modelID == 'deepseek':
+    if modelID == 'deepsee':
         api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
             logger.error("API key de DeepSeek no configurada")
@@ -1143,13 +898,15 @@ def send_message():
             thread = Thread(target=generate_response_deepseek,
                             args=(api_key, message, assistant_content,
                                   thread_id, event, subscriber_id,
+                                  use_cache_control,
                                   data.get('modelId', 'deepseek-chat')))
             logger.info("Ejecutando Deepseek para thread_id: %s", thread_id)
 
         elif modelID == 'gemini':
             thread = Thread(target=generate_response_gemini,
                             args=(api_key, message, assistant_content,
-                                  thread_id, event, subscriber_id))
+                                  thread_id, event, subscriber_id,
+                                  use_cache_control))
             logger.info("Ejecutando Gemini para thread_id: %s", thread_id)
 
         else:  # Default to Anthropic
@@ -1773,11 +1530,8 @@ def linkpago():
         "id": pedido_id,
         "telefono": telefono,
         "link": link,
-        "forma": {
-            "forma": forma
-        }
+        "forma": forma
     }
-        
 
     logger.info(f"Enviando datos al webhook de n8n: {data}")
 

@@ -370,7 +370,7 @@ def eleccion_forma_pago(tool_input, subscriber_id ):
         # Construir el payload con la información del tool_input y las variables adicionales
         payload = {
             
-                "tool_code": "eleccion_forma_pago",
+                "tool_code": "crear_direccion",
                 "id": subscriber_id,
                 "forma": tool_input  # Datos provenientes del LLM
             
@@ -405,20 +405,11 @@ def eleccion_forma_pago(tool_input, subscriber_id ):
     except Exception as e:
         logger.exception("Error en enviar_menu: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
-
-def generate_response(
-    api_key,
-    message,
-    assistant_content_text,
-    thread_id,
-    event,
-    subscriber_id,
-    use_cache_control,  # Keep the parameter for function signature consistency, but we will ignore it for now
-):
+    
+def generate_response(api_key, message, assistant_content_text, thread_id,
+                      event, subscriber_id, use_cache_control):
     logger.info("Generando respuesta para thread_id: %s", thread_id)
-    logger.info(
-        "CONTROL CACHING: %s", use_cache_control
-    )  # Keep the log for now, it will show 'False'
+    logger.info("CONTROL CACHING: %s", use_cache_control)
     logger.debug("subscriber_id en generate_response: %s", subscriber_id)
 
     try:
@@ -427,16 +418,19 @@ def generate_response(
 
         # Agregar el mensaje del usuario al historial de conversación
         user_message_content = {"type": "text", "text": message}
-        # REMOVE CACHE CONTROL FROM USER MESSAGE
         if use_cache_control:
-             user_message_content["cache_control"] = {"type": "ephemeral"}
+            user_message_content["cache_control"] = {"type": "ephemeral"}
 
-        conversation_history.append({"role": "user", "content": [user_message_content]})
-        logger.debug("Historial de conversación actualizado: %s", conversation_history)
+        conversation_history.append({
+            "role": "user",
+            "content": [user_message_content]
+        })
+        logger.debug("Historial de conversación actualizado: %s",
+                     conversation_history)
 
         # Leer las herramientas desde el archivo JSON
-        tools_file_path = os.path.join(os.path.dirname(__file__), "tools.json")
-        with open(tools_file_path, "r", encoding="utf-8") as tools_file:
+        tools_file_path = os.path.join(os.path.dirname(__file__), 'tools.json')
+        with open(tools_file_path, 'r', encoding='utf-8') as tools_file:
             tools = json.load(tools_file)
         logger.info("Herramientas cargadas desde tools.json")
 
@@ -452,24 +446,14 @@ def generate_response(
         # Ajustar assistant_content para incluir cache_control si está habilitado
         assistant_content = [{"type": "text", "text": assistant_content_text}]
 
-        # REMOVE CACHE CONTROL FROM ASSISTANT CONTENT
-        # if use_cache_control:
-        #     assistant_content[0]["cache_control"] = {"type": "ephemeral"}
+        #logger.info(assistant_content)
+
+        if use_cache_control:
+            assistant_content[0]["cache_control"] = {"type": "ephemeral"}
 
         # Iniciar la interacción con el modelo de Anthropic utilizando beta.prompt_caching
         while True:
             # logger.info("IGRESE TY3TRTR2YTR432RYT4R23TR4Y23YT4RY2RYT4RYRY3RY32RY32RY")
-
-            # REGISTRO IMPORTANTE: Loguear la solicitud completa ANTES de enviarla a Anthropic
-            request_payload_log = {
-                "model": "claude-3-5-haiku-20241022",
-                "max_tokens": 1000,
-                "temperature": 0.8,
-                "system": assistant_content,
-                "messages": conversation_history,
-                "tools": tools,
-            }
-            logger.info(f"Solicitud a Anthropic API Payload: {request_payload_log}")
 
             response = client.messages.create(
                 model="claude-3-5-haiku-20241022",
@@ -477,61 +461,60 @@ def generate_response(
                 temperature=0.8,
                 system=assistant_content,
                 messages=conversation_history,
-                tools=tools,
-            )
-            # logger.info("Respuesta de Anthropic: %s", response)
+                tools=tools)
+            #logger.info("Respuesta de Anthropic: %s", response)
 
             # Agregar la respuesta de Claude al historial de conversación
-            conversation_history.append(
-                {"role": "assistant", "content": response.content}
-            )
-            logger.info(
-                "Historial de conversación actualizado: %s", conversation_history
-            )
+            conversation_history.append({
+                "role": "assistant",
+                "content": response.content
+            })
+            logger.info("Historial de conversación actualizado: %s",
+                        conversation_history)
 
             # Extraer los tokens utilizados y otros valores de uso
             usage = {
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
-                "cache_creation_input_tokens": response.usage.cache_creation_input_tokens,
-                "cache_read_input_tokens": response.usage.cache_read_input_tokens,
+                "cache_creation_input_tokens":
+                response.usage.cache_creation_input_tokens,
+                "cache_read_input_tokens":
+                response.usage.cache_read_input_tokens
             }
 
             # Almacenar los valores de uso en el diccionario conversations
             conversations[thread_id]["usage"] = usage
 
-            logger.info(
-                "Tokens utilizados - Input: %d, Output: %d",
-                usage["input_tokens"],
-                usage["output_tokens"],
-            )
-            logger.info(
-                "Cache Creation Input Tokens: %d", usage["cache_creation_input_tokens"]
-            )
-            logger.info("Cache Read Input Tokens: %d", usage["cache_read_input_tokens"])
+            logger.info("Tokens utilizados - Input: %d, Output: %d",
+                        usage["input_tokens"], usage["output_tokens"])
+            logger.info("Cache Creation Input Tokens: %d",
+                        usage["cache_creation_input_tokens"])
+            logger.info("Cache Read Input Tokens: %d",
+                        usage["cache_read_input_tokens"])
 
             # Verificar el motivo de parada
             if response.stop_reason == "tool_use":
-                logger.info(
-                    "Respuesta ssssssssssssssssssssssssssssssssssssss %s", response
-                )
+                logger.info("Respuesta ssssssssssssssssssssssssssssssssssssss %s",  response)
                 # Procesar el uso de la herramienta
                 tool_use_blocks = [
-                    block for block in response.content if block.type == "tool_use"
+                    block for block in response.content
+                    if block.type == "tool_use"
                 ]
 
                 if not tool_use_blocks:
 
                     # Procesar la respuesta final sin herramientas
-                    assistant_response_text = ""
+                    assistant_response_text = ''
                     for content_block in response.content:
-                        if content_block.type == "text":
+                        if content_block.type == 'text':
                             assistant_response_text += content_block.text
 
                     # Guardar la respuesta generada y marcar la conversación como completada
-                    conversations[thread_id]["response"] = assistant_response_text
+                    conversations[thread_id][
+                        "response"] = assistant_response_text
                     conversations[thread_id]["status"] = "completed"
-                    logger.info("Respuesta generada para thread_id: %s", thread_id)
+                    logger.info("Respuesta generada para thread_id: %s",
+                                thread_id)
                     break  # Salir del bucle
 
                 tool_use = tool_use_blocks[0]
@@ -543,17 +526,16 @@ def generate_response(
                 logger.info("Entrada de la herramienta: %s", tool_input)
                 logger.info(
                     "Contenido completo de la respuesta del asistente: %s",
-                    response.content,
-                )
+                    response.content)
 
                 # Ejecutar la herramienta correspondiente
                 if tool_name in tool_functions:
 
                     # Llamar a la función correspondiente
-                    result = tool_functions[tool_name](tool_input, subscriber_id)
-                    logger.debug(
-                        "Resultado de la herramienta %s: %s", tool_name, result
-                    )
+                    result = tool_functions[tool_name](tool_input,
+                                                       subscriber_id)
+                    logger.debug("Resultado de la herramienta %s: %s",
+                                 tool_name, result)
                     logger.info(
                         f"Resultado de la herramienta {tool_name} ANTES de json.dumps(): {result}"
                     )  # Nuevo log
@@ -561,37 +543,33 @@ def generate_response(
                     logger.info(
                         f"Resultado de la herramienta {tool_name} DESPUÉS de json.dumps(): {result_json}"
                     )  # Nuevo log
-                    logger.debug(
-                        "Resultado de la herramienta %s: %s", tool_name, result
-                    )
+                    logger.debug("Resultado de la herramienta %s: %s",
+                                 tool_name, result)
 
                     # Agregar el resultado de la herramienta al historial de conversación
-                    conversation_history.append(
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": tool_use.id,
-                                    "content": json.dumps(result),
-                                }
-                            ],
-                        }
-                    )
+                    conversation_history.append({
+                        "role":
+                        "user",
+                        "content": [{
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": json.dumps(result)
+                        }]
+                    })
                     logger.info(
                         f"Contenido del mensaje enviado a Anthropic: {conversation_history[-1]}"
                     )  # Nuevo log
                     logger.debug(
-                        "Resultado de la herramienta %s añadido al historial", tool_name
-                    )
+                        "Resultado de la herramienta %s añadido al historial",
+                        tool_name)
                 else:
                     logger.warning("Herramienta desconocida: %s", tool_name)
                     break  # Salir del bucle si la herramienta no es reconocida
             else:
                 # No hay más herramientas por usar; obtener la respuesta final
-                assistant_response_text = ""
+                assistant_response_text = ''
                 for content_block in response.content:
-                    if content_block.type == "text":
+                    if content_block.type == 'text':
                         assistant_response_text += content_block.text
 
                 # Actualizar el estado de la conversación
@@ -601,14 +579,14 @@ def generate_response(
                 break  # Salir del bucle al completar la interacción
 
     except Exception as e:
-        logger.exception(
-            "Error en generate_response para thread_id %s: %s", thread_id, e
-        )
+        logger.exception("Error en generate_response para thread_id %s: %s",
+                         thread_id, e)
         conversations[thread_id]["response"] = f"Error: {str(e)}"
         conversations[thread_id]["status"] = "error"
     finally:
         event.set()
         logger.debug("Evento establecido para thread_id: %s", thread_id)
+
 
 def generate_response_gemini(
     api_key,
@@ -617,6 +595,7 @@ def generate_response_gemini(
     thread_id,
     event,
     subscriber_id,
+    use_cache_control,
 ):
     logger.info("Generando respuesta con Gemini para thread_id: %s", thread_id)
     logger.debug("subscriber_id en generate_response_gemini: %s", subscriber_id)
@@ -633,9 +612,8 @@ def generate_response_gemini(
 
         # 1) Agregar mensaje del usuario
         user_message_content = {"type": "text", "text": message}
-        # Eliminar la parte de cache control de user message
-        # if use_cache_control:
-        #     user_message_content["cache_control"] = {"type": "ephemeral"}
+        if use_cache_control:
+            user_message_content["cache_control"] = {"type": "ephemeral"}
 
         conversation_history.append({"role": "user", "content": [user_message_content]})
 
@@ -744,6 +722,7 @@ def generate_response_gemini(
         if not assistant_response.strip():
             assistant_response = "Procesando..."
 
+
         # 7) Si el modelo llama a herramientas
         if function_calls:
             # Mapa de funciones reales
@@ -802,7 +781,9 @@ def generate_response_gemini(
 
         # 8) Agregar la respuesta final del asistente
         assistant_message_content = {"type": "text", "text": assistant_response}
-        
+        if use_cache_control:
+            assistant_message_content["cache_control"] = {"type": "ephemeral"}
+
         conversation_history.append(
             {"role": "assistant", "content": [assistant_message_content]}
         )
@@ -835,6 +816,7 @@ def generate_response_deepseek(
     thread_id,
     event,
     subscriber_id,
+    use_cache_control,
     modelId,
 ):
     logger.info("Generando respuesta (Deepseek) para thread_id: %s", thread_id)
@@ -847,10 +829,10 @@ def generate_response_deepseek(
 
         # Inicializar cliente
         client = OpenAI(
-            api_key="sk-1ffe629918a242f9be0b281e506d2c03",
-            base_url="https://api.deepseek.com",
-            #api_key="sk-97a0e68fa54a4dffba6f09f9768f9859",
-            #base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            #api_key="sk-1ffe629918a242f9be0b281e506d2c03",
+            #base_url="https://api.deepseek.com",
+            api_key="sk-97a0e68fa54a4dffba6f09f9768f9859",
+            base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
         )
 
         # Obtener historial de conversación
@@ -893,120 +875,94 @@ def generate_response_deepseek(
             "eleccion_forma_pago": eleccion_forma_pago,
         }
 
+        max_loops = 3
+        loop_counter = 0
         final_response = None
 
-        # Configurar parámetros para la llamada a DeepSeek
-        request_params = {
-            #"model": "qwen-max",
-            "model": "deepseek-chat",
-            "messages": conversation_history,
-            "tools": tools,
-            "tool_choice": "auto",
-            "max_tokens": 1024,
-            "temperature": 0.7,
-            "stream": False,
-        }
+        while loop_counter < max_loops:
+            loop_counter += 1
 
-        try:
-            response = client.chat.completions.create(**request_params)
-            logger.info("Respuesta RAW de DeepSeek: %s", response)
-            message_response = response.choices[0].message
-
-            # Intentar obtener el reasoning_content si existe
-            reasoning_content = getattr(message_response, "reasoning_content", "")
-            conversations[thread_id]["razonamiento"] = reasoning_content
-
-        except Exception as e:
-            logger.error("Error en API Deepseek: %s", str(e))
-            conversations[thread_id].update(
-                {"response": f"Error en API Deepseek: {str(e)}", "status": "error"}
-            )
-            event.set()
-            return
-
-        # Verificamos si el modelo llamó a alguna herramienta
-        if message_response.tool_calls:
-            # Guardamos lo que el asistente "dijo" antes de la llamada
-            conversation_history.append(
-                {
-                    "role": "assistant",
-                    "content": message_response.content,
-                    "tool_calls": message_response.tool_calls,
-                }
-            )
-
-            # Por cada tool_call
-            for tool_call in message_response.tool_calls:
-                function_name = tool_call.function.name
-                try:
-                    function_args = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError:
-                    function_args = {}
-                    logger.error("Error decodificando argumentos JSON")
-
-                logger.info("Ejecutando herramienta: %s", function_name)
-                if function_name in tool_functions:
-                    try:
-                        tool_response = tool_functions[function_name](
-                            function_args, subscriber_id
-                        )
-                        # Extraemos el string final de la respuesta
-                        content = str(tool_response.get("result", tool_response))
-                    except Exception as e:
-                        content = f"Error: {str(e)}"
-                        logger.exception("Error en herramienta")
-                else:
-                    content = f"Error: Herramienta {function_name} no existe"
-                    logger.warning(content)
-
-                # Aquí va la respuesta de la herramienta con role="tool" y tool_call_id
-                conversation_history.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": content,
-                    }
-                )
-
-            # Realizar una última llamada a DeepSeek para obtener la respuesta final
+            # Configurar parámetros para la llamada a DeepSeek
             request_params = {
-                #"model": "qwen-max",
-                "model": "deepseek-chat",
+                #"model": "deepseek-chat",
+                "model": "qwen-max",
                 "messages": conversation_history,
                 "tools": tools,
                 "tool_choice": "auto",
                 "max_tokens": 1024,
-                "temperature": 0.7,
+                "temperature": 0.3,
                 "stream": False,
             }
+            #logger.info("Enviando petición a DeepSeek con request_params: %s",
+            #json.dumps(request_params, indent=2, ensure_ascii=False))
 
             try:
                 response = client.chat.completions.create(**request_params)
-                logger.info("Respuesta final de DeepSeek: %s", response)
+                logger.info("Respuesta RAW de DeepSeek: %s", response)
                 message_response = response.choices[0].message
 
+                # Intentar obtener el reasoning_content si existe
+                reasoning_content = getattr(message_response, "reasoning_content", "")
+                conversations[thread_id]["razonamiento"] = reasoning_content
+
+            except Exception as e:
+                logger.error("Error en API Deepseek: %s", str(e))
+                break
+
+            # Verificamos si el modelo llamó a alguna herramienta
+            if message_response.tool_calls:
+                # Guardamos lo que el asistente "dijo" antes de la llamada
+                conversation_history.append(
+                    {
+                        "role": "assistant",
+                        "content": message_response.content,
+                        "tool_calls": message_response.tool_calls,
+                    }
+                )
+
+                # Por cada tool_call
+                for tool_call in message_response.tool_calls:
+                    function_name = tool_call.function.name
+                    try:
+                        function_args = json.loads(tool_call.function.arguments)
+                    except json.JSONDecodeError:
+                        function_args = {}
+                        logger.error("Error decodificando argumentos JSON")
+
+                    logger.info("Ejecutando herramienta: %s", function_name)
+                    if function_name in tool_functions:
+                        try:
+                            tool_response = tool_functions[function_name](
+                                function_args, subscriber_id
+                            )
+                            # Extraemos el string final de la respuesta
+                            content = str(tool_response.get("result", tool_response))
+                        except Exception as e:
+                            content = f"Error: {str(e)}"
+                            logger.exception("Error en herramienta")
+                    else:
+                        content = f"Error: Herramienta {function_name} no existe"
+                        logger.warning(content)
+
+                    # Aquí va la respuesta de la herramienta con role="tool" y tool_call_id
+                    conversation_history.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": content,
+                        }
+                    )
+
+                # Sigue el while para re-llamar a la API con el nuevo mensaje "tool"
+                # (si DeepSeek se da por satisfecho, en la siguiente vuelta no habrá más tool_calls)
+
+            else:
+                # Si no hay más tool_calls, tomamos la respuesta final
                 final_response = message_response.content
                 conversation_history.append(
                     {"role": "assistant", "content": final_response}
                 )
-
-            except Exception as e:
-                logger.error("Error en API Deepseek al obtener respuesta final: %s", str(e))
-                conversations[thread_id].update(
-                    {
-                        "response": f"Error en API Deepseek al obtener respuesta final: {str(e)}",
-                        "status": "error",
-                    }
-                )
-                event.set()
-                return
-
-        else:
-            # Si no hay llamadas a herramientas, tomamos la respuesta directamente
-            final_response = message_response.content
-            conversation_history.append(
-                {"role": "assistant", "content": final_response}
-            )
+                break
 
         # Actualizar estado de la conversación
         if final_response:
@@ -1071,7 +1027,7 @@ def send_message():
         return jsonify({"error": "Falta el subscriber_id"}), 400
 
     # Configuración especial para Deepseek
-    if modelID == 'deepseek':
+    if modelID == 'deepsee':
         api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
             logger.error("API key de DeepSeek no configurada")
@@ -1143,13 +1099,15 @@ def send_message():
             thread = Thread(target=generate_response_deepseek,
                             args=(api_key, message, assistant_content,
                                   thread_id, event, subscriber_id,
+                                  use_cache_control,
                                   data.get('modelId', 'deepseek-chat')))
             logger.info("Ejecutando Deepseek para thread_id: %s", thread_id)
 
         elif modelID == 'gemini':
             thread = Thread(target=generate_response_gemini,
                             args=(api_key, message, assistant_content,
-                                  thread_id, event, subscriber_id))
+                                  thread_id, event, subscriber_id,
+                                  use_cache_control))
             logger.info("Ejecutando Gemini para thread_id: %s", thread_id)
 
         else:  # Default to Anthropic

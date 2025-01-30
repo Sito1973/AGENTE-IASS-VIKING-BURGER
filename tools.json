@@ -1,82 +1,136 @@
 [
   {
-    "name": "crear_contacto",
-    "description": "Crea un nuevo contacto en el CRM de Odoo, con la información proporcionada del cliente. Esta herramienta actualiza los campos personalizados en Odoo para el seguimiento de clientes. Asegúrate de que tienes el consentimiento de forma explícita del cliente para guardar los datos y que todos los campos estén correctamente formateados antes de crear el contacto.",
+    "name": "crear_direccion",
+    "description": "Crea una dirección de cliente. Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
     "input_schema": {
       "type": "object",
       "properties": {
-        "nombre": {
+        "sede": {
           "type": "string",
-          "description": "Nombre del contacto"
-        },
-        "apellido": {
-          "type": "string",
-          "description": "Apellido del contacto"
-        },
-        "cedula": {
-          "type": "integer",
-          "description": "Número de cédula del contacto, o responde 0"
-        },
-        "ciudad": {
-          "type": "string",
-          "description": "Ciudad de residencia del contacto"
-        },
-        "solicitud": {
-          "type": "string",
-          "description": "Información sobre lo que el cliente está interesado de acuerdo a la conversacion, incluyendo un resumen completo de la conversación y análisis de sentimiento: BAJA PROBABILIDAD, MEDIA PROBABILIDAD y ALTA PROBABILIDAD, explicando por qué"
-        },
-        "contactar": {
-          "type": "string",
-          "description": "Indicador si se debe contactar al cliente (Si/No)",
           "enum": [
-            "Si",
-            "No"
-          ]
+            "La Virginia",
+            "Pereira",
+            "Dosquebradas",
+            "Cerritos"
+          ],
+          "description": "Sede del pedido (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
+        },
+        "nombre_cliente": {
+          "type": "string",
+          "description": "Nombre del cliente (obligatorio)"
+        },
+        "direccion_cliente": {
+          "type": "string",
+          "description": "Dirección del cliente (obligatorio)"
+        },
+        "ciudad_cliente": {
+          "type": "string",
+          "enum": [
+            "Pereira",
+            "Dosquebradas",
+            "La Virginia"
+          ],
+          "description": "Ciudad del cliente (obligatorio: Pereira, Dosquebradas, La Virginia)"
+        },
+        "tipo_pedido": {
+          "type": "string",
+          "enum": [
+            "Recoger",
+            "Domicilio"
+          ],
+          "description": "Tipo de pedido (obligatorio: Recoger, Domicilio)"
         }
       },
       "required": [
-        "nombre",
-        "solicitud"
+        "sede",
+        "nombre_cliente",
+        "direccion_cliente",
+        "ciudad_cliente",
+        "tipo_pedido"
       ]
     }
   },
   {
-    "name": "agendar_llamada",
-    "description": "Crea una cita  el la aplicacion calendario para agendar llamada y terminar el proceso de asesoria",
+    "name": "enviar_menu",
+    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
     "input_schema": {
       "type": "object",
       "properties": {
-        "nombre_del_contacto": {
+        "sede": {
           "type": "string",
-          "description": "Nombre del contacto"
-        },
-        "fecha_llamada": {
-          "type": "string",
-          "description": "Fecha agendamiento de la llamada al cliente"
-        },
-        "hora_llamada": {
-          "type": "string",
-          "description": "hora para la llamada con el cliente"
+          "enum": [
+            "La Virginia",
+            "Pereira",
+            "Dosquebradas",
+            "Cerritos"
+          ],
+          "description": "Sede para la cual se debe enviar el menú o carta (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
         }
       },
       "required": [
-        "nombre_del_contacto", "fecha_LLamada", "hora_llamada"
+        "sede"
       ]
     }
   },
   {
-    "name": "crear_actividad",
-    "description": " esta funcion solo se debe usar con la autorizacion explicita del usuario. la funcion es crear una actividad en una oportunidad/lead en el CRM de Odoo, con la  el resumen completo de la conversacion del cliente  ",
+    "name": "crear_pedido",
+    "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos el del domicilio ya esta en el sistema",
     "input_schema": {
       "type": "object",
       "properties": {
-        "solicitud": {
+        "nombre_cliente": {
           "type": "string",
-          "description": "se llena con el resumen completo de la conversacion que se tuvo con el cliente. Y cuando el cliente autorice el uso de esta herramientasobre"
+          "description": "Nombre del cliente que realiza el pedido (obligatorio)"
+        },
+        "pedido_cliente": {
+          "type": "string",
+          "description": "Descripción detallada del pedido del cliente, incluyendo productos, cantidades y especificaciones (obligatorio)"
+        },
+        "valor_total": {
+          "type": "number",
+          "description": "Valor total del pedido (obligatorio)"
         }
       },
       "required": [
-        "solicitud"
+        "nombre_cliente",
+        "pedido_cliente",
+        "valor_total"
+      ]
+    }
+  },
+  {
+    "name": "crear_link_pago",
+    "description": "Crea un link de pago para el cliente. Se usa cuando el cliente solicita el link de pago, o cuando se necesita reenviar el link de pago al cliente.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "valor_total": {
+          "type": "number",
+          "description": "Valor total a pagar para generar el link de pago (obligatorio)"
+        }
+      },
+      "required": [
+        "valor_total"
+      ]
+    }
+  },
+  {
+    "name": "eleccion_forma_pago",
+    "description": "Esta herramienta se usa cuando el cliente elige su forma de pago ya sea efectivo o Datafono, o decide cambiar su forma de pago",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "forma": {
+          "type": "string",
+          "enum": [
+            "Efectivo",
+            "Datafono"
+          ],
+          "description": "forma de pago elegida por el cliente"
+        }
+      },
+      "required": [
+        "forma"
       ]
     }
   }

@@ -1,0 +1,169 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "crear_pedido",
+            "description": "Crea un pedido a partir de la solicitud del cliente. Se debe tener la confirmación del cliente y validar que todos los campos estén correctamente formateados antes de crear el pedido. Para el valor total solo debes sumar el precio de los productos el del domicilio ya esta en el sistema",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "description": "Nombre del contacto"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "description": "Apellido del contacto"
+                    },
+                    "valor_pedido": {
+                        "type": "integer",
+                        "description": "Valor total del pedido"
+                    },
+                    "pedido_confirmado": {
+                        "type": "string",
+                        "description": "Detalle completo del pedido con productos, observaciones y recomendaciones del cliente"
+                    }
+                },
+                "required": [
+                    "nombre",
+                    "apellido",
+                    "pedido_confirmado",
+                    "valor_pedido"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "crear_link_pago",
+            "description": "Crea el link de pago. Obligatorio usarse después de crear_pedido.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "valor_pedido": {
+                        "type": "integer",
+                        "description": "Valor base del pedido"
+                    },
+                    "valor_domicilio": {
+                        "type": "integer",
+                        "description": "Costo de domicilio (0 si no aplica)"
+                    },
+                    "valor_total": {
+                        "type": "integer",
+                        "description": "Suma del valor del pedido y el domicilio"
+                    }
+                },
+                "required": [
+                    "valor_pedido",
+                    "valor_domicilio",
+                    "valor_total"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "crear_direccion",
+            "description": "Crea una dirección de cliente. Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sede": {
+                        "type": "string",
+                        "enum": [
+                            "La Virginia",
+                            "Pereira",
+                            "Dosquebradas",
+                            "Cerritos"
+                        ],
+                        "description": "Sede del pedido (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
+                    },
+                    "nombre_cliente": {
+                        "type": "string",
+                        "description": "Nombre del cliente (obligatorio)"
+                    },
+                    "direccion_cliente": {
+                        "type": "string",
+                        "description": "Dirección del cliente (obligatorio)"
+                    },
+                    "ciudad_cliente": {
+                        "type": "string",
+                        "enum": [
+                            "Pereira",
+                            "Dosquebradas",
+                            "La Virginia"
+                        ],
+                        "description": "Ciudad del cliente (obligatorio: Pereira, Dosquebradas, La Virginia)"
+                    },
+                    "tipo_pedido": {
+                        "type": "string",
+                        "enum": [
+                            "Recoger",
+                            "Domicilio"
+                        ],
+                        "description": "Tipo de pedido (obligatorio: Recoger, Domicilio)"
+                    }
+                },
+                "required": [
+                    "sede",
+                    "nombre_cliente",
+                    "direccion_cliente",
+                    "ciudad_cliente",
+                    "tipo_pedido"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "enviar_menu",
+            "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sede": {
+                        "type": "string",
+                        "enum": [
+                            "La Virginia",
+                            "Pereira",
+                            "Dosquebradas",
+                            "Cerritos"
+                        ],
+                        "description": "Sede para la cual se debe enviar el menú o carta (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
+                    }
+                },
+                "required": [
+                    "sede"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "eleccion_forma_pago",
+            "description": "Esta herramienta se usa cuando el cliente elige su forma de pago ya sea efectivo o Datafono, o decide cambiar su forma de pago",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "forma": {
+                        "type": "string",
+                        "enum": [
+                            "Efectivo",
+                            "Datafono"
+                        ],
+                        "description": "forma de pago elegida por el cliente"
+                    }
+                },
+                "required": [
+                    "forma"
+                ]
+            }
+        }
+    }
+
+    
+]

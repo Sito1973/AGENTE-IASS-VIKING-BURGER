@@ -1,64 +1,129 @@
 [
   {
-    "name": "crear_pedido",
-    "description": "Crea un pedido a partir de la solicitud del cliente esta funcion se debe usar para tomar el pedido del cliente, se debe tener la confirmacion  del cliente para guardar los datos y que todos los campos estén correctamente formateados antes de crear el pedido.",
+    "name": "crear_direccion",
+    "description": "Esta función solo se debe usar cuando el el cliente pide o quiere que ver la carta o menu   es obligatorio siempre preguntar la sede (Dosquebradas, La Viriginia, Pereira, Cerritos) para adiconarla a la herramienta siguiendo estos pasos",
     "parameters": {
-      "type": "OBJECT",
+      "type": "object",
       "properties": {
-        "nombre": {
-          "type": "STRING",
-          "description": "Nombre del contacto"
+        "sede": {
+          "type": "string",
+          "enum": [
+            "La Virginia",
+            "Pereira",
+            "Dosquebradas",
+            "Cerritos"
+          ]
         },
-        "apellido": {
-          "type": "STRING",
-          "description": "Apellido del contacto"
+        "nombre_cliente": {
+          "type": "string"
         },
-        "pedido_confirmado": {
-          "type": "STRING",
-          "description": "pedido completo de los productos con valores, obligatorio colocar todas las observaciones y recomendaciones realizadas por el cliente"
+        "direccion_cliente": {
+          "type": "string"
         },
-        "valor_pedido": {
-          "type": "INTEGER",
-          "description": "VALOR TOTAL DEL PEDIDO"
+        "ciudad_cliente": {
+          "type": "string",
+          "enum": [
+            "Pereira",
+            "Dosquebradas",
+            "La Virginia"
+          ]
+        },
+        "tipo_pedido": {
+          "type": "string",
+          "enum": [
+            "Recoger",
+            "Domicilio"
+          ]
         }
       },
-      "required": ["nombre", "apellido","pedido_confirmado", "valor_pedido"]
+      "required": [
+        "sede",
+        "nombre_cliente",
+        "direccion_cliente",
+        "ciudad_cliente",
+        "tipo_pedido"
+      ]
+    }
+  },
+  {
+    "name": "enviar_menu",
+    "description": "Esta función solo se debe usar cuando el el cliente pide o quiere que ver la carta o menu   es obligatorio siempre preguntar la sede (Dosquebradas, La Viriginia, Pereira, Cerritos) para adiconarla a la herramienta siguiendo estos pasos",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "sede": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "La Virginia",
+              "Pereira",
+              "Dosquebradas",
+              "Cerritos"
+            ]
+          }
+        }
+      },
+      "required": [
+        "sede"
+      ]
+    }
+  },
+  {
+    "name": "crear_pedido",
+    "description": "se crea el pedido con todos los productos elegidos por el cliente con su valor  unitario cada uno, y colocar todas las observaciones  y recomendaciones hechas por el cliente, para el valor total solo debes sumar el precio de los productos el del domicilio ya esta en el sistema",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "nombre_cliente": {
+          "type": "string"
+        },
+        "pedido_cliente": {
+          "type": "string"
+        },
+        "valor_total": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "nombre_cliente",
+        "pedido_cliente",
+        "valor_total"
+      ]
     }
   },
   {
     "name": "crear_link_pago",
-    "description": "esta funcio crea el link de pago , obligatorio usarse si se  uso la tools crear_pedido.",
+    "description": "Esta herramienta se usa cuando el cliente solicita el link de paqgo nuevamente, esta sirve para volverle a enviar el link de pago al cliente",
     "parameters": {
-      "type": "OBJECT",
+      "type": "object",
       "properties": {
-        "valor_pedido": {
-          "type": "INTEGER",
-          "description": "obligatorio "
-        },
-        "valor_domicilio": {
-          "type": "INTEGER",
-          "description": "VALOR DE DOMICILIO SINO SE PROVEE COLOCAR 0"
-        },
         "valor_total": {
-          "type": "INTEGER",
-          "description": "SUMA DEL VALOR DEL PEDIDO + EL VALOR DEL DOMICILIO"
+          "type": "number"
         }
       },
-      "required": ["valor_pedido", "valor_domicilio", "valor_total"]
+      "required": [
+        "valor_total"
+      ]
     }
   },
   {
-    "name": "crear_actividad",
-    "description": "Esta función solo se debe usar con la autorización explícita del usuario. La función es crear una actividad en una oportunidad (lead) en el CRM de Odoo, con el resumen completo de la conversación del cliente.",
+    "name": "eleccion_forma_pago",
+    "description": "Esta herramienta se usa cuando el cliente elige su forma de pago ya sea efectivo o Datafono, o decide cambiar su forma de pago",
     "parameters": {
-      "type": "OBJECT",
+      "type": "object",
       "properties": {
-        "solicitud": {
-          "type": "STRING",
-          "description": "Se llena con el resumen completo de la conversación que se tuvo con el cliente, y cuando el cliente autorice el uso de esta herramienta"
+        "forma": {
+          "type": "string",
+          "enum": [
+            "Efectivo",
+            "Datafono"
+          ]
         }
       },
-      "required": ["solicitud"]
+      "required": [
+        "forma"
+      ]
     }
   }
 ]
