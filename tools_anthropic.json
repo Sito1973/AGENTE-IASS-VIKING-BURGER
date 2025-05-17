@@ -21,7 +21,11 @@
         },
         "direccion_cliente": {
           "type": "string",
-          "description": "Dirección del cliente (obligatorio)"
+          "description": "Dirección del cliente (obligatorio), solo la direccion exacta TIENE que ser: ya sea nombre de el edificio, unidad residencial, el nombre de la empresa o en el formato de Calle con Carrera y numero"
+        },
+        "indicaciones_direccion_cliente": {
+          "type": "string",
+          "description": "Comentarios adicionales sobre la direccion proporcionada por el cliente, referencias, numero de casa,numero de oficina, o numero bodega puede incluir el barrio, pero siempre si hay referencias sobre donde queda la ubiccion del cliente debes ponerla en esta variable"
         },
         "ciudad_cliente": {
           "type": "string",
@@ -45,6 +49,7 @@
         "sede",
         "nombre_cliente",
         "direccion_cliente",
+        "indicaciones_direccion_cliente",
         "ciudad_cliente",
         "tipo_pedido"
       ]
@@ -52,29 +57,24 @@
   },
   {
     "name": "enviar_menu",
-    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
+    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. ",
     "input_schema": {
       "type": "object",
       "properties": {
-        "sede": {
+        "envio": {
           "type": "string",
-          "enum": [
-            "La Virginia",
-            "Pereira",
-            "Dosquebradas",
-            "Cerritos"
-          ],
-          "description": "Sede para la cual se debe enviar el menú o carta (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
+
+          "description": "Se ha enviado el menu"
         }
       },
       "required": [
-        "sede"
+        "envio"
       ]
     }
   },
   {
     "name": "crear_pedido",
-    "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos el del domicilio ya esta en el sistema",
+    "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos ya que el del domicilio ya esta en el sistema",
     "input_schema": {
       "type": "object",
       "properties": {
@@ -88,7 +88,7 @@
         },
         "valor_total": {
           "type": "number",
-          "description": "Valor total del pedido (obligatorio)"
+          "description": "Valor total del pedido (obligatorio), SOLO de los productos, SIN sumar el valor del domicilio"
         }
       },
       "required": [
@@ -100,13 +100,13 @@
   },
   {
     "name": "crear_link_pago",
-    "description": "Crea un link de pago para el cliente. Se usa cuando el cliente solicita el link de pago, o cuando se necesita reenviar el link de pago al cliente.",
+    "description": "Crea un link de pago para el cliente. Se usa SOLAMENTE cuando el cliente solicita el link de pago, o cuando se necesita reenviar el link de pago al cliente.",
     "input_schema": {
       "type": "object",
       "properties": {
         "valor_total": {
           "type": "number",
-          "description": "Valor total a pagar para generar el link de pago (obligatorio)"
+          "description": "Valor total a pagar para generar el link de pago (obligatorio), SIN el valor de domicilio SOLO el valor de los productos"
         }
       },
       "required": [
@@ -131,6 +131,32 @@
       },
       "required": [
         "forma"
+      ]
+    }
+  },
+  {
+    "name": "facturacion_electronica",
+    "description": "Registra en el sistema que el cliente requiere de facturacion electronica, con los respectivos datos",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "razon_social": {
+          "type": "string",
+          "description": "razon social de la empresa a la que el cliente necesita que se le haga la facturacion electronica"
+        },
+        "correo": {
+          "type": "string",
+          "description": "correo al cual se va hacer llegar la factura electronica"
+        },
+        "nit": {
+          "type": "number",
+          "description": "NIT de la empresa a la que se le va a hacer la facturacion electronica"
+        }
+      },
+      "required": [
+        "razon_social",
+        "correo",
+        "nit"
       ]
     }
   }

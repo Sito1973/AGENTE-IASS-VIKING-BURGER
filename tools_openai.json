@@ -1,0 +1,193 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "crear_direccion",
+      "description": "Crea una dirección de cliente. Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sede": {
+            "type": "string",
+            "enum": [
+              "La Virginia",
+              "Pereira",
+              "Dosquebradas",
+              "Cerritos"
+            ],
+            "description": "Sede del pedido (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
+          },
+          "nombre_cliente": {
+            "type": "string",
+            "description": "Nombre del cliente (obligatorio)"
+          },
+          "direccion_cliente": {
+            "type": "string",
+            "description": "Dirección del cliente (obligatorio)"
+          },
+          "ciudad_cliente": {
+            "type": "string",
+            "enum": [
+              "Pereira",
+              "Dosquebradas",
+              "La Virginia"
+            ],
+            "description": "Ciudad del cliente (obligatorio: Pereira, Dosquebradas, La Virginia)"
+          },
+          "tipo_pedido": {
+            "type": "string",
+            "enum": [
+              "Recoger",
+              "Domicilio"
+            ],
+            "description": "Tipo de pedido (obligatorio: Recoger, Domicilio)"
+          }
+        },
+        "required": [
+          "sede",
+          "nombre_cliente",
+          "direccion_cliente",
+          "ciudad_cliente",
+          "tipo_pedido"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "enviar_menu",
+      "description": "Envía el menú o la carta al cliente. Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sede": {
+            "type": "string",
+            "enum": [
+              "La Virginia",
+              "Pereira",
+              "Dosquebradas",
+              "Cerritos"
+            ],
+            "description": "Sede para la cual se debe enviar el menú o carta (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
+          }
+        },
+        "required": [
+          "sede"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "crear_pedido",
+      "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos ya que el del domicilio ya está en el sistema.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "nombre_cliente": {
+            "type": "string",
+            "description": "Nombre del cliente que realiza el pedido (obligatorio)"
+          },
+          "pedido_cliente": {
+            "type": "string",
+            "description": "Descripción detallada del pedido del cliente, incluyendo productos, cantidades y especificaciones (obligatorio)"
+          },
+          "valor_total": {
+            "type": "number",
+            "description": "Valor total del pedido (obligatorio), SOLO de los productos, SIN sumar el valor del domicilio"
+          }
+        },
+        "required": [
+          "nombre_cliente",
+          "pedido_cliente",
+          "valor_total"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "crear_link_pago",
+      "description": "Crea un link de pago para el cliente. Se usa cuando el cliente solicita el link de pago, o cuando se necesita reenviar el link de pago al cliente.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "valor_total": {
+            "type": "number",
+            "description": "Valor total a pagar para generar el link de pago (obligatorio), SIN el valor de domicilio, SOLO el valor de los productos"
+          }
+        },
+        "required": [
+          "valor_total"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "eleccion_forma_pago",
+      "description": "Esta herramienta se usa cuando el cliente elige su forma de pago, ya sea efectivo o Datafono, o decide cambiar su forma de pago.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "forma": {
+            "type": "string",
+            "enum": [
+              "Efectivo",
+              "Datafono"
+            ],
+            "description": "Forma de pago elegida por el cliente"
+          }
+        },
+        "required": [
+          "forma"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "facturacion_electronica",
+      "description": "Registra en el sistema que el cliente requiere de facturación electrónica, con los respectivos datos.",
+      "strict": true,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "razon_social": {
+            "type": "string",
+            "description": "Razón social de la empresa a la que el cliente necesita que se le haga la facturación electrónica"
+          },
+          "correo": {
+            "type": "string",
+            "description": "Correo al cual se enviará la factura electrónica"
+          },
+          "nit": {
+            "type": "number",
+            "description": "NIT de la empresa a la que se le va a hacer la facturación electrónica"
+          }
+        },
+        "required": [
+          "razon_social",
+          "correo",
+          "nit"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+]

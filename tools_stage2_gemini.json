@@ -1,0 +1,81 @@
+[
+  {
+    "name": "crear_link_pago",
+    "description": "Crea un link de pago para el cliente. Se usa cuando el cliente solicita el link de pago, o cuando se necesita reenviar el link de pago al cliente.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "valor_total": {
+          "type": "number",
+          "description": "Valor total a pagar para generar el link de pago (obligatorio), SIN el valor de domicilio SOLO el valor de los productos"
+        }
+      },
+      "required": [
+        "valor_total"
+      ]
+    }
+  },
+  {
+    "name": "eleccion_forma_pago",
+    "description": "Esta herramienta se usa cuando el cliente elige su forma de pago ya sea efectivo o Datafono, o decide cambiar su forma de pago. Es vital verificar si el cliente ha mencionado alguna forma de pago en el histoprial de la conversacion y el restaurante no te ha confirmado el registro exitoso de esta forma de pago en el sistema.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "forma": {
+          "type": "string",
+          "enum": [
+            "Efectivo",
+            "Datafono"
+          ],
+          "description": "forma de pago elegida por el cliente"
+        }
+      },
+      "required": [
+        "forma"
+      ]
+    }
+  },
+  {
+    "name": "facturacion_electronica",
+    "description": "Registra en el sistema que el cliente requiere de facturacion electronica, con los respectivos datos",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "razon_social": {
+          "type": "string",
+          "description": "razon social de la empresa a la que el cliente necesita que se le haga la facturacion electronica"
+        },
+        "correo": {
+          "type": "string",
+          "description": "correo al cual se va hacer llegar la factura electronica"
+        },
+        "nit": {
+          "type": "number",
+          "description": "NIT de la empresa a la que se le va a hacer la facturacion electronica"
+        }
+      },
+      "required": [
+        "razon_social",
+        "correo",
+        "nit"
+      ]
+    }
+  },
+  {
+    "name": "pqrs",
+    "description": "Esta herramienta escala una peticion, queja o reclamo del pedido del cliente. Debes usarla despues de recopilar la informacion de la solicitud del cliente. Para que se le notifique al restaurante y de esta manera darle solucion al cliente. El uso de esta herramienta tambien aplica cuando  insista en cancelarlo o modificarlo el pedido. EL ultimo caso es cuando el cliente tambien  se haya equivocado en alguno de los datos del pedido, usala para informar al restaurante y que se le de buena solucion al cliente",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "solicitud": {
+          "type": "string",
+
+          "description": "Descirpcion de la peticion, queja, o reclamo del cliente o de lrazones que tiene para cancelar o modificar su pedido"
+        }
+      },
+      "required": [
+        "solicitud"
+      ]
+    }
+  }
+]

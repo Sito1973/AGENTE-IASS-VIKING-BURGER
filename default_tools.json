@@ -1,0 +1,25 @@
+[
+  
+  {
+    "name": "enviar_menu",
+    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. Es obligatorio preguntar y especificar la sede (Dosquebradas, La Virginia, Pereira, Cerritos).",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "sede": {
+          "type": "string",
+          "enum": [
+            "La Virginia",
+            "Pereira",
+            "Dosquebradas",
+            "Cerritos"
+          ],
+          "description": "Sede para la cual se debe enviar el menú o carta (obligatorio: La Virginia, Pereira, Dosquebradas, Cerritos)"
+        }
+      },
+      "required": [
+        "sede"
+      ]
+    }
+  }
+]

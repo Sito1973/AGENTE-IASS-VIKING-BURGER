@@ -1,0 +1,5522 @@
+{
+  "name": "THE VIKING BURGER ADMINISTRATIVOS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "creacionLinkPagoTheVikingBurgerApi",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1080
+      ],
+      "id": "ddda8fa6-4216-435e-b872-68c43699b1aa",
+      "name": "Creacion Link de Pago",
+      "webhookId": "25a58f76-9728-47f5-88b4-8288f6890182"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4805f06a-c453-4986-b485-f42e2556c1d0",
+              "name": "direccionCliente",
+              "value": "={{ $('Proceso de datos inicales').item.json.body.sede.direccion_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "5165604b-5327-4271-81c0-3ddcff282271",
+              "name": "ciudadCliente",
+              "value": "={{ $('Proceso de datos inicales').item.json.body.sede.ciudad_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "2072b181-9510-483b-9cb4-7aa1dc1b55e8",
+              "name": "coordenadasRestaurante",
+              "value": "={{ $json.coordenadas }}",
+              "type": "string"
+            },
+            {
+              "id": "9d10e670-b27d-4c4e-8d15-3a7b2f9da322",
+              "name": "ciudadRestaurante",
+              "value": "={{ $json.ciudad_sede }}",
+              "type": "string"
+            },
+            {
+              "id": "bcff23d5-5fbf-4972-9a52-94b6b5299def",
+              "name": "waId",
+              "value": "={{ $('Proceso de datos inicales').item.json.body.subscriber_id }}",
+              "type": "string"
+            },
+            {
+              "id": "bb8ba840-1ebe-4c2c-86cb-e02bef24320d",
+              "name": "tipo_pedido",
+              "value": "={{ $('Proceso de datos inicales').item.json.body.sede.tipo_pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "19b41f41-4a83-40f4-b3ee-b11aaac8d70f",
+              "name": "id_sede",
+              "value": "={{ $('Codificacion de Sede').item.json.id_sede }}",
+              "type": "number"
+            },
+            {
+              "id": "97aec3ee-0e12-4372-8ab3-4a31ab9f7d41",
+              "name": "nombreSede",
+              "value": "={{ $json.nombre_sede }}",
+              "type": "string"
+            },
+            {
+              "id": "5e211a03-a079-482c-96fc-09aa22312118",
+              "name": "nombre_cliente",
+              "value": "={{ $('Proceso de datos inicales').item.json.body.sede.nombre_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "c7c10f76-71c0-4180-a4e3-42ee9576927d",
+              "name": "indicaciones_direccion_cliente",
+              "value": "={{ $('Proceso de datos inicales').item.json.body.sede.indicaciones_direccion_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "9b0b5f3b-de31-41b6-8349-52a3f4d7c301",
+              "name": "inbox_id",
+              "value": "={{ $('Codificacion de Sede').item.json.inbox_id }}",
+              "type": "string"
+            },
+            {
+              "id": "582da387-d6bc-49cc-9a22-a2dde39980aa",
+              "name": "latitud_restaurante",
+              "value": "={{ $json.latitud }}",
+              "type": "string"
+            },
+            {
+              "id": "8ce5adb3-ecd1-4509-bc6f-952c058ada9f",
+              "name": "longitud_restaurante",
+              "value": "={{ $json.longitud }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        360,
+        620
+      ],
+      "id": "3775bd0b-130e-4913-9d3c-380e36514fa9",
+      "name": "DireccionIA"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b7b7e53b-9d48-4e21-96bf-c82f440bdebc",
+              "name": "valores.domicilio",
+              "value": "={{ $json.payload[0].custom_attributes.valor_domicilio }}",
+              "type": "number"
+            },
+            {
+              "id": "e09a4cbb-9ab5-460d-8ff0-80d6460d3cd4",
+              "name": "valores.modelo",
+              "value": "={{ $('Creacion Link de Pago').item.json.body.response.datos.valor_total }}",
+              "type": "number"
+            },
+            {
+              "id": "21639b5c-957b-4277-ab46-e4f5e2a5cd40",
+              "name": "valores.total",
+              "value": "={{ Number($('Creacion Link de Pago').item.json.body.response.datos.valor_total) + Number($json.payload[0].custom_attributes.valor_domicilio) }}",
+              "type": "number"
+            },
+            {
+              "id": "07d9a635-147e-4d52-9853-677d428a0aa9",
+              "name": "informacion.id_chatwoot",
+              "value": "={{ $json.payload[0].identifier }}",
+              "type": "string"
+            },
+            {
+              "id": "bc2ead2f-a9e1-4092-b6cc-244e626ec93d",
+              "name": "informacion.nombre",
+              "value": "={{ $json.payload[0].name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        360,
+        1080
+      ],
+      "id": "9519f199-53d3-4999-9d33-c1b5d6598ba0",
+      "name": "Normalizacion datos pago"
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.body.response.subscriber_id }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        1080
+      ],
+      "id": "e50b6f60-7a66-4924-90e3-95ecf416df33",
+      "name": "ChatWOOT Buscar Contacto3",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $('ChatWOOT Buscar Contacto3').item.json.payload[0].id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"custom_attributes\": { \"link_dato_variable\":\"{{ $json.payload.payment_link }}\" } }",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        1080
+      ],
+      "id": "307595ae-9866-46ad-bd5b-67dab59f97db",
+      "name": "Chatwoot UPDATE Link dato variable",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/651819931347578/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $('Normalizacion datos pago').item.json.informacion.id_chatwoot }}\",\n  \"type\": \"interactive\",\n  \"interactive\": {\n    \"type\": \"button\",\n    \"header\": null,\n    \"body\": {\n      \"text\": \"O si prefieres en efectivo o que te llevemos datafono! Haz click en uno de los botones\"\n    },\n    \n    \"action\": {\n      \"buttons\": [\n        \n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"efectivo-button\",\n            \"title\": \"Efectivo\"\n          }\n        },\n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"datafono-button\",\n            \"title\": \"Datafono\"\n          }\n        }\n      ]\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        1080
+      ],
+      "id": "979caffc-65fe-4c5a-b154-25c1686aeb30",
+      "name": "Forma de pago E o D",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.body.id }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        1340
+      ],
+      "id": "168e6886-19f9-4892-a949-e5647b452c14",
+      "name": "ChatWOOT Buscar Contacto4",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $json.datosCliente.idChatwoot }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"custom_attributes\": { \"forma_de_pago\": \"{{ $json.datosPedido.forma_de_pago }}\"} }",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        1340
+      ],
+      "id": "4c51872e-4d61-49b1-9570-4335e2fce15b",
+      "name": "Chatwoot UPDATE Contacto4",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "custom",
+        "customResource": "crm.lead",
+        "operation": "update",
+        "customResourceId": "={{ $('Normalizacion forma de pago').item.json.datosPedido.idPedidoOdoo }}",
+        "fieldsToCreateOrUpdate": {
+          "fields": [
+            {
+              "fieldName": "x_forma_pago",
+              "fieldValue": "={{ $('Normalizacion forma de pago').item.json.datosPedido.forma_de_pago }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.odoo",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        1340
+      ],
+      "id": "fe2d64cb-690d-4b1b-8016-d30c394be5b9",
+      "name": "Odoo",
+      "credentials": {
+        "odooApi": {
+          "id": "Mdjdatz8c7bZMLLj",
+          "name": "Odoo The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eleccionFormaPagoTheVikingBurgerApi",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1340
+      ],
+      "id": "0389ccbf-3e79-44dc-b815-b30afaad1c7c",
+      "name": "Eleccion forma de pago",
+      "webhookId": "4e03b13b-7c1a-40e8-9b7b-74db8c8e2e25"
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $('DireccionIA').item.json.waId }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        620
+      ],
+      "id": "134bdec1-c9b8-4141-96d8-8ceb79af7ff6",
+      "name": "ChatWOOT Buscar Contacto5",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "procesoDatosInicialesTheVikingBurgerApi",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        620
+      ],
+      "id": "e1b2139d-f5a9-4793-ac16-a51f2f0cd8b7",
+      "name": "Proceso de datos inicales",
+      "webhookId": "196cf7fd-dfa2-42e8-be4d-9b19b8667742"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('DireccionIA').item.json.tipo_pedido }}",
+                    "rightValue": "omicilio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Domiclio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ae2740e5-c45c-49b2-bdc1-ec4340774aef",
+                    "leftValue": "={{ $('DireccionIA').item.json.tipo_pedido }}",
+                    "rightValue": "ecoger",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Recoger"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        800,
+        620
+      ],
+      "id": "0c5ce2de-aa14-49e0-90f6-19f48ca8c2b7",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pedidoListoTheVikingBurgerApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        160
+      ],
+      "id": "104c129f-9ad0-4cb7-bb8c-f5331a8cf2cc",
+      "name": "Pedido Listo",
+      "webhookId": "a1a995be-b60b-4e8b-8391-c24e3f3089f9"
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.body.phone }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        160
+      ],
+      "id": "317f7a44-54e2-4a22-b9ef-12426e11e858",
+      "name": "ChatWOOT Buscar Contacto8",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('Toma Detalles Conversacion1').item.json.id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": {{ JSON.stringify($json.response + $now.format('\\n```dd MM yyyy -  HH:mm```')) }}\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        160
+      ],
+      "id": "3afcfab9-9f8a-47cd-b202-348390699020",
+      "name": "ChatWoot ENVIA Mensaje Asistente2",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "=+{{ $('ChatWOOT Buscar Contacto8').item.json.payload[0].identifier }}",
+        "textBody": "={{ $('Send Mensaje Replit2').item.json.response }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        160
+      ],
+      "id": "8d3ffa62-c439-496f-9004-9eee4fd90a01",
+      "name": "WhatsApp Business Cloud8",
+      "webhookId": "f896139d-ad8c-4422-878b-04ac80eb0063",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "=GET",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto8').item.json.payload[0].custom_attributes.id_conversacion }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        160
+      ],
+      "id": "2f980388-8770-48ff-b539-0f281d2f8a99",
+      "name": "Toma Detalles Conversacion1",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# FLUJOS ADMINISTRATIVOS",
+        "width": 380,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -160,
+        -80
+      ],
+      "typeVersion": 1,
+      "id": "3412b8f7-6ab2-4e37-941d-0099b9ac47a1",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=ultimavezTheVikingBurger{{ $json.body.wa_id }}",
+        "messageData": "={{ $json.body.ultimavez }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        140,
+        1680
+      ],
+      "id": "f7476f5e-880d-4229-b87a-122526b83e13",
+      "name": "Redis",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "tiempochat",
+        "key": "=ultimavezTheVikingBurger{{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].identifier }}",
+        "keyType": "list",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        800,
+        1680
+      ],
+      "id": "50eaebf2-c5c8-439e-bb85-151bab3e2972",
+      "name": "Redis1",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "104d3891-b897-4d96-8d85-09d0e3d7abad",
+              "leftValue": "={{ $json.tiempochat[0] }}\n",
+              "rightValue": "={{ $now.minus (120'minutes')}}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "before"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1020,
+        1680
+      ],
+      "id": "214da642-bf61-444a-9fac-44adfe73a6c7",
+      "name": "If1",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "={{ $('Cerrar CHAT').item.json.body.wa_id }}",
+        "textBody": "=_*{{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].name }}*  hemos decidido cerrar este chat por inactividad…_😔.  Estamos emocionados por atenderte nuevamente en tu próximo pedido. *¡Esperamos verte pronto! 😉 ¡Hasta la próxima!*",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        1680
+      ],
+      "id": "5206c326-3ff6-4e47-8ae7-1184711bff22",
+      "name": "WhatsApp Business Cloud6",
+      "webhookId": "f12a1b98-47c1-47ce-be62-14d7e631c5e9",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 120,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        580,
+        1680
+      ],
+      "id": "6e1a7553-6a8b-48fc-989b-2ea800872af2",
+      "name": "Wait",
+      "webhookId": "a7c7bded-ea54-44a0-928d-70cf2c948217"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cerrarChatTheVikingBurgerApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1680
+      ],
+      "id": "7715c058-dc14-4c16-83cc-2093956c77f4",
+      "name": "Cerrar CHAT",
+      "webhookId": "6d527b3d-4f38-42f8-ba15-999751028872"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener el valor de la sede desde la entrada\nlet sede_entrada = $('Proceso de datos inicales').item.json.body.sede.sede.toLowerCase();\n\n// Inicializar variables\nlet ciudad_sede = '';\nlet coordenadas = '';\nlet id_sede = 0;\nlet nombre_sede = '';\nlet inbox_id = 0;\nlet latitud = '';\nlet longitud = '';\n// Función para normalizar el texto (primera letra mayúscula, resto minúsculas)\nfunction normalizarTexto(texto) {\n    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();\n}\n\n// Procesar según la sede\nswitch (sede_entrada) {\n      case 'la pradera dosquebradas':\n        ciudad_sede = 'Dosquebradas';\n        coordenadas = '4.825873965247657,-75.67592880453239';\n        id_sede = 9;\n        nombre_sede = 'La Pradera';\n        break;\n      case 'pereira':\n        ciudad_sede = 'Pereira';\n        coordenadas = '4.825873965247657,-75.67592880453239';\n        id_sede = 9;\n        nombre_sede = 'Pereira';\n        break;\n      case 'medellin':\n        ciudad_sede = 'Medellin';\n        coordenadas = '6.196992731694999,-75.56165297325951';\n        id_sede = 9;\n        nombre_sede = 'Medellin';\n        break;\n      case 'bogota':\n        ciudad_sede = 'Bogota';\n        coordenadas = '4.666998407747341,-74.05264507595633';\n        id_sede = 9;\n        nombre_sede = 'Bogota';\n        break;\n  \n    default:\n        ciudad_sede = 'Sede no válida';\n        coordenadas = '';\n        id_sede = 0;\n}\nif (coordenadas) {\n    latitud = coordenadas.slice(0, coordenadas.indexOf(','));\n    longitud = coordenadas.slice(coordenadas.indexOf(',') + 1);\n}\n\n// Crear objeto de respuesta\nconst respuesta = {\n    ciudad_sede: ciudad_sede,\n    coordenadas: coordenadas,\n    id_sede: id_sede,\n    nombre_sede: nombre_sede,\n    latitud: latitud,\n    longitud: longitud\n};\n\n// Retornar el resultado\nreturn respuesta;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
+        620
+      ],
+      "id": "550092c4-d8f8-47f5-9a6f-1584542d16d4",
+      "name": "Codificacion de Sede"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "avisoSedeTheVikingBurgerApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1940
+      ],
+      "id": "4827a7af-ba02-4dfc-a5bd-475cc07eff0d",
+      "name": "Aviso Sede",
+      "webhookId": "aa8810a0-fd23-4d1f-bd84-32f059eea46f"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4f7e1ee2-48de-405b-b572-9dfed2779eab",
+              "name": "body.id_sede",
+              "value": "={{ $json.body.id_sede }}",
+              "type": "number"
+            },
+            {
+              "id": "c5eed086-eabb-4ace-9d6f-8958b7f7664f",
+              "name": "body.sede",
+              "value": "={{ $json.body.sede }}",
+              "type": "string"
+            },
+            {
+              "id": "d7ba89b5-4ae4-455b-adb1-60abe13ad7b8",
+              "name": "body.nombre",
+              "value": "={{ $json.body.nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "693886d6-9d96-43e2-b37b-145a39ffaf77",
+              "name": "body.telefono",
+              "value": "={{ $json.body.telefono }}",
+              "type": "number"
+            },
+            {
+              "id": "3204cd2b-6a78-4b7b-9803-60634c75ca7d",
+              "name": "body.pedido_confirmado",
+              "value": "={{ $json.body.pedido_confirmado }}",
+              "type": "string"
+            },
+            {
+              "id": "3c21d8af-f756-44d0-b7db-2a8e6868d3c4",
+              "name": "body.direccion_cliente",
+              "value": "={{ $json.body.direccion_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "bb4aae55-791f-410e-8926-6f674a179df5",
+              "name": "body.tipo_pedido",
+              "value": "={{ $json.body.tipo_pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "23103004-4230-4b95-9f8b-acf4c7d4537b",
+              "name": "body.valor_pedido",
+              "value": "={{ $json.body.valor_pedido }}",
+              "type": "number"
+            },
+            {
+              "id": "cd8d7c82-c337-4e17-b295-2d57a4ffdd09",
+              "name": "body.valor_domicilio",
+              "value": "={{ $json.body.valor_domicilio }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        140,
+        1940
+      ],
+      "id": "22243548-c63a-48c2-b92e-53ab5cb95aa0",
+      "name": "Normalizacion2"
+    },
+    {
+      "parameters": {
+        "resource": "custom",
+        "customResource": "crm.lead",
+        "operation": "update",
+        "customResourceId": "={{ $json.id_pedido }}",
+        "fieldsToCreateOrUpdate": {
+          "fields": [
+            {
+              "fieldName": "x_forma_pago",
+              "fieldValue": "={{ $('status pago').item.json.mensaje }}"
+            }
+          ]
+        }
+      },
+      "id": "b873fdc0-defd-449f-ab32-00ca3d49570e",
+      "name": "Odoo1",
+      "type": "n8n-nodes-base.odoo",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        2740
+      ],
+      "credentials": {
+        "odooApi": {
+          "id": "Mdjdatz8c7bZMLLj",
+          "name": "Odoo The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/filter",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"payload\": [ { \"attribute_key\":\"link_dato_variable\", \"filter_operator\": \"equal_to\", \"values\": [ \"{{ $json.body.data.metadata.reference }}\" ] } ] }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        2740
+      ],
+      "id": "616b761a-cfb1-4f4f-b396-8d7413b0372a",
+      "name": "Buscar Contacto x Link Dato Variable",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6d414ab7-f5d2-4beb-9a56-52d481d06f2f",
+              "name": "thread_id",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.thread_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c5285028-46f4-456d-8769-661de7903cb7",
+              "name": "status_pago_wompi",
+              "value": "={{ $('Info BOLD').item.json.body.data.transaction.status }}",
+              "type": "string"
+            },
+            {
+              "id": "4919d999-e788-4298-a596-1064bd7e00ec",
+              "name": "id_pedido",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.id_pedido }}",
+              "type": "number"
+            },
+            {
+              "id": "18fdd8a2-bf9e-4ccd-9e47-d3d51ad6d6a4",
+              "name": "id_odoo",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.id_odoo }}",
+              "type": "number"
+            },
+            {
+              "id": "92e3d121-dff3-42c5-aaea-ede482224a36",
+              "name": "waId",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].identifier }}",
+              "type": "number"
+            },
+            {
+              "id": "4042fb31-72b7-4464-840e-9e3967732201",
+              "name": "status_pago_odoo",
+              "value": "={{ $json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "5afbbf52-5ada-4143-96fe-99bf181d8a3d",
+              "name": "id_chatwoot",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        2740
+      ],
+      "id": "38c52e5b-3347-48c9-827d-b420b82e2899",
+      "name": "Normalizacion info wompi"
+    },
+    {
+      "parameters": {
+        "jsCode": "const status = $('Info BOLD').item.json.body.type;\n\nlet resultado;\n\nswitch(status) {\n  case 'SALE_APPROVED':\n    resultado = {\n      mensaje: 'Pago aprobado'\n    };\n    break;\n  case 'ERROR':\n     resultado = {\n      mensaje: 'Pago rechazado'\n    };\n  case 'SALE_REJECTED':\n    resultado = {\n      mensaje: 'Pago rechazado'\n    };\n    break;\n  default:\n    resultado = {\n      mensaje: 'Estado desconocido'\n    };\n}\n\nreturn resultado;"
+      },
+      "id": "140435f2-15e0-414e-8912-f65843ec5666",
+      "name": "status pago",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        2740
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $('Normalizacion info wompi').item.json.id_chatwoot }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"custom_attributes\": { \"status_pago\": \"{{ $('Normalizacion info wompi').item.json.status_pago_wompi }}\"} }",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        2740
+      ],
+      "id": "87dc0d22-e00b-4e06-a894-8237b6b8d4b9",
+      "name": "Chatwoot UPDATE Contacto8",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://cdcff234-b9b4-4530-9ae5-add6b8f0091f-00-3px6ruo8unhlz.janeway.replit.dev/sendmensaje",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "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"
+            },
+            {
+              "name": "thread_id",
+              "value": "={{ $('Normalizacion info wompi').item.json.thread_id }}"
+            },
+            {
+              "name": "message",
+              "value": "=INSTRUCCION OBLIGATORIA: informale  al cliente que el estado de su pago fue: *{{ $('Normalizacion info wompi').item.json.status_pago_odoo }}*"
+            },
+            {
+              "name": "subscriber_id",
+              "value": "={{ $('Normalizacion info wompi').item.json.waId }}"
+            },
+            {
+              "name": "use_cache_control",
+              "value": "="
+            },
+            {
+              "name": "direccionCliente",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.direccion_cliente }}"
+            },
+            {
+              "name": "telefono",
+              "value": "=+{{ $('Normalizacion info wompi').item.json.waId }}"
+            },
+            {
+              "name": "nombreNull",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].name }}"
+            },
+            {
+              "name": "thinking",
+              "value": "={{1}}"
+            },
+            {
+              "name": "modelID",
+              "value": "=llmo"
+            },
+            {
+              "name": "direccionNull",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.direccion_cliente }}"
+            },
+            {
+              "name": "telefonoPrompt",
+              "value": "=+{{ $('Normalizacion info wompi').item.json.waId }}"
+            },
+            {
+              "name": "valor_domicilio",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.valor_domicilio }}"
+            },
+            {
+              "name": "assistant",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.prompt_a_usar }}"
+            },
+            {
+              "name": "ciudadCliente",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.ciudad_cliente }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        2740
+      ],
+      "id": "fd8bd726-f094-4218-adb7-0749a49b8d54",
+      "name": "Send Mensaje Replit3"
+    },
+    {
+      "parameters": {
+        "method": "=GET",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $json.payload[0].custom_attributes.id_conversacion }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        2740
+      ],
+      "id": "e8e03cce-cecb-4b50-8c0c-48d155f011da",
+      "name": "Toma Detalles Conversacion3",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('Toma Detalles Conversacion3').item.json.id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $('Send Mensaje Replit3').item.json.razonamiento }}\n\n{{ $('Send Mensaje Replit3').item.json.response }}\n"
+            },
+            {
+              "name": "message_type",
+              "value": "outgoing"
+            },
+            {
+              "name": "private",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2340,
+        2740
+      ],
+      "id": "5f256261-d3c5-4cb3-8b13-8fda9e030f43",
+      "name": "ChatWoot ENVIA Mensaje Asistente4",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "=+{{ $('Normalizacion info wompi').item.json.waId }}",
+        "textBody": "={{ $node[\"Send Mensaje Replit3\"].json[\"response\"] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        2740
+      ],
+      "id": "34053f3f-41d9-455e-88ba-6a29027bf069",
+      "name": "WhatsApp Business Cloud9",
+      "webhookId": "6c4431e3-cd71-4393-8726-37660a1777fe",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "08aff475-5221-464d-8464-034b40287f1c",
+              "leftValue": "={{ $('Toma Detalles Conversacion3').item.json.custom_attributes.llm }}",
+              "rightValue": "anthropic",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1900,
+        2740
+      ],
+      "id": "ce457c7e-4bc3-496e-a696-f5dc19b8d2ac",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"custom_attributes\": { \"thread_id\": \"{{ $('Send Mensaje Replit3').item.json.thread_id }}\", \"tk_c\":{{ $('Send Mensaje Replit3').item.json.usage.cache_creation_input_tokens + $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.tk_c}} ,\"tk_r\":{{ $('Send Mensaje Replit3').item.json.usage.cache_read_input_tokens + $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.tk_r }} ,\"tk_s\":{{ $('Send Mensaje Replit3').item.json.usage.output_tokens + $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.tk_s}} ,\"tk_e\":{{ $('Send Mensaje Replit3').item.json.usage.input_tokens + $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.tk_e}},\n\"previous_response_id\": \"{{ $('Send Mensaje Replit3').item.json.previous_response_id }}\" } }\n\n\n",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        2660
+      ],
+      "id": "dbb7da94-0465-4a23-8487-0b3ec7f308ab",
+      "name": "Chatwoot UPDATE Contacto10",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "=\n{\n  \"custom_attributes\": {\n    \"thread_id\": \"null\",\n    \"stage\": 0,\n    \"id_pedido\": null,\n    \"link_dato_variable\": null,\n    \"forma_de_pago\": null,\n    \"tipo_pedido\": null,\n    \"sede\": null,\n    \"valor_domicilio\": null,\n    \"prompt_a_usar\": null,\n    \"valor_pedido\": null,\n    \"id_sede\": null,\n    \"coordenadas_elegidas\": null,\n    \"status_pago\": null,\n    \"tk_c\": 1,\n    \"tk_r\": 1,\n    \"tk_s\": 1,\n    \"tk_e\": 1,\n    \"impreso\": 0,\n    \"previous_response_id\": null\n  }\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1240,
+        1680
+      ],
+      "id": "1249cc6f-a703-4029-bd92-26fbd2037e96",
+      "name": "Chatwoot UPDATE Contacto11",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=INSTRUCCION DESDE SIR POLLO: ya se envio el link de pago a este chat",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2560,
+        1080
+      ],
+      "id": "f1759d59-35c1-4da3-b7a0-61306b7a6c03",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $('ChatWOOT Buscar Contacto8').item.json.payload[0].id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"custom_attributes\": {  \"stage\": 3,\n\"previous_response_id\": \"{{ $('Send Mensaje Replit2').item.json.previous_response_id }}\" }}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        160
+      ],
+      "id": "bc36c43c-35dd-40c8-9b1b-3635ab89ac7e",
+      "name": "Chatwoot UPDATE Contacto12",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "52ee25f2-2270-40d7-a6fb-caacc48e8e34",
+              "name": "datosPedido.forma_de_pago",
+              "value": "={{ $('Eleccion forma de pago').item.json.body.forma.forma }}",
+              "type": "string"
+            },
+            {
+              "id": "0391de07-d195-490c-a790-02a7203b4f99",
+              "name": "datosCliente.waId",
+              "value": "={{ $('Eleccion forma de pago').item.json.body.id }}",
+              "type": "string"
+            },
+            {
+              "id": "076b99f5-ad68-47aa-844f-d4f9988b6787",
+              "name": "datosCliente.idChatwoot",
+              "value": "={{ $('ChatWOOT Buscar Contacto4').item.json.payload[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "500b3302-e683-47d0-aaf8-67c1cc196148",
+              "name": "datosPedido.idPedidoOdoo",
+              "value": "={{ $('ChatWOOT Buscar Contacto4').item.json.payload[0].custom_attributes.id_pedido }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        580,
+        1340
+      ],
+      "id": "09c0e0aa-7de3-4e54-86c7-b298c9cb43c5",
+      "name": "Normalizacion forma de pago"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=INSTRUCCION De pago esESDE SIR POLLO: Informale al cliente que hemos registrado que su forma de pago es:  {{ $('Normalizacion forma de pago').item.json.datosPedido.forma_de_pago }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1340
+      ],
+      "id": "34561d5c-c98c-4e8c-bdb8-726c87dbc0dd",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1T4u7u2Y7nvI254MZ9PgrUYypM4F4AmyShVZNsMzdSuM",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 89474635,
+          "mode": "list",
+          "cachedResultName": "Tokens",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W1b28Hk_hjxjo-rGD1DposUdV9MicKvq-wVZE797lAg/edit#gid=89474635"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "IdFecha": "={{ $now.format('dd/MM/yyyy HH:mm:ss') }}",
+            "Manychat": "={{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].id }}",
+            "Token Creacion": "={{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].custom_attributes.tk_c }}",
+            "Nombre": "={{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].name }}",
+            "Token Entrada": "={{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].custom_attributes.tk_e }}",
+            "Token Salida": "={{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].custom_attributes.tk_s }}",
+            "Token Read": "={{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].custom_attributes.tk_r }}",
+            "Id Lead": "={{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].custom_attributes.id_pedido }}"
+          },
+          "matchingColumns": [
+            "IdFecha"
+          ],
+          "schema": [
+            {
+              "id": "IdFecha",
+              "displayName": "IdFecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Manychat",
+              "displayName": "Manychat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Entrada",
+              "displayName": "Token Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Salida",
+              "displayName": "Token Salida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Creacion",
+              "displayName": "Token Creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Read",
+              "displayName": "Token Read",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Valor Real Entrada",
+              "displayName": "Valor Real Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Salida",
+              "displayName": "Valor Real Salida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Creacion",
+              "displayName": "Valor Real Creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Read",
+              "displayName": "Valor Real Read",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Total",
+              "displayName": "Valor Real Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Entrada",
+              "displayName": "Valor Cliente Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Salida",
+              "displayName": "Valor Cliente Salida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Creacion",
+              "displayName": "Valor Cliente Creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Read",
+              "displayName": "Valor Cliente Read",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Total",
+              "displayName": "Valor Cliente Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Id Lead",
+              "displayName": "Id Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1900,
+        1680
+      ],
+      "id": "75858ed2-332d-43d6-8c4c-811fefe63f70",
+      "name": "Google Sheets",
+      "retryOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6mAzacDEesEWgdIp",
+          "name": "Google Sheets Iass"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=bloqueoTheVikingBurger{{ $('ChatWOOT Buscar Contacto3').item.json.payload[0].identifier }}",
+        "messageData": "1"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        580,
+        1080
+      ],
+      "id": "db5d32ce-21eb-4fb3-aa02-79ea715d9a52",
+      "name": "Redis10",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto3').item.json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"Se envia link y formas de pago \\n{{ $now }}\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2780,
+        1080
+      ],
+      "id": "15bcd895-ec3a-4876-96aa-67fbc65ba888",
+      "name": "ChatWoot ENVIA Mensaje Asistente6",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "delete bloqueo"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2800,
+        1160
+      ],
+      "typeVersion": 1,
+      "id": "a14227ed-5c6e-4451-a8a0-412b764b2886",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=ultimavezTheVikingBurger{{ $json.contacts[0].wa_id }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        1680
+      ],
+      "id": "83b25f8c-6c38-4bed-918b-de819d95a8c0",
+      "name": "Redis14",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.body.wa_id }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        1680
+      ],
+      "id": "9902836f-79e2-4fbf-a279-7b99603199bb",
+      "name": "ChatWOOT Buscar Contacto11",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=bloqueoTheVikingBurger{{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].identifier }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        1680
+      ],
+      "id": "680c6955-5097-4b74-9130-fc4f4a1c569b",
+      "name": "Redis17",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"_*{{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].name }}*  hemos decidido cerrar este chat por inactividad…_😔.  Estamos emocionados por atenderte nuevamente en tu próximo pedido. *¡Esperamos verte pronto! 😉 ¡Hasta la próxima!*\\n{{ $now }}\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2340,
+        1680
+      ],
+      "id": "67a12970-9368-4d21-981d-4ed1b472945b",
+      "name": "ChatWoot ENVIA Mensaje Asistente8",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"Se avisa sede\\n{{ $now }}\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        1940
+      ],
+      "id": "c62ef903-1e05-4610-a757-b5141aee21d7",
+      "name": "ChatWoot ENVIA Mensaje Asistente12",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $('Normalizacion2').item.json.body.telefono }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        1940
+      ],
+      "id": "24b909de-2790-449c-9409-5867e7b20832",
+      "name": "ChatWOOT Buscar Contacto13",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto11').item.json.payload[0].custom_attributes.id_conversacion }}/toggle_status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"resolved\"\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        1680
+      ],
+      "id": "fd3b1564-8a7b-4567-8e0d-b704a757d514",
+      "name": "Chatwoot Status Conversacion3",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.body.suscriber_id }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        140,
+        2300
+      ],
+      "id": "97733058-15a4-4816-b030-60a82991b299",
+      "name": "ChatWOOT Buscar Contacto14",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1bfffbfe-fb55-4cf5-bca3-9d125ad16a97",
+              "leftValue": "={{ $('Normalizacion forma de pago').item.json.datosPedido.forma_de_pago }}",
+              "rightValue": "Wompi",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "616f42b3-5ed3-4ef1-b1cf-a3f3da073e68",
+              "leftValue": "={{ $('ChatWOOT Buscar Contacto4').item.json.payload[0].custom_attributes.impreso }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1240,
+        1340
+      ],
+      "id": "342ea3a4-ddf1-4d4f-a434-008b4d6b9d7f",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8niass.cocinandosonrisas.co/webhook/impresionComandaTheVikingBurgerApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "suscriber_id",
+              "value": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].identifier }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        2740
+      ],
+      "id": "de8aba89-536c-424e-b73b-1ce03842faf0",
+      "name": "HTTP Impresion Comanda1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1bfffbfe-fb55-4cf5-bca3-9d125ad16a97",
+              "leftValue": "={{ $('status pago').item.json.mensaje }}",
+              "rightValue": "Pago rechazado",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "616f42b3-5ed3-4ef1-b1cf-a3f3da073e68",
+              "leftValue": "={{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.impreso }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2780,
+        2740
+      ],
+      "id": "db7488c2-63e8-426b-82b2-8594ea27c297",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8niass.cocinandosonrisas.co/webhook/impresionComandaTheVikingBurgerApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "suscriber_id",
+              "value": "={{ $('ChatWOOT Buscar Contacto4').item.json.payload[0].identifier }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        1420
+      ],
+      "id": "7209f72b-1c4c-4af0-8cdd-8f5cf6c107db",
+      "name": "HTTP Impresion Comanda"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eb81edf0-2718-419d-9673-638325127c94",
+              "name": "payload[0].name",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].name }}",
+              "type": "string"
+            },
+            {
+              "id": "b1f78fd9-0962-4759-81bc-b3db87680989",
+              "name": "payload[0].custom_attributes.direccion_cliente",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.direccion_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "47817035-11ce-48cd-9ea7-28d40fd43fa0",
+              "name": "payload[0].custom_attributes.ciudad_cliente",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.ciudad_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "8e1fc5b6-4908-47e9-b8b3-80e8d33ac16f",
+              "name": "payload[0].custom_attributes.forma_de_pago",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.forma_de_pago }}",
+              "type": "string"
+            },
+            {
+              "id": "b9e6da91-3b13-4bb4-8c18-53c0ec074ee0",
+              "name": "payload[0].custom_attributes.tipo_pedido",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.tipo_pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "32d961e4-1cd7-4856-9ff2-8ceeb79ba5bd",
+              "name": "payload[0].phone_number",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].phone_number }}",
+              "type": "string"
+            },
+            {
+              "id": "9941cdf9-2cc0-4cea-88ba-fd38030af34e",
+              "name": "payload[0].custom_attributes.pedido_cliente",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.pedido_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "d2e9e34a-e152-42b7-8c54-496cb1e9fbf7",
+              "name": "payload[0].custom_attributes.valor_pedido",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.valor_pedido }}",
+              "type": "number"
+            },
+            {
+              "id": "72c5bda0-a719-49c1-8c9d-98fd0aad38cb",
+              "name": "payload[0].custom_attributes.valor_domicilio",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.valor_domicilio }}",
+              "type": "string"
+            },
+            {
+              "id": "cdeb42ba-cd37-49e4-bdfa-e9c3be1f9d15",
+              "name": "valor_total",
+              "value": "={{ Number($('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.valor_domicilio) + Number($('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.valor_pedido) }}",
+              "type": "string"
+            },
+            {
+              "id": "08fdae5c-16fa-46b7-b395-a41e566b5371",
+              "name": "sede",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.sede }}",
+              "type": "string"
+            },
+            {
+              "id": "27c329e5-b398-4b4f-9b13-0b4d4e66a711",
+              "name": "id_lead",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.id_pedido }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        2300
+      ],
+      "id": "bf83c822-d9c7-4dd6-b455-012c5f61d13c",
+      "name": "Normalizacion Impresion"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aab4466a-ee5f-416e-bb34-c5b6a7007642",
+              "name": "fecha_hora",
+              "value": "{{fecha}}",
+              "type": "string"
+            },
+            {
+              "id": "2ea9cd0b-cbd4-40f8-8906-b92409020d20",
+              "name": "nombre",
+              "value": "{{nombre}}",
+              "type": "string"
+            },
+            {
+              "id": "df53f9bd-cf2e-4c2c-b2ca-61727a809fe7",
+              "name": "direccion_cliente",
+              "value": "{{direccion_cliente}}",
+              "type": "string"
+            },
+            {
+              "id": "d1e07390-f049-4a69-98ac-9f789e6dd870",
+              "name": "ciudad_cliente",
+              "value": "{{ciudad_cliente}}",
+              "type": "string"
+            },
+            {
+              "id": "dd9061d9-107d-4704-9077-b42f18d19bff",
+              "name": "forma_pago",
+              "value": "{{forma_pago}}",
+              "type": "string"
+            },
+            {
+              "id": "163187e5-9cc1-4246-ada1-535472e59333",
+              "name": "tipo_pedido",
+              "value": "{{tipo_pedido}}",
+              "type": "string"
+            },
+            {
+              "id": "07da52c0-2c35-48d5-b029-0ef36fe63253",
+              "name": "telefono",
+              "value": "{{telefono}}",
+              "type": "string"
+            },
+            {
+              "id": "397e5a4c-cea5-4814-91a2-2715ba8bd160",
+              "name": "pedido_cliente",
+              "value": "{{pedido_cliente}}",
+              "type": "string"
+            },
+            {
+              "id": "8cb5c15b-c650-41e0-8d1a-579b24da995a",
+              "name": "valor_pedido",
+              "value": "{{valor_pedido}}",
+              "type": "string"
+            },
+            {
+              "id": "3ab187fd-6ce1-4b8d-aca6-820d1c0406f2",
+              "name": "valor_domicilio",
+              "value": "{{valor_domicilio}}",
+              "type": "string"
+            },
+            {
+              "id": "29cb9f04-66ef-4d29-aedd-59c0ef62ee5f",
+              "name": "valor_total",
+              "value": "{{valor_total}}",
+              "type": "string"
+            },
+            {
+              "id": "8322293c-f21a-49ca-9b07-efba8c8f28bc",
+              "name": "sede",
+              "value": "{{sede}}",
+              "type": "string"
+            },
+            {
+              "id": "0c6405fb-95b7-496d-8cb9-45b07b5d4387",
+              "name": "hora",
+              "value": "{{hora}}",
+              "type": "string"
+            },
+            {
+              "id": "67da6052-1643-489b-9a37-59313ce11541",
+              "name": "id_lead",
+              "value": "{{id_lead}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": false
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        2300
+      ],
+      "id": "fd1fe439-4647-4ec8-8333-706a0222c966",
+      "name": "Campos"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files/1i9umCyeG_ikue-k7_pWwlhnG6B2ID-jYKyLSlEh_gdE/copy",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1240,
+        2300
+      ],
+      "id": "71c3df85-a3ac-4c98-90aa-6149dbb637e2",
+      "name": "Copia del archivo",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "VqJs7aHCP2MWjNmN",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $json.id }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"requests\": [\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $now.format('DD ') }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.fecha_hora }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $now.format('HH:mm') }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.hora }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].name }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.nombre }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].custom_attributes.direccion_cliente }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.direccion_cliente }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].custom_attributes.ciudad_cliente }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.ciudad_cliente }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].custom_attributes.forma_de_pago }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.forma_pago }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].custom_attributes.tipo_pedido }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.tipo_pedido }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].phone_number }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.telefono }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": {{ JSON.stringify($('Normalizacion Impresion').item.json.payload[0].custom_attributes.pedido_cliente) }},\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.pedido_cliente }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].custom_attributes.valor_pedido }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.valor_pedido }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.payload[0].custom_attributes.valor_domicilio }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.valor_domicilio }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.sede }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.sede }}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.id_lead }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.id_lead}}\",\n          \"matchCase\": false\n        }\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"replaceText\": \"{{ $('Normalizacion Impresion').item.json.valor_total }}\",\n        \"containsText\": {\n          \"text\": \"{{ $('Campos').item.json.valor_total }}\",\n          \"matchCase\": false\n        }\n      }\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        2300
+      ],
+      "id": "7c1023c4-a6ca-476f-85d2-4a115b383855",
+      "name": "Reemplaza Valores",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "VqJs7aHCP2MWjNmN",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $json.documentId }}/download",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "mimeType",
+              "value": "application/pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        2300
+      ],
+      "id": "d50f0d37-f73f-46b1-9711-f7210a04abeb",
+      "name": "Download",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "VqJs7aHCP2MWjNmN",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"Impresion de comanda\\n{{ $now }}\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        2300
+      ],
+      "id": "3593d4bf-22da-4005-8f72-6d6775f89229",
+      "name": "ChatWoot ENVIA Mensaje Asistente14",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"custom_attributes\": { \"impreso\": 1  } }\n\n\n",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2340,
+        2300
+      ],
+      "id": "665e2012-7082-4997-a0c6-674642552181",
+      "name": "Chatwoot UPDATE Contacto14",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $('Copia del archivo').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2780,
+        2300
+      ],
+      "id": "9f272890-524c-4e73-a0e9-02fcc710ab7b",
+      "name": "Delete Tirilla",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "VqJs7aHCP2MWjNmN",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"Eleccion Forma de pago\\n{{ $now }}\\n\\n```{{ $('Eleccion forma de pago').item.json.body.forma.forma }}```\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        1340
+      ],
+      "id": "bb976505-1c5e-4f87-b49d-34b2f5f3cbe5",
+      "name": "ChatWoot ENVIA Mensaje Asistente",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        140,
+        3000
+      ],
+      "id": "3bfa3de2-a243-4f80-871b-800cff6bedbd",
+      "name": "Wait3",
+      "webhookId": "6dc7d88a-b30c-4a02-a220-90c0b4c0c40d"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pausaChatTheVikingBurgerApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        3000
+      ],
+      "id": "9300cd82-228f-4849-8786-9442d70408ad",
+      "name": "Pausa Chat 30 min",
+      "webhookId": "db6cd8f9-7761-4591-ba6a-21a64262bf3c"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatManualTheVikingBurgerApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        3260
+      ],
+      "id": "09efbc75-9d60-45e7-9edf-68329c7e2b01",
+      "name": "Envio Mensaje",
+      "webhookId": "c3e7b173-7cc3-4270-aadf-7b5a04aebd32",
+      "notesInFlow": true,
+      "notes": "envia mensaje manual desde la sede"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "30872a92-ba03-43c7-bf38-2ef687b19440",
+              "leftValue": "={{ $json.body.labels[0] }}",
+              "rightValue": "chat_manual",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        140,
+        3260
+      ],
+      "id": "214b8773-bcac-4127-aa5a-752590b90d89",
+      "name": "If7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $item(\"0\").$node[\"Pausa Chat 30 min\"].json[\"body\"][\"messages\"][\"0\"][\"conversation_id\"] }}/toggle_status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"open\"\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        3000
+      ],
+      "id": "3aaeabef-f80b-4a93-a150-6006342a05ec",
+      "name": "Chatwoot Status Conversacion",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "={{ $json.body.meta.sender.identifier }}",
+        "textBody": "={{ $json.body.messages[0].processed_message_content }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        360,
+        3260
+      ],
+      "id": "7406a911-5e80-46a4-b48d-c804bc4bc9ed",
+      "name": "WhatsApp Business",
+      "webhookId": "83c2682a-6d40-45c6-a175-a783afaf5b22",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "TELEFONO",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        1940
+      ],
+      "id": "b056c864-5e95-4f97-9a90-e80509d59f49",
+      "name": "Split Out",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1GSlQGAyQwVrFwdHuggwRdhsqur8Oon_fdJCoYUznvNI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sedes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1THZfb7ko6_OlRQoizLo-3kVClIU-jIEGjtpAitcxnOA/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "SEDE",
+              "lookupValue": "={{ $('ChatWOOT Buscar Contacto13').item.json.payload[0].custom_attributes.sede }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        800,
+        1940
+      ],
+      "id": "ccb17a9d-9333-4647-a60f-bb271e97504e",
+      "name": "Google Sheets1",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6mAzacDEesEWgdIp",
+          "name": "Google Sheets Iass"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "=+{{ $json.TELEFONO }}",
+        "template": "aviso_nuevo_pedido|es_CO",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $('Normalizacion2').item.json.body.sede }}"
+                  },
+                  {
+                    "text": "={{ $('Normalizacion2').item.json.body.nombre }}"
+                  },
+                  {
+                    "text": "={{ $('Normalizacion2').item.json.body.telefono }}"
+                  },
+                  {
+                    "text": "={{ $('Normalizacion2').item.json.body.pedido_confirmado }}"
+                  },
+                  {
+                    "text": "={{ $('Normalizacion2').item.json.body.direccion_cliente }}"
+                  },
+                  {
+                    "text": "={{ $('Normalizacion2').item.json.body.tipo_pedido }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        1940
+      ],
+      "id": "7aee4b60-7af0-4ffe-8009-2545861f77b6",
+      "name": "Plantilla Pedido",
+      "webhookId": "1297a69c-918f-4694-8e27-268276114dd5",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2560,
+        2300
+      ],
+      "id": "252a204b-f89e-4f7c-a025-d67150559220",
+      "name": "Wait1",
+      "webhookId": "39a93d37-5132-41d4-be72-74c6ed2ea016"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "616f42b3-5ed3-4ef1-b1cf-a3f3da073e68",
+              "leftValue": "={{ $json.payload[0].custom_attributes.impreso }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        360,
+        2300
+      ],
+      "id": "b8c7e515-37bb-48e6-8a72-e6e7bf2d0087",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto8').item.json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"Pedido Listo\\n {{ $now }}\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        160
+      ],
+      "id": "d14c5ace-079c-401c-8d35-ac7e3897f7b6",
+      "name": "ChatWoot ENVIA Mensaje Asistente3",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://cdcff234-b9b4-4530-9ae5-add6b8f0091f-00-3px6ruo8unhlz.janeway.replit.dev/sendmensaje",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "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"
+            },
+            {
+              "name": "thread_id",
+              "value": "={{ $('Toma Detalles Conversacion1').item.json.meta.sender.custom_attributes.thread_id }}"
+            },
+            {
+              "name": "assistant",
+              "value": "={{ $json.prompt_a_usar }}"
+            },
+            {
+              "name": "message",
+              "value": "=INSTRUCCION OBLIGATORIA DESDE Dark Burger: Confirmale al cliente que ya su pedido estuvo listo  a las {{ $('Edit Fields5').item.json.hora.slice(0,5) }}, el tipo de pedido es para {{ $('ChatWOOT Buscar Contacto8').item.json.payload[0].custom_attributes.tipo_pedido }} consecuentemente se demora {{ $('ChatWOOT Buscar Contacto8').item.json.payload[0].custom_attributes.tiempo_desplazamiento }} en llegar segun Google Maps"
+            },
+            {
+              "name": "subscriber_id",
+              "value": "={{ $('Toma Detalles Conversacion1').item.json.meta.sender.identifier }}"
+            },
+            {
+              "name": "use_cache_control"
+            },
+            {
+              "name": "direccionCliente",
+              "value": "={{ $('Toma Detalles Conversacion1').item.json.meta.sender.custom_attributes.direccion_cliente }}"
+            },
+            {
+              "name": "telefono",
+              "value": "={{ $('Toma Detalles Conversacion1').item.json.meta.sender.phone_number }}"
+            },
+            {
+              "name": "nombre_cliente",
+              "value": "={{ $('Toma Detalles Conversacion1').item.json.meta.sender.name }}"
+            },
+            {
+              "name": "thinking",
+              "value": "={{1}}"
+            },
+            {
+              "name": "modelID",
+              "value": "=llmo"
+            },
+            {
+              "name": "direccionNull",
+              "value": "={{ $('Toma Detalles Conversacion1').item.json.meta.sender.custom_attributes.direccion_cliente }}"
+            },
+            {
+              "name": "telefonoPrompt",
+              "value": "={{ $('Toma Detalles Conversacion1').item.json.meta.sender.phone_number }}"
+            },
+            {
+              "name": "direccionSiNo"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        160
+      ],
+      "id": "6f071fbf-c4ec-4a51-b009-bcadf3fd6a8b",
+      "name": "Send Mensaje Replit2"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"dia\": \"{{$('Dia y Hora1').item.json.dia}}\",\n\"hora\": \"{{ $json.hora }}\",\n\"stage\": \"{{ $('Toma Detalles Conversacion1').item.json.meta.sender.custom_attributes.stage }}\",\n\"sede\": \"{{ $('Toma Detalles Conversacion1').item.json.meta.sender.custom_attributes.sede }}\",\n\"tipoPedido\": \"{{ $('Toma Detalles Conversacion1').item.json.meta.sender.custom_attributes.tipo_pedido }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        160
+      ],
+      "id": "4f09fc1f-418f-4085-b0c8-203135e26e01",
+      "name": "Edit Fields5",
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "let prompt_a_usar = 0; // Valor por defecto\n\ntry {\n    // Obtención de variables\n    const tipo_pedido = $('Toma Detalles Conversacion').item.json.meta.sender.custom_attributes.tipo_pedido;\n    let stage_raw = $('Toma Detalles Conversacion').item.json.meta.sender.custom_attributes.stage; // Obtener stage sin parsear primero\n\n    let stage = parseInt(stage_raw); // Intentar parsear stage a entero\n\n    if (isNaN(stage)) {\n        stage = 0; // Si stage es NaN después de parseInt (o era null/undefined), establecer a 0\n    }\n\n    // Funciones auxiliares para verificar tipo de pedido (manejar si tipo_pedido es null/undefined)\n    const esDomicilio = (tipo) => tipo && tipo.toLowerCase().includes('omicilio');\n    const esRecoger = (tipo) => tipo && tipo.toLowerCase().includes('ecoger');\n\n    // Lógica para determinar prompt_a_usar basada en stage y tipo_pedido\n    if (stage === 0) {\n        prompt_a_usar = 0;\n    } else if (stage === 1) {\n        if (esDomicilio(tipo_pedido)) {\n            prompt_a_usar = 1;\n        } else if (esRecoger(tipo_pedido)) {\n            prompt_a_usar = 2;\n        }\n    } else if (stage === 2) {\n        prompt_a_usar = 3;\n    } else if (stage === 3) {\n        if (esDomicilio(tipo_pedido)) {\n            prompt_a_usar = 4;\n        } else if (esRecoger(tipo_pedido)) {\n            prompt_a_usar = 4;\n        }\n    }\n    // Para cualquier otro stage o si las condiciones no se cumplen, prompt_a_usar permanece en 0 (valor por defecto)\n\n} catch (error) {\n    console.error('Error en el procesamiento:', error.message);\n    prompt_a_usar = 4;\n}\n\nreturn { prompt_a_usar };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        160
+      ],
+      "id": "1dd533af-62ea-4ac0-9a4a-497f5df5dcbb",
+      "name": "Prompt a usar2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];\n\n// Crear fecha con zona horaria de Colombia\nconst now = new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' });\nconst colombiaTime = new Date(now);\n\n// Obtener el día como String\nconst dayIndex = colombiaTime.getDay();\nconst dayName = String(days[dayIndex]);\n\n// Obtener la hora en formato HH:mm:ss\nconst hours = String(colombiaTime.getHours()).padStart(2, '0');\nconst minutes = String(colombiaTime.getMinutes()).padStart(2, '0');\nconst seconds = String(colombiaTime.getSeconds()).padStart(2, '0');\nconst timeString = `${hours}:${minutes}:${seconds}`;\n\n// Crear el objeto JSON de salida\nconst output = {\n  json: {\n    dia: dayName,\n    hora: timeString\n  }\n};\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        160
+      ],
+      "id": "9b2ad426-1288-4936-9fec-15c0e6913d60",
+      "name": "Dia y Hora1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "infoBoldTheVikingBurgerApi",
+        "options": {}
+      },
+      "id": "d87b1dfe-5b04-4e05-8263-98afb4df0dd4",
+      "name": "Info BOLD",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        2740
+      ],
+      "webhookId": "352368de-ef4e-4f63-b6e4-7f5307dda5b4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/651819931347578/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $('Normalizacion datos pago').item.json.informacion.id_chatwoot }}\",\n  \"type\": \"interactive\",\n  \"interactive\": {\n    \"type\": \"cta_url\",\n\n    \n   \n\n  \n    \"body\": {\n      \"text\": \"Haz click en el boton para usar las formas de pago de la imagen 💳💰\"\n    },\n\n  \n    \n    \"action\": {\n      \"name\": \"cta_url\",\n      \"parameters\": {\n        \"display_text\": \"Pago en linea aqui\",\n        \"url\": \"https://agente-iass-the-viking-burger.replit.app/linkpago?id={{ $('Normalizacion datos pago').item.json.informacion.id_chatwoot }}&telefono={{ $('Normalizacion datos pago').item.json.informacion.id_chatwoot }}&link={{ $('Creacion Link BOLD').item.json.payload.payment_link }}&forma=Wompi\"\n      }\n    }\n  }\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        1080
+      ],
+      "id": "027e07d0-5538-45ad-aaea-a0250d5d198d",
+      "name": "Forma de pago BOLD",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1080
+      ],
+      "id": "8fac81f7-ff65-41a5-9551-3477fd9b853b",
+      "name": "Wait4",
+      "webhookId": "4ccd01b7-3483-4d4e-9655-0796c520ed6e"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2340,
+        720
+      ],
+      "id": "12ad5ad0-5989-4875-93d3-d38213741d91",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $json.idContacto }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={ \"name\": {{ JSON.stringify($('DireccionIA').item.json.nombre_cliente )}},\n\"custom_attributes\":\n{\n\"sede\": \"{{  $('DireccionIA').item.json.nombreSede}}\", \n\"tipo_pedido\":\"{{ $json.tipo_pedido }}\", \n\"direccion_cliente\": \n\"{{ $json.direccionCliente }}; {{ $('DireccionIA').item.json.indicaciones_direccion_cliente }}\", \n\"ciudad_cliente\":\"{{ $json.ciudadCliente }}\", \n\"valor_domicilio\": \"{{ $json.valorDomicilio }}\", \n\"stage\": 1, \n\"id_sede\": \"{{ $('DireccionIA').item.json.id_sede }}\",\n\"coordenadas_elegidas\": \"{{ $('Codificacion de Sede').item.json.coordenadas }}\", \n\"tiempo_desplazamiento\": \"{{ $json.tiempo_desplazamiento }}\",\n\"ciudad_sede\": \"{{ $('DireccionIA').item.json.ciudadRestaurante }}\",\n\"km_redondeado\": \"{{ $json.km_redondeado }}\"\n}}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        720
+      ],
+      "id": "a4475e34-7971-464b-aae2-775e2d224595",
+      "name": "Chatwoot UPDATE Contacto",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1901f166-1211-4d5e-a54e-ca51b4fa7dd7",
+              "name": "valorDomicilio",
+              "value": "={{ $('Codificacion Valor Domicilio1').item.json.valorDomicilio }}",
+              "type": "string"
+            },
+            {
+              "id": "d767bf2c-25f5-489e-82eb-a16a41db01b1",
+              "name": "ciudad_sede",
+              "value": "={{ $('DireccionIA').item.json.nombreSede }}",
+              "type": "string"
+            },
+            {
+              "id": "87969cbb-b01a-4423-a022-886f921861c5",
+              "name": "tipo_pedido",
+              "value": "={{ $('DireccionIA').item.json.tipo_pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "69708459-058b-433a-b989-4038344b1989",
+              "name": "idContacto",
+              "value": "={{ $('ChatWOOT Buscar Contacto5').item.json.payload[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "d8e7b1e0-0914-4f17-b361-acd4b335083a",
+              "name": "direccionCliente",
+              "value": "={{ $('DireccionIA').item.json.direccionCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "7b40d47d-4b45-489c-8843-364d7dcf30b6",
+              "name": "ciudadCliente",
+              "value": "={{ $('DireccionIA').item.json.ciudadCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "2b62a38b-f5d5-4005-90bf-a00a0dd1de2d",
+              "name": "tiempo_desplazamiento",
+              "value": "={{ $json.tiempo_desplazamiento_minutos + Number(10) }}",
+              "type": "number"
+            },
+            {
+              "id": "f5004298-71d3-443c-b2a0-caa52796a77c",
+              "name": "km_redondeado",
+              "value": "={{ $('Codificacion Valor Domicilio1').item.json.kmRedondeado }}",
+              "type": "string"
+            },
+            {
+              "id": "f954baef-1c07-434b-900a-f037c38da1d4",
+              "name": "geolocalizacion",
+              "value": "={{ $('Resultados Geocodificacion').item.json.geocodificacion.precision }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2120,
+        620
+      ],
+      "id": "55bdd2dc-2b0e-47dc-bd8d-f17d690151b8",
+      "name": "normalizacion datos2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1901f166-1211-4d5e-a54e-ca51b4fa7dd7",
+              "name": "valorDomicilio",
+              "value": "=0",
+              "type": "string"
+            },
+            {
+              "id": "d767bf2c-25f5-489e-82eb-a16a41db01b1",
+              "name": "ciudad_sede",
+              "value": "={{ $('DireccionIA').item.json.nombreSede }}",
+              "type": "string"
+            },
+            {
+              "id": "87969cbb-b01a-4423-a022-886f921861c5",
+              "name": "tipo_pedido",
+              "value": "={{ $('DireccionIA').item.json.tipo_pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "69708459-058b-433a-b989-4038344b1989",
+              "name": "idContacto",
+              "value": "={{ $('ChatWOOT Buscar Contacto5').item.json.payload[0].id }}",
+              "type": "string"
+            },
+            {
+              "id": "d8e7b1e0-0914-4f17-b361-acd4b335083a",
+              "name": "direccionCliente",
+              "value": "={{ $('DireccionIA').item.json.direccionCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "7b40d47d-4b45-489c-8843-364d7dcf30b6",
+              "name": "ciudadCliente",
+              "value": "={{ $('DireccionIA').item.json.ciudadCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "a3345563-80bd-4e36-b9a2-3b074ab78fc7",
+              "name": "tiempo_desplazamiento",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "35c84dcd-b6ba-4d6c-aa9f-fbd7cf1cfad0",
+              "name": "km_redondeado",
+              "value": "0",
+              "type": "string"
+            },
+            {
+              "id": "64b81cbf-1124-417e-8956-04c2e424e54f",
+              "name": "geolocalizacion",
+              "value": "NA",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2120,
+        820
+      ],
+      "id": "da3832df-9690-44d3-9d61-43f8f6ec7497",
+      "name": "normalizacion datos3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sede = $('DireccionIA').item.json.id_sede;\n\n// Obtener la distancia, extraer el número y redondear\nconst distanciaStr = $input.item.json.distanceMeters;\nconst distanciaKm = parseFloat(distanciaStr)/1000; // Convierte a número (ej: 5.7)\nconst kmRedondeado = Math.round(distanciaKm); // Redondea al entero más cercano (ej: 6)\nconst tiempo_desplazamiento_segundos =  parseFloat($input.item.json.duration);\nconst tiempo_desplazamiento_minutos = parseInt(tiempo_desplazamiento_segundos/60)\n\n// Función para obtener el valor del domicilio\nfunction obtenerValorDomicilio(sede, km) {\n    // Convertimos la sede a un string para comparaciones más seguras\n    const sedeStr = String(sede);\n\n    // Reglas para diferentes sedes\n    if (sedeStr === \"8\") {\n        if (km <= 2) {\n            return 5000; // $5.000 en rango de 2 kms\n        } else {\n            const valorCalculado = 5500 + ((km - 2) * 1000); // km adicional $1.000\n            return Math.min(valorCalculado, 17000); // Limita el valor máximo a 12000\n        }\n    } \n    else if (sedeStr === \"7\") {  // CORREGIDO: 'else' a 'else if'\n        if (km <= 2) {\n            return 5000; // $5.000 en rango de 2 kms\n        } else {\n            const valorCalculado = 5500 + ((km - 2) * 1000); // km adicional $1.000\n            return Math.min(valorCalculado, 17000); // Limita el valor máximo a 12000\n        }\n    }\n    \n    // Aquí puedes añadir reglas para sedes 3, 4, 5\n    \n    // Regla para sede 2\n    // else if (sedeStr === \"2\") { ... }\n    \n    else {\n        throw new Error(\"Sede no válida: \" + sede);\n    }\n}\n\n// Calcular el valor del domicilio\nlet valorDomicilio;\ntry {\n    valorDomicilio = obtenerValorDomicilio(sede, kmRedondeado);\n} catch (error) {\n    console.error(error.message);\n    valorDomicilio = 7000; // Valor por defecto en caso de error\n}\n\n// Devolver el resultado incluyendo la distancia\nreturn {\n    json: {\n        valorDomicilio: valorDomicilio,\n        distanciaKm: distanciaKm,    // Distancia original como número\n        kmRedondeado: kmRedondeado, \n        tiempo_desplazamiento_minutos: tiempo_desplazamiento_minutos,\n        tiempo_desplazamiento_segundos: tiempo_desplazamiento_segundos// Distancia redondeada\n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        620
+      ],
+      "id": "883ff192-8ebf-49c9-b194-2cec143497a3",
+      "name": "Codificacion Valor Domicilio1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto5').item.json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"Se completa flujo P.Iniciales\\n{{ $now }}\\n\\n```Km Redondeado: {{ $('Merge').item.json.km_redondeado }} ```\\n```Valor Domicilio: {{ $('Merge').item.json.valorDomicilio }}```\\n```Sede: {{ $('Codificacion de Sede').item.json.nombre_sede }}```\\n```Precision: {{ $('Merge').item.json.geolocalizacion }}```\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2780,
+        720
+      ],
+      "id": "83d3ca4e-37c8-4fde-97b0-ae320de5c543",
+      "name": "ChatWoot ENVIA Mensaje Asistente13",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "impresionComandaTheVikingBurgerApi",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        2300
+      ],
+      "id": "3c32e267-00c6-4c43-9c27-22881fd79064",
+      "name": "Impresion de Comanda",
+      "webhookId": "8a3d2c17-d3fb-457b-acc0-5c5520bb9352"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "913b1a00-dee7-4dc3-9314-9a4d78453efb",
+              "name": "waId",
+              "value": "={{ $json.body.meta.sender.identifier }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        140,
+        3520
+      ],
+      "id": "efda8baa-3a46-44a7-b632-e231f34bcde1",
+      "name": "Normalizacion"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=ultimavezTheVikingBurger{{ $('Cerrar Chat  desde APP').item.json.body.meta.sender.identifier }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        3520
+      ],
+      "id": "3641d9dc-22dc-43ba-88e7-4a605cafdc62",
+      "name": "ultimavez",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/{{ $('ChatWOOT Buscar Contacto').item.json.payload[0].id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json; charset=utf-8",
+        "body": "={\n  \"custom_attributes\": {\n    \"thread_id\": \"null\",\n    \"stage\": 0,\n    \"id_pedido\": null,\n    \"link_dato_variable\": null,\n    \"forma_de_pago\": null,\n    \"tipo_pedido\": null,\n    \"sede\": null,\n    \"valor_domicilio\": null,\n    \"prompt_a_usar\": null,\n    \"valor_pedido\": null,\n    \"id_sede\": null,\n    \"coordenadas_elegidas\": null,\n    \"status_pago\": null,\n    \"tk_c\": 1,\n    \"tk_r\": 1,\n    \"tk_s\": 1,\n    \"tk_e\": 1,\n    \"impreso\": 0,\n    \"previous_response_id\": null\n  }\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        3520
+      ],
+      "id": "815cfdb9-c502-44d5-ac47-9df3f2c159f4",
+      "name": "Chatwoot UPDATE Contacto13",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=bloqueo{{ $('Normalizacion').item.json.waId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        3520
+      ],
+      "id": "36310832-695b-411f-9c30-cf5a072715ae",
+      "name": "Redis18",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('ChatWOOT Buscar Contacto').item.json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"_*{{ $('ChatWOOT Buscar Contacto').item.json.payload[0].name }}*  Chat cerrado desde la APP \\n```{{ $now }}```\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        3520
+      ],
+      "id": "56ab1bae-d47e-4949-9860-0063ab7996d5",
+      "name": "ChatWoot ENVIA Mensaje Asistente9",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.waId }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        3520
+      ],
+      "id": "debb6c5e-a68e-4520-b28a-b408a5a2e424",
+      "name": "ChatWOOT Buscar Contacto",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cerrarChatExternoTheVikingBurger",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        3520
+      ],
+      "id": "86676e1f-3ebf-4d9c-9414-44596c81d5f2",
+      "name": "Cerrar Chat  desde APP",
+      "webhookId": "cb68b057-e694-4ed8-9737-d6c5ad97e000"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1T4u7u2Y7nvI254MZ9PgrUYypM4F4AmyShVZNsMzdSuM",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 89474635,
+          "mode": "list",
+          "cachedResultName": "Tokens",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1W1b28Hk_hjxjo-rGD1DposUdV9MicKvq-wVZE797lAg/edit#gid=89474635"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "IdFecha": "={{ $now.format('dd/MM/yyyy HH:mm:ss') }}",
+            "Manychat": "={{ $('ChatWOOT Buscar Contacto').item.json.payload[0].id }}",
+            "Token Creacion": "={{ $('ChatWOOT Buscar Contacto').item.json.payload[0].custom_attributes.tk_c }}",
+            "Nombre": "={{ $('ChatWOOT Buscar Contacto').item.json.payload[0].name }}",
+            "Token Entrada": "={{ $('ChatWOOT Buscar Contacto').item.json.payload[0].custom_attributes.tk_e }}",
+            "Token Salida": "={{ $('ChatWOOT Buscar Contacto').item.json.payload[0].custom_attributes.tk_s }}",
+            "Token Read": "={{ $('ChatWOOT Buscar Contacto').item.json.payload[0].custom_attributes.tk_r }}",
+            "Id Lead": "={{ $('ChatWOOT Buscar Contacto').item.json.payload[0].custom_attributes.id_pedido }}"
+          },
+          "matchingColumns": [
+            "IdFecha"
+          ],
+          "schema": [
+            {
+              "id": "IdFecha",
+              "displayName": "IdFecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Manychat",
+              "displayName": "Manychat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Entrada",
+              "displayName": "Token Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Salida",
+              "displayName": "Token Salida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Creacion",
+              "displayName": "Token Creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Token Read",
+              "displayName": "Token Read",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Valor Real Entrada",
+              "displayName": "Valor Real Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Salida",
+              "displayName": "Valor Real Salida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Creacion",
+              "displayName": "Valor Real Creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Read",
+              "displayName": "Valor Real Read",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Real Total",
+              "displayName": "Valor Real Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Entrada",
+              "displayName": "Valor Cliente Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Salida",
+              "displayName": "Valor Cliente Salida",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Creacion",
+              "displayName": "Valor Cliente Creacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Read",
+              "displayName": "Valor Cliente Read",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Valor Cliente Total",
+              "displayName": "Valor Cliente Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Id Lead",
+              "displayName": "Id Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1240,
+        3520
+      ],
+      "id": "c87b4bc3-f796-4d0f-aad6-7e568de4f4b1",
+      "name": "Google Sheets3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6mAzacDEesEWgdIp",
+          "name": "Google Sheets Iass"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=count_TheVikingBurger{{ $('Normalizacion').item.json.waId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        3520
+      ],
+      "id": "a03a608e-f287-4aeb-9018-58718b59ba09",
+      "name": "Redis19",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=count_TheVikingBurger{{ $('Cerrar CHAT').item.json.body.wa_id }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2780,
+        1680
+      ],
+      "id": "9da6443c-0981-44db-baec-8d4275deaf00",
+      "name": "Redis20",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "=+{{ $('Normalizacion datos pago').item.json.informacion.id_chatwoot }}",
+        "textBody": "*¡Casi listo! 😊 Elige tu forma de pago y tu pedido entra a cocina*🧑‍🍳",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        1080
+      ],
+      "id": "755a5655-9822-4997-ada3-e346526207fa",
+      "name": "WhatsApp Business Cloud",
+      "webhookId": "1ddc13ab-fcee-4389-ade0-14829443c0a1",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/findplacefromtext/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $('DireccionIA').item.json.direccionCliente }}, {{ $('DireccionIA').item.json.indicaciones_direccion_cliente }}, {{ $('DireccionIA').item.json.ciudadCliente }}, Santander, Colombia"
+            },
+            {
+              "name": "inputtype",
+              "value": "textquery"
+            },
+            {
+              "name": "locationbias",
+              "value": "=circle:8000@{{ $('Codificacion de Sede').item.json.coordenadas }}"
+            },
+            {
+              "name": "fields",
+              "value": "formatted_address,name,rating,opening_hours,geometry"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyBdBrxssZNgLzOCvbwKnnk6U5daEhpsMtI"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        520
+      ],
+      "id": "dcf0cc65-3ffd-48da-84b6-edec51de75de",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fcc451a3-a6df-49ef-8642-cb495e32b2e0",
+              "name": "geocodificacion.latitud",
+              "value": "={{ $('HTTP Request').item.json.candidates[0].geometry.location.lat }}",
+              "type": "string"
+            },
+            {
+              "id": "b6db0b83-5397-46e5-9bf2-e50f6a68a1d5",
+              "name": "geocodificacion.longitud",
+              "value": "={{ $json.candidates[0].geometry.location.lng }}",
+              "type": "string"
+            },
+            {
+              "id": "ae4ecdad-50ed-44fc-a41a-1fe822872720",
+              "name": "geocodificacion.direccion",
+              "value": "={{ $('HTTP Request').item.json.candidates[0].formatted_address }}",
+              "type": "string"
+            },
+            {
+              "id": "a21526b4-8a85-483e-bba9-d654c2deada5",
+              "name": "geocodificacion.status",
+              "value": "=",
+              "type": "string"
+            },
+            {
+              "id": "b36c6f7e-6219-4140-a7ba-99067106b965",
+              "name": "geocodificacion.precision",
+              "value": "={{ $('HTTP Request').item.json.candidates[0].name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1460,
+        620
+      ],
+      "id": "370e1636-6ee6-4d42-9684-71cb98196613",
+      "name": "Resultados Geocodificacion"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "175d0f4d-7ca6-4860-88ea-2cee5abac132",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ZERO_RESULTS",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1240,
+        520
+      ],
+      "id": "c9632d03-a083-4cf9-acdb-98aa9676bfcf",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "INSTRUCCION OBLIGATORIA: Informarle al cliente que hubo un error encontrando la direccion que por favor de mas detalles de la direccion ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1460,
+        420
+      ],
+      "id": "a14b9665-075c-4116-b1b3-3ce7dc88829b",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "INSTRUCCION OBLIGATORIA: Informele al usuario que se han registrado correctamente los datos del cliente para el pedido y continua con el pedido",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3000,
+        720
+      ],
+      "id": "b675b41c-9e3d-4913-bfd1-53a61f886eb8",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "AIzaSyBdBrxssZNgLzOCvbwKnnk6U5daEhpsMtI"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "originIndex,destinationIndex,duration,distanceMeters,status,condition"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"origins\": [\n    {\n      \"waypoint\": {\n        \"location\": {\n          \"latLng\": {\n            \"latitude\": {{ $('DireccionIA').item.json.latitud_restaurante }} , \n            \"longitude\":  {{ $('DireccionIA').item.json.longitud_restaurante }}\n          }\n        }\n      },\n      \"routeModifiers\": {\n        \"avoid_ferries\": true\n      }\n    }\n  ],\n  \"destinations\": [\n    {\n      \"waypoint\": {\n        \"location\": {\n          \"latLng\": {\n            \"latitude\": {{ $json.geocodificacion.latitud }},\n            \"longitude\": {{ $json.geocodificacion.longitud }}\n          }\n        }\n      }\n    }\n  ],\n  \"travelMode\": \"DRIVE\",\n  \"routingPreference\": \"TRAFFIC_AWARE\"\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        620
+      ],
+      "id": "c476acc5-d4fc-48c2-ab72-a134424726aa",
+      "name": "Api Route"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.cocinandosonrisas.co/api/v1/accounts/10/conversations/{{ $('Buscar Contacto x Link Dato Variable').item.json.payload[0].custom_attributes.id_conversacion }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "chatwootApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"content\": \"Respuesta de BOLD\\n```{{ $now }}```\"\n,\n    \"message_type\": \"outgoing\",\n    \"private\": false\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        580,
+        2740
+      ],
+      "id": "c478a3a5-b3d6-43a2-879c-75c8adb2f458",
+      "name": "ChatWoot ENVIA Mensaje Asistente15",
+      "credentials": {
+        "chatwootApi": {
+          "id": "ukOfCKf0pgXEnsAF",
+          "name": "ChatWoot The Viking Burger"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.printnode.com/printjobs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "printerId",
+              "value": "74352436 "
+            },
+            {
+              "name": "title",
+              "value": "={{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].name + \" \" + $now}} "
+            },
+            {
+              "name": "contentType",
+              "value": "pdf_uri"
+            },
+            {
+              "name": "content",
+              "value": "={{ $('Download').item.json.response.downloadUri }}"
+            },
+            {
+              "name": "source",
+              "value": "api documentation!"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        2300
+      ],
+      "id": "293447e2-c9c5-4445-801d-873a28cff522",
+      "name": "PRINT NODE CON URL",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xV5vJJYFHtpXIbto",
+          "name": "PRINT NODE Sito"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://integrations.api.bold.co/online/link/v1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "x-api-key RaHcmOP1HWz3KOhs5QLK8Uaecf0Z6yAKagG0YRNg5SM"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"amount_type\": \"CLOSE\",\n  \"amount\": {\n    \"currency\": \"COP\",\n    \"total_amount\": {{ $json.valores.total }} ,\n    \"tip_amount\": 0\n  },\n  \"image_url\": \"https://iassmenus.s3.us-east-2.amazonaws.com/logo+(1).png\"\n} ",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        1080
+      ],
+      "id": "eb42e549-5d75-42dd-bfd7-89d2fd108c2f",
+      "name": "Creacion Link BOLD"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v21.0/651819931347578/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"recipient_type\": \"individual\",\n  \"to\": \"{{ $('Normalizacion datos pago').item.json.informacion.id_chatwoot }}\",\n  \"type\": \"image\",\n  \"image\": {\n \n    \"link\": {{JSON.stringify(\"https://sirpollo.s3.us-east-2.amazonaws.com/Formas+link+de+pago.jpeg\")}} ,\n    \"caption\": \"Valor de tu pedido: ```$ {{ ($('Normalizacion datos pago').item.json.valores.modelo).toLocaleString('es-CO') }}```\\nValor Domicilio: ```$ {{ ($('Normalizacion datos pago').item.json.valores.domicilio).toLocaleString('es-CO') }}```\\nValor Total: ```$ {{ ($('Normalizacion datos pago').item.json.valores.total ).toLocaleString('es-CO') }}```\"\n  }\n}\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1460,
+        1080
+      ],
+      "id": "cf18fcdc-3cf7-41b5-a296-bdd0b44ba228",
+      "name": "Imagen formas de pago",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "={{ $('ChatWOOT Buscar Contacto13').item.json.payload[0].phone_number }}",
+        "textBody": "=_*Pedido Nuevo*_\nDatos del Pedido:\n👇👇👇👇👇👇👇\n> Sede: *{{ $('Normalizacion2').item.json.body.sede }}*\n> Cliente: *{{ $('Normalizacion2').item.json.body.nombre }}*\n> Telefono: *{{ $('Normalizacion2').item.json.body.telefono }}*\n> Pedido: *{{ $('Normalizacion2').item.json.body.pedido_confirmado }}*\n> Direccion: *{{ $('Normalizacion2').item.json.body.direccion_cliente }}*\n> Tipo de pedido: *{{ $('Normalizacion2').item.json.body.tipo_pedido }}*",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        1940
+      ],
+      "id": "0f565230-2fef-4286-8f92-7c1378757d3a",
+      "name": "WhatsApp IASS",
+      "webhookId": "6289b454-7356-4f37-8d72-55f106e227a3",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener el valor de la sede desde la entrada\nlet sede_entrada = $('Proceso de datos inicales').item.json.body.sede.sede.toLowerCase();\n\n// Inicializar variables\nlet ciudad_sede = '';\nlet coordenadas = '';\nlet id_sede = 0;\nlet nombre_sede = '';\nlet inbox_id = 0;\nlet latitud = '';\nlet longitud = '';\n// Función para normalizar el texto (primera letra mayúscula, resto minúsculas)\nfunction normalizarTexto(texto) {\n    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();\n}\n\n// Procesar según la sede\nswitch (sede_entrada) {\n      case 'la pradera dosquebradas':\n        ciudad_sede = 'Dosquebradas';\n        coordenadas = '4.825873965247657,-75.67592880453239';\n        id_sede = 9;\n        nombre_sede = 'La Pradera';\n        break;\n  \n    default:\n        ciudad_sede = 'Sede no válida';\n        coordenadas = '';\n        id_sede = 0;\n}\nif (coordenadas) {\n    latitud = coordenadas.slice(0, coordenadas.indexOf(','));\n    longitud = coordenadas.slice(coordenadas.indexOf(',') + 1);\n}\n\n// Crear objeto de respuesta\nconst respuesta = {\n    ciudad_sede: ciudad_sede,\n    coordenadas: coordenadas,\n    id_sede: id_sede,\n    nombre_sede: nombre_sede,\n    latitud: latitud,\n    longitud: longitud\n};\n\n// Retornar el resultado\nreturn respuesta;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        740
+      ],
+      "id": "51483e95-dbaf-4698-9cfe-eb10fd61e0d6",
+      "name": "Codificacion de Sede1"
+    },
+    {
+      "parameters": {
+        "content": "OJO CAMBIAR DEPARTAMENTO",
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        480
+      ],
+      "typeVersion": 1,
+      "id": "a0526371-af45-4343-b558-a09750d308d6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "651819931347578",
+        "recipientPhoneNumber": "=+{{ $('ChatWOOT Buscar Contacto14').item.json.payload[0].identifier }}",
+        "messageType": "document",
+        "mediaLink": "={{ $('Download').item.json.response.downloadUri }}",
+        "additionalFields": {
+          "mediaFilename": "Comanda Impresa"
+        }
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1860,
+        2280
+      ],
+      "id": "858999ea-3ee3-4bdc-8f62-b69d0c529f26",
+      "name": "WhatsApp Business Cloud1",
+      "webhookId": "9a59cf86-1417-4d07-a212-387e534901d6",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "rlnVJuR9p1sQv9uv",
+          "name": "WhatsApp OUT THE VIKING BURGER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "productos_agotados_TheVikingBurger",
+        "value": "={{ $json.body.mensaje_formateado }}",
+        "keyType": "string"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        100,
+        3780
+      ],
+      "id": "f2135475-094c-4106-b2ce-df3c78dbbf43",
+      "name": "Redis3",
+      "credentials": {
+        "redis": {
+          "id": "l6OIVG39uj09gasw",
+          "name": "Redis Hosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "productosAgotadosTheVikingBurgerApi",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        3780
+      ],
+      "id": "9948a421-b696-4cfa-88ea-fe9bf6904316",
+      "name": "Productos Agotados",
+      "webhookId": "406ca77f-ee68-4a88-8459-65d7896998a8"
+    }
+  ],
+  "pinData": {
+    "Pedido Listo": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8niass.cocinandosonrisas.co",
+            "user-agent": "python-requests/2.31.0",
+            "content-length": "177",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "n8niass.cocinandosonrisas.co",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c4500e7c10de",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "_action": "Enviar notificación webhook(#251)",
+            "_id": 1386,
+            "_model": "crm.lead",
+            "id": 1386,
+            "phone": "573184337798",
+            "phone_mobile_search": false,
+            "x_id_externo": 4037
+          },
+          "webhookUrl": "https://n8niass.cocinandosonrisas.co/webhook/pedidoListoTheVikingBurgerApi",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Impresion de Comanda": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8niass.cocinandosonrisas.co",
+            "user-agent": "axios/1.8.2",
+            "content-length": "31",
+            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "n8niass.cocinandosonrisas.co",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c4500e7c10de",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "suscriber_id": "573184337798"
+          },
+          "webhookUrl": "https://n8niass.cocinandosonrisas.co/webhook/impresionComandaTheVikingBurgerApi",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Creacion Link de Pago": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8niass.cocinandosonrisas.co",
+            "user-agent": "axios/1.8.2",
+            "content-length": "105",
+            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "n8niass.cocinandosonrisas.co",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "2e52aed4d178",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "response": {
+              "tool_code": "crear_link_pago",
+              "subscriber_id": "573005145179",
+              "datos": {
+                "valor_total": 31400
+              }
+            }
+          },
+          "webhookUrl": "https://n8niass.cocinandosonrisas.co/webhook/creacionLinkPagoTheVikingBurgerApi",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Info BOLD": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8niass.cocinandosonrisas.co",
+            "user-agent": "bold-webhook/1.0",
+            "content-length": "554",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate",
+            "content-type": "application/json",
+            "x-bold-signature": "85d2897df552258cee496a9f44afab4d19f48201974d1c2e1d83f15f3653c424",
+            "x-forwarded-for": "34.207.214.80",
+            "x-forwarded-host": "n8niass.cocinandosonrisas.co",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c4500e7c10de",
+            "x-real-ip": "34.207.214.80"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "id": "df625aed-a83e-4518-8b00-e2a3e017b755",
+            "type": "SALE_APPROVED",
+            "subject": "TLYUKRZPANL",
+            "source": "",
+            "spec_version": "1.0",
+            "time": 1745637791233330700,
+            "data": {
+              "payment_id": "TLYUKRZPANL",
+              "merchant_id": "LPM7WQTDAK",
+              "created_at": "2025-04-25T22:16:57-05:00",
+              "amount": {
+                "currency": "COP",
+                "total": 51000,
+                "taxes": [],
+                "tip": 0
+              },
+              "user_id": "67d9f0c0e190b8a8b612ad91",
+              "metadata": {
+                "reference": "LNK_9USVUTWKVY"
+              },
+              "bold_code": "B000",
+              "payer_email": "as-63@outlook.es",
+              "payment_method": "NEQUI"
+            },
+            "datacontenttype": "application/json"
+          },
+          "webhookUrl": "https://n8niass.cocinandosonrisas.co/webhook/infoWompi2030HamburgueseriaApi",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Creacion Link de Pago": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DireccionIA": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizacion datos pago": {
+      "main": [
+        [
+          {
+            "node": "Redis10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto3": {
+      "main": [
+        [
+          {
+            "node": "Normalizacion datos pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Link dato variable": {
+      "main": [
+        [
+          {
+            "node": "Imagen formas de pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forma de pago E o D": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto4": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto4": {
+      "main": [
+        [
+          {
+            "node": "Odoo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odoo": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eleccion forma de pago": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto5": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proceso de datos inicales": {
+      "main": [
+        [
+          {
+            "node": "Codificacion de Sede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "normalizacion datos3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedido Listo": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto8": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente2": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Toma Detalles Conversacion1": {
+      "main": [
+        [
+          {
+            "node": "Dia y Hora1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Business Cloud6": {
+      "main": [
+        [
+          {
+            "node": "Redis14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Redis1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar CHAT": {
+      "main": [
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Codificacion de Sede": {
+      "main": [
+        [
+          {
+            "node": "DireccionIA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso Sede": {
+      "main": [
+        [
+          {
+            "node": "Normalizacion2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizacion2": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Odoo1": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Contacto x Link Dato Variable": {
+      "main": [
+        [
+          {
+            "node": "Toma Detalles Conversacion3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizacion info wompi": {
+      "main": [
+        [
+          {
+            "node": "Odoo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "status pago": {
+      "main": [
+        [
+          {
+            "node": "Normalizacion info wompi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto8": {
+      "main": [
+        [
+          {
+            "node": "Send Mensaje Replit3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mensaje Replit3": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Toma Detalles Conversacion3": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente4": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Business Cloud9": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto10",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto10": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto11": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook3": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto12": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizacion forma de pago": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Redis17",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis10": {
+      "main": [
+        [
+          {
+            "node": "Creacion Link BOLD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis14": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto11": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis17": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente8": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot Status Conversacion3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente12": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto13": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto14": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Impresion Comanda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Impresion Comanda1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizacion Impresion": {
+      "main": [
+        [
+          {
+            "node": "Campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Campos": {
+      "main": [
+        [
+          {
+            "node": "Copia del archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copia del archivo": {
+      "main": [
+        [
+          {
+            "node": "Reemplaza Valores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reemplaza Valores": {
+      "main": [
+        [
+          {
+            "node": "Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente14": {
+      "main": [
+        [
+          {
+            "node": "Normalizacion Impresion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto14": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente": {
+      "main": [
+        [
+          {
+            "node": "Normalizacion forma de pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot Status Conversacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa Chat 30 min": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envio Mensaje": {
+      "main": [
+        [
+          {
+            "node": "If7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If7": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Plantilla Pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Delete Tirilla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Impresion Comanda": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente14",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente3": {
+      "main": [
+        [
+          {
+            "node": "Toma Detalles Conversacion1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Prompt a usar2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt a usar2": {
+      "main": [
+        [
+          {
+            "node": "Send Mensaje Replit2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dia y Hora1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mensaje Replit2": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Info BOLD": {
+      "main": [
+        [
+          {
+            "node": "Buscar Contacto x Link Dato Variable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forma de pago BOLD": {
+      "main": [
+        [
+          {
+            "node": "Forma de pago E o D",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Forma de pago BOLD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normalizacion datos2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normalizacion datos3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Codificacion Valor Domicilio1": {
+      "main": [
+        [
+          {
+            "node": "normalizacion datos2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Impresion de Comanda": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizacion": {
+      "main": [
+        [
+          {
+            "node": "ChatWOOT Buscar Contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ultimavez": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot UPDATE Contacto13": {
+      "main": [
+        [
+          {
+            "node": "ChatWoot ENVIA Mensaje Asistente9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente9": {
+      "main": [
+        [
+          {
+            "node": "ultimavez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWOOT Buscar Contacto": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar Chat  desde APP": {
+      "main": [
+        [
+          {
+            "node": "Normalizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets3": {
+      "main": [
+        [
+          {
+            "node": "Redis18",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis18": {
+      "main": [
+        [
+          {
+            "node": "Redis19",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chatwoot Status Conversacion3": {
+      "main": [
+        [
+          {
+            "node": "Redis20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Business Cloud": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultados Geocodificacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultados Geocodificacion": {
+      "main": [
+        [
+          {
+            "node": "Api Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente13": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Api Route": {
+      "main": [
+        [
+          {
+            "node": "Codificacion Valor Domicilio1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ChatWoot ENVIA Mensaje Asistente15": {
+      "main": [
+        [
+          {
+            "node": "status pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PRINT NODE CON URL": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Contacto14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creacion Link BOLD": {
+      "main": [
+        [
+          {
+            "node": "Chatwoot UPDATE Link dato variable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Imagen formas de pago": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plantilla Pedido": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp IASS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Business Cloud1": {
+      "main": [
+        [
+          {
+            "node": "PRINT NODE CON URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Productos Agotados": {
+      "main": [
+        [
+          {
+            "node": "Redis3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "I7NLSmRKHhGZZHGC"
+  },
+  "versionId": "07d82ada-7ebc-4b47-9cb4-d640dec5e07f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aca0546d25e2929e3326f650a4bc9f9a98af8a87138c33cf675b51d130e05008"
+  },
+  "id": "daa09yFdjVi0bkcS",
+  "tags": [
+    {
+      "createdAt": "2025-04-21T19:26:32.132Z",
+      "updatedAt": "2025-04-21T19:26:32.132Z",
+      "id": "wwEiGJh5OlUtgv85",
+      "name": "THE VIKING BURGER"
+    }
+  ]
+}

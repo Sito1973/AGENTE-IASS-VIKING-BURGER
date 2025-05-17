@@ -1,0 +1,74 @@
+[
+  {
+    "name": "crear_direccion",
+    "description": "Crea una dirección de cliente. Esta herramienta debe usarse cuando ya se tiene toda la informacion de ubicacion y de detalles del pedido del cliente, para proseguir con la toma del pedido, debes tener mucho cuidado en la direccion del cliente. Ser preciso extrayendo la direcciion proporcionada, y los detalles e indicaciones ponerlos en indicaciones_direcccion_cliente. ",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "sede": {
+          "type": "string",
+          "enum": [
+            "CC Unicentro Pereira",
+            "Dosquebradas",
+            "Santa Rosa de Cabal"
+          ],
+          "description": "Sede del pedido (obligatorio: Dosquebradas, Santa Rosa de Cabal, o CC unicentro pereira)"
+        },
+        "nombre_cliente": {
+          "type": "string",
+          "description": "Nombre del cliente (obligatorio)"
+        },
+        "direccion_cliente": {
+          "type": "string",
+          "description": "Dirección del cliente (obligatorio), solo la direccion exacta TIENE que ser: ya sea nombre de el edificio, unidad residencial, el nombre de la empresa o en el formato de Calle con Carrera y numero. Sin referencia de casa, bdega u oficina"
+        },
+        "indicaciones_direccion_cliente": {
+          "type": "string",
+          "description": "Comentarios adicionales sobre la direccion proporcionada por el cliente, referencias, tiene que ser el numero de casa, oficina, o bodega puede incluir el barrio, pero siempre si hay referencias sobre donde queda la ubiccion del cliente debes ponerla en esta variable. "
+        },
+        "ciudad_cliente": {
+          "type": "string",
+          "enum": [
+            "Pereira",
+            "Dosquebradas",
+            "Santa Rosa de Cabal"
+          ],
+          "description": "Ciudad del cliente (obligatorio: Pereira, Dosquebradas, Santa Rosa de Cabal)"
+        },
+        "tipo_pedido": {
+          "type": "string",
+          "enum": [
+            "Recoger",
+            "Domicilio"
+          ],
+          "description": "Tipo de pedido (obligatorio: Recoger, Domicilio)"
+        }
+      },
+      "required": [
+        "sede",
+        "nombre_cliente",
+        "direccion_cliente",
+        "indicaciones_direccion_cliente",
+        "ciudad_cliente",
+        "tipo_pedido"
+      ]
+    }
+  },
+  {
+    "name": "enviar_menu",
+    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. ",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "envio": {
+          "type": "string",
+
+          "description": "Se ha enviado el menu"
+        }
+      },
+      "required": [
+        "envio"
+      ]
+    }
+  }
+]
