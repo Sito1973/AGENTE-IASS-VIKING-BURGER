@@ -760,6 +760,7 @@ def generate_response_openai(
         logger.info("Lock adquirido para thread_id (OpenAI): %s", thread_id)
         logger.info("Generando respuesta para thread_id (OpenAI): %s", thread_id)
         logger.debug("subscriber_id en generate_response_openai: %s", subscriber_id)
+        start_time = time.time()
 
         try:
             api_key = os.environ.get("OPENAI_API_KEY")
@@ -848,7 +849,7 @@ def generate_response_openai(
                 try:
                     # Llamar a la API en el nuevo formato
 
-                    logger.info("PAYLOAD OPENAI: %s", input_messages)
+                    logger.info("🚨PAYLOAD OPENAI: %s", conversation_history)
 
                     response = client.responses.create(
                         model="gpt-4.1",
@@ -862,7 +863,7 @@ def generate_response_openai(
                     )
 
                     # Imprimir la estructura completa para debug
-                    logger.info("RESPUESTA RAW OPENAI: %s", response)
+                    logger.info("✅RESPUESTA RAW OPENAI: %s", response.output)
 
                     # Extraer y almacenar información de tokens
                     if hasattr(response, 'usage'):
@@ -968,7 +969,7 @@ def generate_response_openai(
                                             store=True
                                         )
 
-                                        logger.info("Respuesta después de la llamada a la función: %s", vars(continue_response))
+                                        logger.info("✅✅Respuesta después de la llamada a la función: %s", vars(continue_response))
 
                                         # Actualizar información de tokens con la respuesta continua
                                         if hasattr(continue_response, 'usage'):
@@ -1120,6 +1121,8 @@ def generate_response_openai(
             conversations[thread_id]["status"] = "error"
         finally:
             event.set()
+            elapsed_time = time.time() - start_time
+            logger.info("⏰Generación completada en %.2f segundos para thread_id: %s", elapsed_time,thread_id)
             logger.debug("Evento establecido para thread_id (OpenAI): %s", thread_id)
             logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
 
