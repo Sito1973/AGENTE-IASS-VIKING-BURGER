@@ -185,7 +185,7 @@ Bowls (Almuerzo 12-3 PM),Valhalla Bowl,"(SÃ³lo 12-3 PM) Trozos de costilla de 
 Bowls (Almuerzo 12-3 PM),Mojarra Boreal,"(SÃ³lo 12-3 PM) Pesca frita de rÃ­o, acompaÃ±ada de arroz, ensalada de mango y chips de plÃ¡tano.",23900
 Bowls (Almuerzo 12-3 PM),JÃ¶tuheimr,"(SÃ³lo 12-3 PM) Camarones crispy baÃ±ados en mayo spice, elige entre arroz o pasta en aderezo ranchs, lechuga, maÃ­z tierno, guacamole, platanitos maduros.",21000
 Bowls (Almuerzo 12-3 PM),Rattegat,"(SÃ³lo 12-3 PM) 5 alitas baÃ±adas en bbq de la casa, pasta con aderezo ranch, lechuga, maÃ­z tierno, apio y zanahoria.",18000
-Bowls (Almuerzo 12-3 PM),Kellheim,"(SÃ³lo 12-3 PM) Cama de lechuga, pollo a la plancha, topping de frutos secos, aguacate, mango, tomate y maÃ­z tierno.",15500
+Bowls (Almuerzo 12-3 PM),Hellheim,"(SÃ³lo 12-3 PM) Cama de lechuga, pollo a la plancha, topping de frutos secos, aguacate, mango, tomate y maÃ­z tierno.",15500
 Bowls (Almuerzo 12-3 PM),Torvi,"(SÃ³lo 12-3 PM) Jugosa carne de cerdo en adobo especial, arroz, lechuga, guacamole, pico de gallo, queso fresco, maÃ­z tierno, totopos fritos y frÃ­joles.",22000
 Bebidas,Gaseosa," coca cola, coca cola zero, sprite , cuatro, ginger y  soda, en presentacion personal",5900
 Bebidas,Jugos naturales,"mango, mora, guanabana, maracuya o lulo  en agua o en leche cuestan lo mismo",7500
