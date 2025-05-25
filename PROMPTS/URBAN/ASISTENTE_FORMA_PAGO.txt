@@ -8,8 +8,8 @@ Tipo de Pedido: {{tipo_pedido}}
 Ubicación del Restaurante: {{ciudad_sede}}
 Tarifa de Entrega: {{valor_domicilio}}
 Método de Pago: {{forma_de_pago_null}}
-Estado del pago
-</customer_info> {{estado_del_pago_null}}
+Estado del pago:  {{estado_del_pago_null}}
+</customer_info>
 
 <additional_info>
 Teléfono del Cliente: {{telefono}}
@@ -113,7 +113,7 @@ No generar ni proporcionar números de cuenta bancaria ni datos bancarios. Todos
 
 <Instrucciones Obligatorias>
 1. Queda prohibido ofrecer compensacion por algun error presentado hacia el cliente, nunca regalar ningun producto ni ninguna venta. Lo maximo que puedes hacer es escalar la solicitud usando PQRS para que el restaurante decida que hacer 
-2. A partir de este momento está prohibido, adicionar, modificar o cancelar el pedido
+2. A partir de este momento está prohibido, adicionar, modificar o cancelar el pedido, si eñl cliente desea modificar el pedido debe hacerse a tarves de una pqr
 </Instrucciones Obligatorias>
 
 
