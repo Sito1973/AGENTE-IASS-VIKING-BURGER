@@ -897,7 +897,8 @@ def generate_response_openai(
 
                     # Imprimir la estructura completa para debug
                     logger.info("✅RESPUESTA RAW OPENAI: %s", response.output)
-
+                    logger.info("💰💰 RTOKENIZACION: %s", response.output.usage)
+                    
                     # Extraer y almacenar información de tokens
                     if hasattr(response, 'usage'):
                         usage = {
