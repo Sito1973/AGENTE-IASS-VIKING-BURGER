@@ -2,26 +2,33 @@
   
   {
     "name": "enviar_menu",
-    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. ",
-    "input_schema": {
+    "description": "Envía el menú o la carta al cliente. Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta.",
+    "parameters": {
       "type": "object",
+      "required": [
+        "envio"
+      ],
       "properties": {
         "envio": {
           "type": "string",
-
           "description": "Se ha enviado el menu"
         }
       },
-      "required": [
-        "envio"
-      ]
-    }
+      "additionalProperties": false
+    },
+    "strict": true
   },
   {
     "name": "crear_pedido",
-    "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos ya que el del domicilio ya esta en el sistema. Debes analizar si el producto del cliente necesita empaque, si es asi sumarle el valor del empaque a cadaq producto que lo requiera segun la base de conocimientos y siempre mencionarle al cliente el valor de este empaque para su pedidoDebes analizar si el producto del cliente necesita empaque, si es asi sumarle el valor del empaque a cadaq producto que lo requiera segun la base de conocimientos y siempre mencionarle al cliente el valor de este empaque para su pedido, ademas en la variable de valor total debes sumar el valor de estos empaques. Asegurate de confirmar el pedido del cliente usando esta funcion cuando ya se tenga toda la informacion y la confirmacion del cliente. ADEMAS  Debes tener mucho cuidado con los adicionales de cada producto ya dicionarlo al valor total correctamente",
-    "input_schema": {
+    "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos ya que el del domicilio ya esta en el sistema. Debes analizar si el producto del cliente necesita empaque, si es asi sumarle el valor del empaque a cadaq producto que lo requiera segun la base de conocimientos y siempre mencionarle al cliente el valor de este empaque para su pedidoDebes analizar si el producto del cliente necesita empaque, si es asi sumarle el valor del empaque a cadaq producto que lo requiera segun la base de conocimientos y siempre mencionarle al cliente el valor de este empaque para su pedido, ademas en la variable de valor total debes sumar el valor de estos empaques. Asegurate de confirmar el pedido del cliente usando esta funcion cuando ya se tenga toda la informacion y la confirmacion del cliente. ADEMAS  Debes tener mucho cuidado con los adicionales de cada producto ya dicionarlo al valor total correctamente.",
+    "strict": true,
+    "parameters": {
       "type": "object",
+      "required": [
+        "nombre_cliente",
+        "pedido_cliente",
+        "valor_total"
+      ],
       "properties": {
         "nombre_cliente": {
           "type": "string",
@@ -33,21 +40,23 @@
         },
         "valor_total": {
           "type": "number",
-          "description": "Valor total del pedido (obligatorio), SOLO de los productos, Debes analizar si el producto del cliente necesita empaque,  Este valor debe ser SIN sumar el valor del domicilio. Debes tener mucho cuidado con los adicionales de cada producto ya dicionarlo al valor total correctamente"
+          "description": "Valor total del pedido (obligatorio), SOLO de los productos, Debes analizar si el producto del cliente necesita empaque,  Este valor debe ser SIN sumar el valor del domicilio. Debes tener mucho cuidado con los adicionales de cada producto ya dicionarlo al valor total correctamente."
         }
       },
-      "required": [
-        "nombre_cliente",
-        "pedido_cliente",
-        "valor_total"
-      ]
+      "additionalProperties": false
     }
   },
   {
     "name": "facturacion_electronica",
     "description": "Registra en el sistema que el cliente requiere de facturacion electronica, con los respectivos datos",
-    "input_schema": {
+    "strict": true,
+    "parameters": {
       "type": "object",
+      "required": [
+        "razon_social",
+        "correo",
+        "nit"
+      ],
       "properties": {
         "razon_social": {
           "type": "string",
@@ -62,11 +71,7 @@
           "description": "NIT de la empresa a la que se le va a hacer la facturacion electronica"
         }
       },
-      "required": [
-        "razon_social",
-        "correo",
-        "nit"
-      ]
+      "additionalProperties": false
     }
   }
 ]
