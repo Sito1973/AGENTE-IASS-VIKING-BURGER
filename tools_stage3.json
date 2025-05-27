@@ -2,8 +2,14 @@
   {
     "name": "facturacion_electronica",
     "description": "Registra en el sistema que el cliente requiere de facturacion electronica, con los respectivos datos",
-    "input_schema": {
+    "strict": true,
+    "parameters": {
       "type": "object",
+      "required": [
+        "razon_social",
+        "correo",
+        "nit"
+      ],
       "properties": {
         "razon_social": {
           "type": "string",
@@ -18,28 +24,25 @@
           "description": "NIT de la empresa a la que se le va a hacer la facturacion electronica"
         }
       },
-      "required": [
-        "razon_social",
-        "correo",
-        "nit"
-      ]
+      "additionalProperties": false
     }
   },
   {
     "name": "pqrs",
-    "description": "Esta herramienta escala una peticion, queja o reclamo del pedido del cliente. Debes usarla despues de recopilar la informacion de la solicitud del cliente. Para que se le notifique al restaurante y de esta manera darle solucion al cliente. El uso de esta herramienta tambien aplica cuando  insista en cancelarlo o modificarlo el pedido. EL ultimo caso es cuando el cliente tambien  se haya equivocado en alguno de los datos del pedido, usala para informar al restaurante y que se le de buena solucion al cliente",
-    "input_schema": {
+    "description": "Esta herramienta escala una peticion, queja o reclamo del pedido del cliente. Debes usarla despues de recopilar la informacion de la solicitud del cliente. Para que se le notifique al restaurante y de esta manera darle solucion al cliente. El uso de esta herramienta tambien aplica cuando insista en cancelarlo o modificarlo el pedido. Cuando el cliente quiera hacer anotaciones especiales del pedido, y de detalles de la entrega de ese pedido (como por ejemplo llamar a Juan Castillo al momento de la entrega, nota especial por que el regalo es un pedido etc) debes usar la herramienta, fijate en el historial de conversacion. EL ultimo caso es cuando el cliente tambien se haya equivocado en alguno de los datos del pedido, usala para informar al restaurante y que se le de buena solucion al cliente.",
+    "strict": true,
+    "parameters": {
       "type": "object",
+      "required": [
+        "solicitud"
+      ],
       "properties": {
         "solicitud": {
           "type": "string",
-
-          "description": "Descirpcion de la peticion, queja, o reclamo del cliente o de lrazones que tiene para cancelar o modificar su pedido"
+          "description": "Descripcion de la peticion, queja, o reclamo del cliente o de las razones que tiene para cancelar o modificar su pedido"
         }
       },
-      "required": [
-        "solicitud"
-      ]
+      "additionalProperties": false
     }
   }
 ]
