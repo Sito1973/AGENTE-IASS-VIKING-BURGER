@@ -898,7 +898,7 @@ def generate_response_openai(
                     # Imprimir la estructura completa para debug
                     logger.info("✅RESPUESTA RAW OPENAI: %s", response.output)
                     logger.info("💰💰 TOKENIZACION: %s", response.usage)
-                    
+
                     # Extraer y almacenar información de tokens
                     if hasattr(response, 'usage'):
                         usage = {
@@ -1005,7 +1005,7 @@ def generate_response_openai(
                                             store=True
                                         )
 
-                                        logger.info("✅✅Respuesta después de la llamada a la función: %s", vars(continue_response))
+                                        logger.info("✅✅Respuesta después de la llamada a la función: %s", continue_response.output)
 
                                         # Actualizar información de tokens con la respuesta continua
                                         if hasattr(continue_response, 'usage'):
@@ -1069,6 +1069,10 @@ def generate_response_openai(
                                                 final_message["id"] = continue_message_id
 
                                             conversation_history.append(final_message)
+
+                                            # IMPORTANTE: Salir del bucle while aquí
+                                            logger.info("Respuesta final obtenida después de llamada a función, saliendo del bucle")
+                                            break  # Salir del bucle for
                                         else:
                                             # Si no obtuvimos respuesta, usemos un mensaje genérico
                                             assistant_response_text = f"He procesado tu solicitud correctamente. ¿En qué más puedo ayudarte?"
@@ -1079,12 +1083,18 @@ def generate_response_openai(
                                                 "content": assistant_response_text
                                             })
 
-                                        # Incrementar contador y salir
-                                        call_counter += 1
-                                        break
+                                            # IMPORTANTE: Salir del bucle while aquí también
+                                            logger.info("Respuesta genérica después de llamada a función, saliendo del bucle")
+                                            break  # Salir del bucle for
+
                                     else:
                                         logger.warning("Herramienta desconocida: %s", tool_name)
                                         break
+
+                    # IMPORTANTE: Si procesamos una función y obtuvimos respuesta, salir del bucle while
+                    if function_called and assistant_response_text:
+                        logger.info("Función procesada y respuesta obtenida, saliendo del bucle while")
+                        break
 
                     # Si encontramos un texto de respuesta y no hubo llamada a función, estamos listos
                     if assistant_response_text and not function_called:
