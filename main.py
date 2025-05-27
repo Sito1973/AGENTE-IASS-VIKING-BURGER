@@ -736,7 +736,6 @@ def generate_response(
             logger.info("Generación completada en %.2f segundos para thread_id: %s", elapsed_time, thread_id)
             # El lock se libera automáticamente al salir del bloque 'with'
 
-
 def generate_response_openai(
     message,
     assistant_content_text,
@@ -808,7 +807,8 @@ def generate_response_openai(
                     "type": "function",
                     "name": tool["name"],
                     "description": tool["description"],
-                    "parameters": tool["input_schema"]
+                    "parameters": tool.get("parameters", tool.get("input_schema", {})),
+                    "strict": tool.get("strict", True)
                 }
                 tools_openai_format.append(openai_tool)
             tools = tools_openai_format
@@ -824,22 +824,56 @@ def generate_response_openai(
                 "pqrs": pqrs,
             }
 
+            # Debug: Log del historial antes de procesarlo
+            logger.debug(f"Procesando {len(conversation_history)} mensajes del historial")
+            for i, msg in enumerate(conversation_history):
+                if isinstance(msg, dict):
+                    keys = list(msg.keys())
+                    logger.debug(f"Mensaje {i} - Claves: {keys}")
+                else:
+                    logger.debug(f"Mensaje {i} - Tipo: {type(msg)} - Valor: {msg}")
+
             # Preparar los mensajes para la nueva API
             input_messages = []
 
             # Agregar mensajes de la conversación
-            for msg in conversation_history:
-                if msg["role"] == "user":
-                    input_messages.append({
-                        "role": "user",
-                        "content": [{"type": "input_text", "text": msg["content"]}]
-                    })
-                elif msg["role"] == "assistant":
-                    input_messages.append({
-                        "role": "assistant",
-                        "content": [{"type": "output_text", "text": msg["content"]}]
-                    })
-                # Ignorar mensajes tool por ahora
+            for i, msg in enumerate(conversation_history):
+                # Validar que msg sea un diccionario
+                if not isinstance(msg, dict):
+                    logger.warning(f"Mensaje {i} no es un diccionario, ignorando: {type(msg)}")
+                    continue
+
+                # Verificar si el mensaje tiene 'role' (mensajes normales)
+                if "role" in msg:
+                    if msg["role"] == "user":
+                        input_messages.append({
+                            "role": "user",
+                            "content": [{"type": "input_text", "text": msg["content"]}]
+                        })
+                    elif msg["role"] == "assistant":
+                        assistant_input = {
+                            "role": "assistant",
+                            "content": [{"type": "output_text", "text": msg["content"]}]
+                        }
+                        # Solo agregar IDs válidos que empiecen con 'msg_'
+                        if "id" in msg and msg["id"] and msg["id"].startswith("msg_"):
+                            assistant_input["id"] = msg["id"]
+
+                        input_messages.append(assistant_input)
+
+                # Verificar si el mensaje tiene 'type' (function calls y outputs)
+                elif "type" in msg:
+                    if msg["type"] == "function_call":
+                        # Agregar function calls directamente
+                        input_messages.append(msg)
+                    elif msg["type"] == "function_call_output":
+                        # Agregar function call outputs directamente
+                        input_messages.append(msg)
+
+                # Si no tiene ni 'role' ni 'type', ignorar el mensaje y log warning
+                else:
+                    logger.warning(f"Mensaje {i} sin 'role' ni 'type' ignorado: {msg}")
+                    continue
 
             # Variable para seguir track de llamadas a herramientas
             call_counter = 0
@@ -848,7 +882,6 @@ def generate_response_openai(
             while call_counter < max_iterations:
                 try:
                     # Llamar a la API en el nuevo formato
-
                     logger.info("🚨PAYLOAD OPENAI: %s", conversation_history)
 
                     response = client.responses.create(
@@ -893,27 +926,33 @@ def generate_response_openai(
 
                     # Variables para rastrear el tipo de respuesta
                     assistant_response_text = None
+                    message_id = None
                     function_called = False
 
                     # Procesar la respuesta
                     if hasattr(response, 'output') and response.output:
-                        # Caso 1: La respuesta es un texto normal (ejemplo del primer log)
+                        # Caso 1: La respuesta es un texto normal
                         for output_item in response.output:
                             if hasattr(output_item, 'type'):
                                 # Es un objeto (no un diccionario)
                                 if output_item.type == 'message' and hasattr(output_item, 'content'):
+                                    # Extraer ID del mensaje
+                                    message_id = getattr(output_item, 'id', None)
+                                    logger.info("ID del mensaje extraído: %s", message_id)
+
                                     for content_item in output_item.content:
                                         if hasattr(content_item, 'type') and content_item.type == 'output_text':
                                             assistant_response_text = content_item.text
                                             logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
                                             break
 
-                                # Caso 2: La respuesta es una llamada a función (ejemplo del último log)
+                                # Caso 2: La respuesta es una llamada a función
                                 elif output_item.type == 'function_call':
                                     function_called = True
                                     tool_name = output_item.name
                                     tool_arguments_str = output_item.arguments
                                     call_id = output_item.call_id if hasattr(output_item, 'call_id') else f"call_{call_counter}"
+                                    function_call_id = getattr(output_item, 'id', None)
 
                                     logger.info("Llamada a función detectada: %s con ID %s", tool_name, call_id)
                                     logger.info("Argumentos: %s", tool_arguments_str)
@@ -929,33 +968,29 @@ def generate_response_openai(
                                         result_str = str(result)
                                         logger.info("Resultado de la llamada a función: %s", result_str)
 
-                                        # Agregar la llamada a la función y el resultado al historial
-                                        assistant_message = {
-                                            "role": "assistant",
-                                            "content": f"Función llamada: {tool_name}"
-                                        }
-                                        tool_message = {
-                                            "role": "tool",
-                                            "tool_call_id": call_id,
-                                            "name": tool_name,
-                                            "content": result_str
-                                        }
-                                        conversation_history.append(assistant_message)
-                                        conversation_history.append(tool_message)
-
-                                        # Preparar entrada para la siguiente iteración incluyendo el resultado
-                                        input_messages.append({
+                                        # Agregar function call y output al historial en formato correcto
+                                        function_call_entry = {
                                             "type": "function_call",
                                             "call_id": call_id,
                                             "name": tool_name,
                                             "arguments": tool_arguments_str
-                                        })
+                                        }
+                                        # Agregar ID si existe
+                                        if function_call_id:
+                                            function_call_entry["id"] = function_call_id
 
-                                        input_messages.append({
+                                        function_output_entry = {
                                             "type": "function_call_output",
                                             "call_id": call_id,
                                             "output": result_str
-                                        })
+                                        }
+
+                                        conversation_history.append(function_call_entry)
+                                        conversation_history.append(function_output_entry)
+
+                                        # Preparar entrada para la siguiente iteración
+                                        input_messages.append(function_call_entry)
+                                        input_messages.append(function_output_entry)
 
                                         # Solicitar continuación de la conversación después de la llamada a la función
                                         continue_response = client.responses.create(
@@ -1005,9 +1040,14 @@ def generate_response_openai(
                                                         current_usage["cache_read_input_tokens"])
 
                                         # Procesar la respuesta de continuación
+                                        continue_message_id = None
                                         if hasattr(continue_response, 'output') and continue_response.output:
                                             for continue_item in continue_response.output:
                                                 if hasattr(continue_item, 'type') and continue_item.type == 'message':
+                                                    # Extraer ID de continuación
+                                                    continue_message_id = getattr(continue_item, 'id', None)
+                                                    logger.info("ID del mensaje de continuación: %s", continue_message_id)
+
                                                     if hasattr(continue_item, 'content'):
                                                         for content_item in continue_item.content:
                                                             if hasattr(content_item, 'type') and content_item.type == 'output_text':
@@ -1015,17 +1055,22 @@ def generate_response_openai(
                                                                 logger.info("Respuesta de texto después de la función: %s", assistant_response_text)
                                                                 break
 
-                                        # Si obtuvimos una respuesta de texto, guardémosla
+                                        # Si obtuvimos una respuesta de texto, guardémosla CON ID
                                         if assistant_response_text:
                                             conversations[thread_id]["response"] = assistant_response_text
                                             conversations[thread_id]["status"] = "completed"
-                                            conversation_history.append({
+                                            # Crear mensaje con ID de continuación
+                                            final_message = {
                                                 "role": "assistant",
                                                 "content": assistant_response_text
-                                            })
+                                            }
+                                            if continue_message_id:
+                                                final_message["id"] = continue_message_id
+
+                                            conversation_history.append(final_message)
                                         else:
                                             # Si no obtuvimos respuesta, usemos un mensaje genérico
-                                            assistant_response_text = f"He enviado el menú para la sede La Virginia. ¿En qué más puedo ayudarte?"
+                                            assistant_response_text = f"He procesado tu solicitud correctamente. ¿En qué más puedo ayudarte?"
                                             conversations[thread_id]["response"] = assistant_response_text
                                             conversations[thread_id]["status"] = "completed"
                                             conversation_history.append({
@@ -1042,18 +1087,22 @@ def generate_response_openai(
 
                     # Si encontramos un texto de respuesta y no hubo llamada a función, estamos listos
                     if assistant_response_text and not function_called:
-                        conversations[thread_id]["response"] = assistant_response_text
-                        conversations[thread_id]["status"] = "completed"
-                        conversation_history.append({
+                        # Crear mensaje con ID
+                        assistant_message = {
                             "role": "assistant",
                             "content": assistant_response_text
-                        })
+                        }
+                        if message_id:
+                            assistant_message["id"] = message_id
+
+                        conversations[thread_id]["response"] = assistant_response_text
+                        conversations[thread_id]["status"] = "completed"
+                        conversation_history.append(assistant_message)
                         break
 
                     # Si no encontramos ni texto ni llamada a función, algo salió mal
                     if not assistant_response_text and not function_called:
                         # Intentar una última extracción con un método diferente
-                        # A veces, la función está directamente en response.output (no dentro de un loop)
                         if hasattr(response, 'output') and isinstance(response.output, list) and len(response.output) > 0:
                             first_output = response.output[0]
                             if hasattr(first_output, 'type') and first_output.type == 'function_call':
@@ -1061,6 +1110,7 @@ def generate_response_openai(
                                 tool_name = first_output.name
                                 tool_arguments_str = first_output.arguments
                                 call_id = first_output.call_id if hasattr(first_output, 'call_id') else f"call_{call_counter}"
+                                alt_function_call_id = getattr(first_output, 'id', None)
 
                                 logger.info("Llamada a función detectada (método alternativo): %s", tool_name)
 
@@ -1076,28 +1126,33 @@ def generate_response_openai(
                                     logger.info("Resultado de la llamada a función: %s", result_str)
 
                                     # Mensaje genérico después de ejecutar la función
-                                    assistant_response_text = f"He enviado el menú para la sede La Virginia. ¿En qué más puedo ayudarte?"
+                                    assistant_response_text = f"He procesado tu solicitud correctamente. ¿En qué más puedo ayudarte?"
                                     conversations[thread_id]["response"] = assistant_response_text
                                     conversations[thread_id]["status"] = "completed"
 
-                                    # Agregar mensajes al historial
-                                    assistant_message = {
-                                        "role": "assistant",
-                                        "content": f"Función llamada: {tool_name}"
-                                    }
-                                    tool_message = {
-                                        "role": "tool",
-                                        "tool_call_id": call_id,
+                                    # Agregar function call y output al historial
+                                    function_call_entry = {
+                                        "type": "function_call",
+                                        "call_id": call_id,
                                         "name": tool_name,
-                                        "content": result_str
+                                        "arguments": tool_arguments_str
                                     }
+                                    if alt_function_call_id:
+                                        function_call_entry["id"] = alt_function_call_id
+
+                                    function_output_entry = {
+                                        "type": "function_call_output",
+                                        "call_id": call_id,
+                                        "output": result_str
+                                    }
+
                                     final_message = {
                                         "role": "assistant",
                                         "content": assistant_response_text
                                     }
 
-                                    conversation_history.append(assistant_message)
-                                    conversation_history.append(tool_message)
+                                    conversation_history.append(function_call_entry)
+                                    conversation_history.append(function_output_entry)
                                     conversation_history.append(final_message)
 
                                     break
@@ -1122,11 +1177,9 @@ def generate_response_openai(
         finally:
             event.set()
             elapsed_time = time.time() - start_time
-            logger.info("⏰Generación completada en %.2f segundos para thread_id: %s", elapsed_time,thread_id)
+            logger.info("⏰Generación completada en %.2f segundos para thread_id: %s", elapsed_time, thread_id)
             logger.debug("Evento establecido para thread_id (OpenAI): %s", thread_id)
             logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
-
-
 
 def generate_response_gemini(
     message,
