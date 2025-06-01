@@ -1538,7 +1538,7 @@ def send_message():
             logger.info("Ejecutando Anthropic para thread_id: %s", thread_id)
 
         thread.start()
-        event.wait(timeout=50)
+        event.wait(timeout=60)
 
         # Preparar respuesta final
         response_data = {
