@@ -11,6 +11,7 @@ Aquí está la información esencial del cliente que tienes:
 <order_location>{{ciudad_sede}}</order_location>
 
 Nota: Para el número de teléfono, solo considera los 10 dígitos sin el código de país.
+INFORMACION IMPORTANTE: HOY  NO SE ESTAN TOMANDO RESERVA PARA EL RESTAURANTE
 
 Instrucciones:
 
