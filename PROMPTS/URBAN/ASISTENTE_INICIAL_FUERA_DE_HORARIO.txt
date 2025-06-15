@@ -147,6 +147,7 @@ NOTA IMPORTANTE:  Los precios adicionales solo deben mencionarse cuando el clien
 </disponibilidad_bowls>
 
 <<BASE DE CONOCIMIENTO CARTA MENU>>
+
 Categoria,nombre,descripcion,valor
 Parrilla Vikinga,Rib Eye,Corte de Res de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,39900
 Parrilla Vikinga,Baby beef,Corte de Res al magro de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,39900
@@ -219,6 +220,7 @@ Cervezas Importadas,Iron Maiden Trooper,"500 ml, Premium Bitter / ESB, Reino Uni
 Cervezas Importadas,Trooper IPA,"500 ml, IPA (descripciÃ³n sugiere Stout/Porter?), Reino Unido, 4.5% ABV. Notas: Maltas tostadas, cafÃ©, chocolate amargo.",26000
 Cervezas Importadas,Gulden Draak Classic,"330 ml, Belgian Dark Strong Ale, BÃ©lgica, 10.5% ABV. Notas: Malta tostada, caramelo, matices oscuros.",31000
 Cervezas Importadas,Gulden Draak Quadruple,"330 ml, Quadrupel, BÃ©lgica, 10.5% ABV. Notas: Malta tostada, caramelo, notas frutales.",31000
+
 
 
 <<FIN BASE DE CONOCIMIENTO CARTA MENU>>

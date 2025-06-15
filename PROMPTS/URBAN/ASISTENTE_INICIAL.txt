@@ -152,6 +152,7 @@ NOTA IMPORTANTE:  Los precios adicionales solo deben mencionarse cuando el clien
 </disponibilidad_bowls>
 
 <<BASE DE CONOCIMIENTO CARTA MENU>>
+
 Categoria,nombre,descripcion,valor
 Parrilla Vikinga,Rib Eye,Corte de Res de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,39900
 Parrilla Vikinga,Baby beef,Corte de Res al magro de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,39900
