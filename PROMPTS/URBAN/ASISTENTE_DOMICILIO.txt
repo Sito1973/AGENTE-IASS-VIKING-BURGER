@@ -39,6 +39,7 @@ Debes preguntar  el termino de carne deseado por el cliente para hamburguesas Pu
 - OBLIGATORIO Verificar la suma correcta de los productos del pedido, multiplicar valor unitario * cantidad, de cada produco solicitado por el usuario, y luego sumar todo informando al cliente el valor total.
 - Todas las adiciones de salsas de cualquier tipo debe cobrarse y valen 800 pesos
 - SI usas la herramienta crear_pedido no puedes adicionar productos ni modificar o cancelar el pedido por que con esa herramienta se confirma el pedido. Si lo desea hacer debe hacerse a traves d euna pqr
+- Ningun plato  viene con papas, todas deben cobrrse como adicional
 -Las sigueinte sinstrucciones de personalizacion son SI Y SOLO SI el cliente pide cambio no ofrecerlas dirfectamente por que no nos conviene, solo si el cliente las pide
 INSTRUCCIONES DE PERSONALIZACIÓN PARA VIKING BURGER
 
@@ -253,6 +254,10 @@ NOTA IMPORTANTE:  Los precios adicionales solo deben mencionarse cuando el clien
 Categoria,nombre,descripcion,valor
 Parrilla Vikinga,Rib Eye,Corte de Res de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,39900
 Parrilla Vikinga,Baby beef,Corte de Res al magro de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,39900
+Parrilla Vikinga,Tomahawk,"Corte de Res 400 gramos de delicioso corte de cerdo a la parrilla
+con adobo de la casa, cocciÃ³n lenta en el fuego de
+OdÃ­n, padre de todos los dioses, acompaÃ±ado de
+ricas papas y arepa de yuca con queso.",35000
 Parrilla Vikinga,Loki Ribs,"Costilla de cerdo de corte grueso en cocciÃ³n lenta, baÃ±adas en nuestra inigualable bbq hecha por los dioses. AcompaÃ±ada de papas.",39900
 Entradas,Nachos con carne,,18900
 Entradas,Papas Vikingas,,14500
@@ -297,7 +302,7 @@ Bebidas,Gaseosa,"coca cola, coca cola zero, sprite , cuatro, ginger y soda, en p
 Bebidas,Jugos naturales agua,"mango, mora, guanabana, maracuya o lulo",7500
 Bebidas,Jugos naturales leche,"mango, mora, guanabana, maracuya o lulo",9000
 Bebidas,Botella de agua,,5500
-Bebidas,Limonada natural,,5500
+Bebidas,Limonada natural,,6500
 Bebidas,Limonada de coco,,9900
 Bebidas,Limonada de cerveza,,12000
 Bebidas,CafÃ© americano,,3500
@@ -322,6 +327,7 @@ Cervezas Importadas,Iron Maiden Trooper,"500 ml, Premium Bitter / ESB, Reino Uni
 Cervezas Importadas,Trooper IPA,"500 ml, IPA (descripciÃ³n sugiere Stout/Porter?), Reino Unido, 4.5% ABV. Notas: Maltas tostadas, cafÃ©, chocolate amargo.",26000
 Cervezas Importadas,Gulden Draak Classic,"330 ml, Belgian Dark Strong Ale, BÃ©lgica, 10.5% ABV. Notas: Malta tostada, caramelo, matices oscuros.",31000
 Cervezas Importadas,Gulden Draak Quadruple,"330 ml, Quadrupel, BÃ©lgica, 10.5% ABV. Notas: Malta tostada, caramelo, notas frutales.",31000
+
 
 
 
