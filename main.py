@@ -40,7 +40,7 @@ def retry_on_exception(max_retries=3, initial_wait=1):
                     if retries >= max_retries:
                         logger.error(f"Error definitivo tras {max_retries} intentos: {e}")
                         raise
-                    logger.warning(f"Error en llamada a API (intento {retries}). Reintentando en {wait_time}s: {e}")
+                    # Removido warning de reintentos para simplificar logs
                     time.sleep(wait_time)
         return wrapper
     return decorator
@@ -58,8 +58,7 @@ app = Flask(__name__)
 
 # Configuración del logging
 logging.basicConfig(
-    level=logging.
-    INFO,  # Nivel de logging: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    level=logging.ERROR,  # Solo errores críticos y logs de información importantes
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
         logging.StreamHandler()  # Salida a la consola
@@ -97,7 +96,7 @@ class N8nAPI:
         self.facturacion_electronica_url =os.environ.get("N8N_FACTURACION_ELECTRONICA_WEBHOOK_URL")
         self.pqrs_url =os.environ.get("N8N_PQRS_WEBHOOK_URL")
         # Puedes añadir más URLs de webhook si lo necesitas
-        logger.info("Inicializado N8nAPI con las URLs")
+        print("N8nAPI inicializado")  # Info importante como print directo
 
     def crear_pedido(self, payload):
         """Envía el pedido al webhook de n8n"""
@@ -896,8 +895,8 @@ def generate_response_openai(
                     )
 
                     # Imprimir la estructura completa para debug
-                    logger.info("✅RESPUESTA RAW OPENAI: %s", response.output)
-                    logger.info("💰💰 TOKENIZACION: %s", response.usage)
+                    print("✅RESPUESTA RAW OPENAI: %s", response.output)
+                    print("💰💰 TOKENIZACION: %s", response.usage)  # Deshabilitado
 
                     # Extraer y almacenar información de tokens
                     if hasattr(response, 'usage'):
@@ -944,7 +943,7 @@ def generate_response_openai(
                                     for content_item in output_item.content:
                                         if hasattr(content_item, 'type') and content_item.type == 'output_text':
                                             assistant_response_text = content_item.text
-                                            logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
+                                            #logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
                                             break
 
                                 # Caso 2: La respuesta es una llamada a función
@@ -1188,9 +1187,9 @@ def generate_response_openai(
         finally:
             event.set()
             elapsed_time = time.time() - start_time
-            logger.info("⏰Generación completada en %.2f segundos para thread_id: %s", elapsed_time, thread_id)
+            print(f"⏰ Respuesta generada en {elapsed_time:.1f}s")  # Info importante como print
             logger.debug("Evento establecido para thread_id (OpenAI): %s", thread_id)
-            logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
+            #logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
 
 def generate_response_gemini(
     message,
