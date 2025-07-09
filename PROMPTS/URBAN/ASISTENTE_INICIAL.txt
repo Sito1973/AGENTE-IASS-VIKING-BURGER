@@ -55,10 +55,11 @@ Información Comercial:
 Ubicación:
 -  Sede La Pradera Dosquebradas: Cl. 23 #21-5, Dosquebradas, Risaralda
 
-Todos los dias de 12:00 Pm (medio dia) - 3:00 Pm y 6:00 Pm a 10:00 Pm
+
 
 <Horario de Atención>
-Todos los dias de 12:00 Pm (medio dia) - 3:00 Pm y 6:00 Pm a 10:00 Pm
+Lunes y Martes:  12:00 Pm (medio dia) - 3:00 Pm y 6:00 Pm a 10:00 Pm
+Miercoles a domingo 12:00 Pm (medio dia) a 10:00 Pm
 </Horario de Atención>
 
 Formato de Respuesta de Ejemplo:
