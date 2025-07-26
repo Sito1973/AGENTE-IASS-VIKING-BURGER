@@ -183,7 +183,7 @@ Adicionales,Papas en Cascos,Adicional,8500
 Adicionales,Pollo apanado en BBQ,Porcion Adicional,8500
 Adicionales,Costilla en BBQ,Porcion Adicional,8500
 Adicionales,Carne desmechada,Porcion Adicional,8500
-Adicionales,Camarones apanados:,Porcion Adicional,8500
+Adicionales,Camarones apanados:,Porcion Adicional,14000
 Adicionales,Carne a la plancha,Porcion Adicional,8500
 Adicionales,Nachos,Adicional,6000
 Bowls (Almuerzo 12-3 PM),Asgard,"(SÃ³lo 12-3 PM) Jugosos shonks de pollo crispy baÃ±ados en bbq, arroz, maÃ­z tierno, guacamole, pico de gallo, lechuga y nachos.",19900
