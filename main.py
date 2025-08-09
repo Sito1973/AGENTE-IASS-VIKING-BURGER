@@ -741,13 +741,10 @@ def generate_response_openai(
     thread_id,
     event,
     subscriber_id,
-    llmID=None,
-    cost_base_input=1.25,
-    cost_cache_read=0.125,
-    cost_output=10.0
+    llmID=None
 ):
     if not llmID:
-        llmID = "gpt-5-mini"
+        llmID = "gpt-4.1-mini"
 
     logger.info("Intentando adquirir lock para thread_id (OpenAI): %s", thread_id)
     lock = thread_locks.get(thread_id)
@@ -796,6 +793,7 @@ def generate_response_openai(
             else:
                 tools_file_name = "default_tools.json"
 
+            # Cargar el archivo de herramientas correspondiente
             tools_file_path = os.path.join(os.path.dirname(__file__), tools_file_name)
             with open(tools_file_path, "r", encoding="utf-8") as tools_file:
                 tools_anthropic_format = json.load(tools_file)
@@ -804,22 +802,15 @@ def generate_response_openai(
             # Convertir herramientas al formato de OpenAI Function Calling
             tools_openai_format = []
             for tool in tools_anthropic_format:
-                # Obtener parámetros del formato Anthropic
-                parameters = tool.get("parameters", tool.get("input_schema", {}))
-
-                # Agregar additionalProperties: false si no existe (requerido por OpenAI strict mode)
-                if isinstance(parameters, dict) and parameters.get("type") == "object":
-                    parameters["additionalProperties"] = False
-
                 openai_tool = {
                     "type": "function",
                     "name": tool["name"],
                     "description": tool["description"],
-                    "parameters": parameters,
+                    "parameters": tool.get("parameters", tool.get("input_schema", {})),
                     "strict": tool.get("strict", True)
                 }
                 tools_openai_format.append(openai_tool)
-            tools = tools_openai_format 
+            tools = tools_openai_format
 
             # Mapear herramientas a funciones
             tool_functions = {
@@ -863,25 +854,19 @@ def generate_response_openai(
                             "role": "assistant",
                             "content": [{"type": "output_text", "text": msg["content"]}]
                         }
-                        # No incluir IDs para evitar problemas con reasoning items requeridos
+                        # Solo agregar IDs válidos que empiecen con 'msg_'
+                        if "id" in msg and msg["id"] and msg["id"].startswith("msg_"):
+                            assistant_input["id"] = msg["id"]
+
                         input_messages.append(assistant_input)
 
                 # Verificar si el mensaje tiene 'type' (function calls y outputs)
                 elif "type" in msg:
                     if msg["type"] == "function_call":
-                        # Agregar function calls directamente (o1/GPT-5 maneja reasoning automáticamente)
+                        # Agregar function calls directamente
                         input_messages.append(msg)
                     elif msg["type"] == "function_call_output":
                         # Agregar function call outputs directamente
-                        input_messages.append(msg)
-                    elif msg["type"] == "custom_tool_call":
-                        # Agregar custom tool calls para OpenAI
-                        input_messages.append(msg)
-                    elif msg["type"] == "custom_tool_call_output":
-                        # Agregar custom tool call outputs directamente
-                        input_messages.append(msg)
-                    elif msg["type"] == "reasoning":
-                        # Agregar reasoning items para o1/GPT-5 models
                         input_messages.append(msg)
 
                 # Si no tiene ni 'role' ni 'type', ignorar el mensaje y log warning
@@ -899,52 +884,35 @@ def generate_response_openai(
                     logger.info("🚨PAYLOAD OPENAI: %s", conversation_history)
 
                     response = client.responses.create(
-                        model=llmID,
+                        model="gpt-4.1",
                         instructions=assistant_content_text,
                         input=input_messages,
                         tools=tools,
-                        reasoning={"effort": "minimal"},
-                        text={"format": {"type": "text"},
-                                        "verbosity": "low"},
+                        temperature=0.7,
                         max_output_tokens=1000,
                         top_p=1,
                         store=True
                     )
 
                     # Imprimir la estructura completa para debug
-                    logger.info("✅RESPUESTA RAW OPENAI: %s", response.output)
-                    logger.info("💰💰 TOKENIZACION: %s", response.usage)
+                    print("✅RESPUESTA RAW OPENAI: %s", response.output)
+                    print("💰💰 TOKENIZACION: %s", response.usage)  # Deshabilitado
 
-                    # Extraer y almacenar información de tokens (formato compatible con Anthropic)
+                    # Extraer y almacenar información de tokens
                     if hasattr(response, 'usage'):
-                        # Mapear tokens de OpenAI al formato de Anthropic
-                        cache_read_tokens = 0
-                        if (hasattr(response.usage, 'input_tokens_details') and 
-                            hasattr(response.usage.input_tokens_details, 'cached_tokens')):
-                            cache_read_tokens = response.usage.input_tokens_details.cached_tokens
-
                         usage = {
                             "input_tokens": response.usage.input_tokens,
-                            "output_tokens": response.usage.output_tokens, 
-                            "cache_creation_input_tokens": 0,  # OpenAI no diferencia creation vs read
-                            "cache_read_input_tokens": cache_read_tokens,
+                            "output_tokens": response.usage.output_tokens,
+                            "cache_creation_input_tokens": 0,  # Valor predeterminado
+                            "cache_read_input_tokens": response.usage.total_tokens,  # Según lo solicitado
                         }
 
+                        # Si hay detalles adicionales de tokens, actualizar cache_creation_input_tokens
+                        if (hasattr(response.usage, 'input_tokens_details') and 
+                            hasattr(response.usage.input_tokens_details, 'cached_tokens')):
+                            usage["cache_creation_input_tokens"] = response.usage.input_tokens_details.cached_tokens
+
                         conversations[thread_id]["usage"] = usage
-
-                        # Actualizar contadores acumulativos del thread (similar a Anthropic)
-                        if "total_usage" not in conversations[thread_id]:
-                            conversations[thread_id]["total_usage"] = {
-                                "total_input_tokens": 0,
-                                "total_output_tokens": 0,
-                                "total_cache_creation_tokens": 0,
-                                "total_cache_read_tokens": 0
-                            }
-
-                        conversations[thread_id]["total_usage"]["total_input_tokens"] += usage["input_tokens"]
-                        conversations[thread_id]["total_usage"]["total_output_tokens"] += usage["output_tokens"] 
-                        conversations[thread_id]["total_usage"]["total_cache_creation_tokens"] += usage["cache_creation_input_tokens"]
-                        conversations[thread_id]["total_usage"]["total_cache_read_tokens"] += usage["cache_read_input_tokens"]
 
                         logger.info(
                             "Tokens utilizados - Input: %d, Output: %d",
@@ -963,82 +931,11 @@ def generate_response_openai(
 
                     # Procesar la respuesta
                     if hasattr(response, 'output') and response.output:
-                        # Procesar items en pares: reasoning seguido de function_call
-                        output_items_for_history = []
-                        i = 0
-                        while i < len(response.output):
-                            item = response.output[i]
-                            if hasattr(item, 'type'):
-                                # Si es reasoning, verificar si el siguiente es function_call
-                                if item.type == 'reasoning' and i + 1 < len(response.output):
-                                    next_item = response.output[i + 1]
-                                    if (hasattr(next_item, 'type') and 
-                                        (next_item.type == 'function_call' or next_item.type == 'custom_tool_call')):
-                                        # Par válido reasoning → function_call
-                                        reasoning_entry = {
-                                            "type": "reasoning",
-                                            "id": getattr(item, 'id', None),
-                                            "content": getattr(item, 'content', []),
-                                            "summary": getattr(item, 'summary', [])
-                                        }
-                                        output_items_for_history.append(reasoning_entry)
-
-                                        # Agregar el function_call
-                                        if next_item.type == 'function_call':
-                                            function_entry = {
-                                                "type": "function_call",
-                                                "id": getattr(next_item, 'id', None),
-                                                "call_id": getattr(next_item, 'call_id', None),
-                                                "name": next_item.name,
-                                                "arguments": next_item.arguments
-                                            }
-                                        else:  # custom_tool_call
-                                            function_entry = {
-                                                "type": "custom_tool_call",
-                                                "id": getattr(next_item, 'id', None),
-                                                "call_id": getattr(next_item, 'call_id', None),
-                                                "name": next_item.name,
-                                                "input": getattr(next_item, 'input', '')
-                                            }
-                                        output_items_for_history.append(function_entry)
-                                        i += 2  # Saltar ambos items
-                                        continue
-
-                                # Si es function_call standalone (sin reasoning previo)
-                                elif item.type == 'function_call':
-                                    function_entry = {
-                                        "type": "function_call",
-                                        "id": getattr(item, 'id', None),
-                                        "call_id": getattr(item, 'call_id', None),
-                                        "name": item.name,
-                                        "arguments": item.arguments
-                                    }
-                                    output_items_for_history.append(function_entry)
-                                elif item.type == 'custom_tool_call':
-                                    custom_entry = {
-                                        "type": "custom_tool_call",
-                                        "id": getattr(item, 'id', None),
-                                        "call_id": getattr(item, 'call_id', None),
-                                        "name": item.name,
-                                        "input": getattr(item, 'input', '')
-                                    }
-                                    output_items_for_history.append(custom_entry)
-                                # Ignorar reasoning items huérfanos y otros tipos
-                            i += 1
-
-                        # Agregar items válidos al historial
-                        conversation_history.extend(output_items_for_history)
-                        input_messages.extend(output_items_for_history)
-
-                        # Ahora procesar la lógica de respuesta
+                        # Caso 1: La respuesta es un texto normal
                         for output_item in response.output:
                             if hasattr(output_item, 'type'):
-                                # Caso 0: Skip reasoning items (ya procesados arriba)
-                                if output_item.type == 'reasoning':
-                                    continue
-
                                 # Es un objeto (no un diccionario)
-                                elif output_item.type == 'message' and hasattr(output_item, 'content'):
+                                if output_item.type == 'message' and hasattr(output_item, 'content'):
                                     # Extraer ID del mensaje
                                     message_id = getattr(output_item, 'id', None)
                                     logger.info("ID del mensaje extraído: %s", message_id)
@@ -1046,31 +943,24 @@ def generate_response_openai(
                                     for content_item in output_item.content:
                                         if hasattr(content_item, 'type') and content_item.type == 'output_text':
                                             assistant_response_text = content_item.text
-                                            logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
+                                            #logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
                                             break
 
                                 # Caso 2: La respuesta es una llamada a función
-                                elif output_item.type == 'function_call' or output_item.type == 'custom_tool_call':
+                                elif output_item.type == 'function_call':
                                     function_called = True
                                     tool_name = output_item.name
+                                    tool_arguments_str = output_item.arguments
                                     call_id = output_item.call_id if hasattr(output_item, 'call_id') else f"call_{call_counter}"
                                     function_call_id = getattr(output_item, 'id', None)
 
-                                    # Manejar diferencias entre function_call y custom_tool_call
-                                    if output_item.type == 'function_call':
-                                        tool_arguments_str = output_item.arguments
-                                        logger.info("Function call detectada: %s con ID %s", tool_name, call_id)
-                                        logger.info("Argumentos: %s", tool_arguments_str)
-                                        try:
-                                            tool_arguments = json.loads(tool_arguments_str)
-                                        except json.JSONDecodeError:
-                                            tool_arguments = {}
-                                    else:  # custom_tool_call
-                                        tool_arguments_str = getattr(output_item, 'input', '')
-                                        logger.info("Custom tool call detectada: %s con ID %s", tool_name, call_id)
-                                        logger.info("Input: %s", tool_arguments_str)
-                                        # Para custom tools, el input es string directo, no JSON
-                                        tool_arguments = {"input": tool_arguments_str}
+                                    logger.info("Llamada a función detectada: %s con ID %s", tool_name, call_id)
+                                    logger.info("Argumentos: %s", tool_arguments_str)
+
+                                    try:
+                                        tool_arguments = json.loads(tool_arguments_str)
+                                    except json.JSONDecodeError:
+                                        tool_arguments = {}
 
                                     if tool_name in tool_functions:
                                         # Ejecutar la función
@@ -1078,34 +968,38 @@ def generate_response_openai(
                                         result_str = str(result)
                                         logger.info("Resultado de la llamada a función: %s", result_str)
 
-                                        # Crear solo el output entry (el function call ya está en el historial)
-                                        if output_item.type == 'function_call':
-                                            function_output_entry = {
-                                                "type": "function_call_output",
-                                                "call_id": call_id,
-                                                "output": result_str
-                                            }
-                                        else:  # custom_tool_call
-                                            function_output_entry = {
-                                                "type": "custom_tool_call_output", 
-                                                "call_id": call_id,
-                                                "output": result_str
-                                            }
+                                        # Agregar function call y output al historial en formato correcto
+                                        function_call_entry = {
+                                            "type": "function_call",
+                                            "call_id": call_id,
+                                            "name": tool_name,
+                                            "arguments": tool_arguments_str
+                                        }
+                                        # Agregar ID si existe
+                                        if function_call_id:
+                                            function_call_entry["id"] = function_call_id
 
-                                        # Solo agregar el output al historial (el call ya está)
+                                        function_output_entry = {
+                                            "type": "function_call_output",
+                                            "call_id": call_id,
+                                            "output": result_str
+                                        }
+
+                                        conversation_history.append(function_call_entry)
                                         conversation_history.append(function_output_entry)
+
+                                        # Preparar entrada para la siguiente iteración
+                                        input_messages.append(function_call_entry)
                                         input_messages.append(function_output_entry)
 
                                         # Solicitar continuación de la conversación después de la llamada a la función
                                         continue_response = client.responses.create(
-                                            model=llmID,
+                                            model="gpt-4.1",
                                             instructions=assistant_content_text,
                                             input=input_messages,
                                             tools=tools,
+                                            temperature=0.7,
                                             max_output_tokens=1000,
-                                            reasoning={"effort": "minimal"},
-                                            text={"format": {"type": "text"},
-                                                            "verbosity": "low"},
                                             top_p=1,
                                             store=True
                                         )
@@ -1122,22 +1016,18 @@ def generate_response_openai(
                                                     "cache_read_input_tokens": 0
                                                 }
 
-                                            # Mapear tokens de continue response
-                                            continue_cache_read_tokens = 0
-                                            if (hasattr(continue_response.usage, 'input_tokens_details') and 
-                                                hasattr(continue_response.usage.input_tokens_details, 'cached_tokens')):
-                                                continue_cache_read_tokens = continue_response.usage.input_tokens_details.cached_tokens
-
                                             # Actualizar los tokens acumulativos
                                             current_usage = conversations[thread_id]["usage"]
                                             current_usage["input_tokens"] += continue_response.usage.input_tokens
                                             current_usage["output_tokens"] += continue_response.usage.output_tokens
-                                            current_usage["cache_read_input_tokens"] += continue_cache_read_tokens
 
-                                            # Actualizar contadores del thread también
-                                            conversations[thread_id]["total_usage"]["total_input_tokens"] += continue_response.usage.input_tokens
-                                            conversations[thread_id]["total_usage"]["total_output_tokens"] += continue_response.usage.output_tokens
-                                            conversations[thread_id]["total_usage"]["total_cache_read_tokens"] += continue_cache_read_tokens
+                                            # Actualizar cache_read_input_tokens con total_tokens
+                                            current_usage["cache_read_input_tokens"] += continue_response.usage.total_tokens
+
+                                            # Actualizar cache_creation_input_tokens si está disponible
+                                            if (hasattr(continue_response.usage, 'input_tokens_details') and 
+                                                hasattr(continue_response.usage.input_tokens_details, 'cached_tokens')):
+                                                current_usage["cache_creation_input_tokens"] += continue_response.usage.input_tokens_details.cached_tokens
 
                                             logger.info(
                                                 "Tokens acumulados - Input: %d, Output: %d",
@@ -1286,46 +1176,9 @@ def generate_response_openai(
 
                 except Exception as api_error:
                     logger.exception("Error en la llamada a la API: %s", api_error)
-                    conversations[thread_id]["response"] = f"Error OpenAI: {str(api_error)}"
+                    conversations[thread_id]["response"] = f"Error en la API de OpenAI: {str(api_error)}"
                     conversations[thread_id]["status"] = "error"
                     break
-
-            # Actualizar información de costos al final de la conversación (como Anthropic)
-            current_usage = conversations[thread_id].get("usage", {})
-
-            if current_usage:
-                # Calcular costos del turno actual usando los parámetros recibidos
-                def calculate_costs(tokens, cost_per_mtok):
-                    return (tokens / 1_000_000) * cost_per_mtok
-
-                current_cost_input = calculate_costs(current_usage.get("input_tokens", 0), cost_base_input)
-                current_cost_output = calculate_costs(current_usage.get("output_tokens", 0), cost_output)
-                current_cost_cache_read = calculate_costs(current_usage.get("cache_read_input_tokens", 0), cost_cache_read)
-                current_total_cost = current_cost_input + current_cost_output + current_cost_cache_read
-
-                # Inicializar costos acumulativos si no existen
-                if "total_costs" not in conversations[thread_id]:
-                    conversations[thread_id]["total_costs"] = {
-                        "thread_total_cost_input": 0.0,
-                        "thread_total_cost_output": 0.0, 
-                        "thread_total_cost_cache_read": 0.0,
-                        "thread_total_cost_all_usd": 0.0
-                    }
-
-                # Actualizar costos acumulativos del thread
-                conversations[thread_id]["total_costs"]["thread_total_cost_input"] += current_cost_input
-                conversations[thread_id]["total_costs"]["thread_total_cost_output"] += current_cost_output
-                conversations[thread_id]["total_costs"]["thread_total_cost_cache_read"] += current_cost_cache_read
-                conversations[thread_id]["total_costs"]["thread_total_cost_all_usd"] += current_total_cost
-
-                # Agregar información de costos al usage para compatibilidad con Anthropic
-                current_usage.update({
-                    "current_total_cost_usd": round(current_total_cost, 6),
-                    "thread_total_cost_all_usd": round(conversations[thread_id]["total_costs"]["thread_total_cost_all_usd"], 6)
-                })
-
-                logger.info("💰 Costos OpenAI - Turno actual: $%.6f USD", current_total_cost)
-                logger.info("💰 Costos OpenAI - Thread total: $%.6f USD", conversations[thread_id]["total_costs"]["thread_total_cost_all_usd"])
 
         except Exception as e:
             logger.exception("Error en generate_response_openai para thread_id %s: %s", thread_id, e)
@@ -1334,9 +1187,9 @@ def generate_response_openai(
         finally:
             event.set()
             elapsed_time = time.time() - start_time
-            logger.info("⏰Generación completada en %.2f segundos para thread_id: %s", elapsed_time, thread_id)
+            print(f"⏰ Respuesta generada en {elapsed_time:.1f}s")  # Info importante como print
             logger.debug("Evento establecido para thread_id (OpenAI): %s", thread_id)
-            logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
+            #logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
 
 def generate_response_gemini(
     message,
