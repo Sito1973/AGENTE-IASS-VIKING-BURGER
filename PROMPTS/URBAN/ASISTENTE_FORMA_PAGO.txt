@@ -199,6 +199,7 @@ Cervezas Importadas,Iron Maiden Trooper,"500 ml, Premium Bitter / ESB, Reino Uni
 Cervezas Importadas,Trooper IPA,"500 ml, IPA (descripciÃ³n sugiere Stout/Porter?), Reino Unido, 4.5% ABV. Notas: Maltas tostadas, cafÃ©, chocolate amargo.",26000
 Cervezas Importadas,Gulden Draak Classic,"330 ml, Belgian Dark Strong Ale, BÃ©lgica, 10.5% ABV. Notas: Malta tostada, caramelo, matices oscuros.",31000
 Cervezas Importadas,Gulden Draak Quadruple,"330 ml, Quadrupel, BÃ©lgica, 10.5% ABV. Notas: Malta tostada, caramelo, notas frutales.",31000
+Hamburguesas, Ragnar (Participante Burgerland 2025), "pollo en una adobo secreto, con una cubierta crocante y hojaldrada, bañada en una bbq con un toque de ron vikingo, coronada con una smash angus, burger con queso de las provincias, suizas y una deliciosa salsa Dinamarca, un relish de col púrpura y nuestro pan brioche de tradición francesa .", 25400
 
 
 
