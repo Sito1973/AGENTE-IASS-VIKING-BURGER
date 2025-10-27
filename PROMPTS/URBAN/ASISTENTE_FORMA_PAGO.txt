@@ -135,18 +135,18 @@ Entradas,Nachos con carne,,18900
 Entradas,Papas Vikingas,,14500
 Entradas,Aros de cebolla,,12900
 Entradas,Camarones Spice,,19900
-Hamburguesas,Loki,"Jugosos, crocantes shonks de pollo baÃ±ados en nuestra bbq, pulled pork de costilla, queso americano, vegetales frescos. (Con Papas francesas o cascos: $32.4)",27900
-Hamburguesas,La Vikinga (Filadelfia),"Jugosa carne de Angus americano, queso Filadelfia, vegetales frescos, salsa de la casa al estilo vikingo, pan esponjoso. (Con papas francesas o cascos $30.4)",25900
-Hamburguesas,La Vikinga (Americano),"Jugosa carne de Angus americano, queso americano, vegetales frescos, salsa de la casa al estilo vikingo, pan esponjoso. (Con papas francesas o cascos $29.4)",24900
-Hamburguesas,La Vikinga (Mozzarella),"Jugosa carne de Angus americano, queso Mozzarella, vegetales frescos, salsa de la casa al estilo vikingo, pan esponjoso. (Con papas francesas o cascos $26.9)",23900
-Hamburguesas,Odin,"Doble carne de angus americano, queso filadelfia, queso americano, tocino crocante, vegetales frescos, salsa de la casa, pan esponjoso. (Con papas francesas o cascos $36.4)",31900
-Hamburguesas,Freya,"Jugosos filetes de pollo apanados baÃ±ados en bbq, queso mozzarella, vegetales frescos, salsa de la casa, pan esponjoso. (Con papas francesas o cascos $28.4)",23900
+Hamburguesas,Loki,"Jugosos, crocantes shonks de pollo baÃ±ados en nuestra bbq, pulled pork de costilla, queso americano, vegetales frescos. PAPAS NO INCLUIDAS.",27900
+Hamburguesas,La Vikinga (Filadelfia),"Jugosa carne de Angus americano, queso Filadelfia, vegetales frescos, salsa de la casa al estilo vikingo, pan esponjoso. PAPAS NO INCLUIDAS.",25900
+Hamburguesas,La Vikinga (Americano),"Jugosa carne de Angus americano, queso americano, vegetales frescos, salsa de la casa al estilo vikingo, pan esponjoso. PAPAS NO INCLUIDAS.",24900
+Hamburguesas,La Vikinga (Mozzarella),"Jugosa carne de Angus americano, queso Mozzarella, vegetales frescos, salsa de la casa al estilo vikingo, pan esponjoso. PAPAS NO INCLUIDAS.",23900
+Hamburguesas,Odin,"Doble carne de angus americano, queso filadelfia, queso americano, tocino crocante, vegetales frescos, salsa de la casa, pan esponjoso. PAPAS NO INCLUIDAS.",31900
+Hamburguesas,Freya,"Jugosos filetes de pollo apanados baÃ±ados en bbq, queso mozzarella, vegetales frescos, salsa de la casa, pan esponjoso. PAPAS NO INCLUIDAS.",23900
 Hamburguesas,Thor,"Carne ANGUS, carne desmechada de birria, queso americano fundido, cebolla, cilantro. AcompaÃ±ada de sopa de birria para remojar.",36900
-Hamburguesas,Mimir,"Nuestra participante del Burger Master 2025. Jugosa carne de angus americano, camarones crispy baÃ±ados en mayo picosita, queso mozzarella, vegetales frescos, salsa de la casa, pan esponjoso. (Con Papas: francesas o cascos $34.4)",29900
-Hamburguesas,Ragnarok,"Jugosa carne de angus americano, pulled pork de costilla baÃ±ado en bbq, queso americano, vegetales frescos, salsa de la casa, pan esponjoso. (Con Papas francesas o cascos : $34.4)",29900
+Hamburguesas,Mimir,"Nuestra participante del Burger Master 2025. Jugosa carne de angus americano, camarones crispy baÃ±ados en mayo picosita, queso mozzarella, vegetales frescos, salsa de la casa, pan esponjoso. PAPAS NO INCLUIDAS.",29900
+Hamburguesas,Ragnarok,"Jugosa carne de angus americano, pulled pork de costilla baÃ±ado en bbq, queso americano, vegetales frescos, salsa de la casa, pan esponjoso. PAPAS NO INCLUIDAS.",29900
 Alitas Vikingas,Alitas Vikingas,"9 trozos de alas fritas, baÃ±adas en salsa a elecciÃ³n (bbq, bbq picante Ã³ miel mostaza), acompaÃ±ados de papas a la francesa.",24900
-Hot Dogs,Drakkar,"Hot Dog con jugosa salchicha vikinga, queso mozzarella, salsas de la casa, tocineta, fosforitos de papa. (Con Papas francesas o cascos: $24.4)",19900
-Hot Dogs,Atreus,"Hot Dog con jugosa salchicha vikinga, queso mozzarella, salsas de la casa, carne desmechada. (Con Papas francesas o cascos: $27.4)",22900
+Hot Dogs,Drakkar,"Hot Dog con jugosa salchicha vikinga, queso mozzarella, salsas de la casa, tocineta, fosforitos de papa. PAPAS NO INCLUIDAS.",19900
+Hot Dogs,Atreus,"Hot Dog con jugosa salchicha vikinga, queso mozzarella, salsas de la casa, carne desmechada. PAPAS NO INCLUIDAS.",22900
 MenÃº Infantil,MenÃº Infantil (Shonks de pollo),"Jugosos Shonks de pollo crujientes, acompaÃ±ados de papas a la francesa, bbq.",18000
 Adicionales,Tocineta,Adicional,3500
 Adicionales,Queso Mozzarella,Adicional,2500
