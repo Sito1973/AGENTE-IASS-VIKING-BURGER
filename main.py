@@ -3,8 +3,6 @@ import openai
 import requests
 import threading
 import random
-from google import genai
-from google.genai import types as genai_types
 import base64
 import os
 import re
@@ -20,8 +18,8 @@ import xmlrpc.client
 from bs4 import BeautifulSoup  # Importar BeautifulSoup para convertir HTML a texto
 from openai import OpenAI
 from dotenv import load_dotenv
-# Sistema de reintentos para llamadas a API
-# Sistema de reintentos para API de Anthropic
+from google import genai
+from google.genai import types as genai_types  # <-- Cambiar esta línea
 import time
 from functools import wraps
 
@@ -1644,10 +1642,10 @@ def send_message():
                                 thread_id, event, subscriber_id, llmID))
             logger.info("Ejecutando LLM2 para thread_id: %s", thread_id)
 
-        elif modelID == 'llmg':
+        elif modelID == 'gemini':
             thread = Thread(target=generate_response_gemini,
                             args=(message, assistant_content,
-                                  thread_id, event, subscriber_id))
+                                  thread_id, event, subscriber_id, llmID))
             logger.info("Ejecutando Gemini para thread_id: %s", thread_id)
 
         elif modelID == 'llmo':
