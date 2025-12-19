@@ -3,8 +3,8 @@ import openai
 import requests
 import threading
 import random
-import google.genai as genai
-from google.genai import types
+from google import genai
+from google.genai import types as genai_types
 import base64
 import os
 import re
@@ -1197,8 +1197,12 @@ def generate_response_gemini(
     thread_id,
     event,
     subscriber_id,
-):
-    logger.info("Intentando adquirir lock para thread_id (Gemini): %s", thread_id)
+    llmID=None):
+    if not llmID:
+        llmID = "gemini-3-flash-preview"  # Modelo más reciente de Gemini
+        
+    logger.info("Intentando adquirir lock para thread_id (Gemini): %s",
+                thread_id)
     lock = thread_locks.get(thread_id)
     if not lock:
         logger.error(
@@ -1208,23 +1212,30 @@ def generate_response_gemini(
 
     with lock:
         logger.info("Lock adquirido para thread_id (Gemini): %s", thread_id)
-        logger.info("Generando respuesta para thread_id (Gemini): %s", thread_id)
-        logger.debug("subscriber_id en generate_response_gemini: %s", subscriber_id)
+        logger.info("Generando respuesta para thread_id (Gemini): %s",
+                    thread_id)
+        logger.debug("subscriber_id en generate_response_gemini: %s",
+                     subscriber_id)
 
         try:
 
             api_key = os.environ["GEMINI_API_KEY"]
             # Initialize Gemini client - CORRECTED LINE HERE
-            client = genai.Client(api_key=api_key,
-                                 http_options=types.HttpOptions(api_version='v1alpha'))
+            client = genai.Client(
+                api_key=api_key)
 
             conversation_history = conversations[thread_id]["messages"]
 
-            # Add user message to conversation history
-            user_message = {"role": "user", "parts": [types.Part.from_text(text=message)]}
+            # Add user message to conversation history usando tipos nativos de Gemini
+            user_message = genai_types.Content(
+                role="user",
+                parts=[genai_types.Part.from_text(text=message)]
+            )
             conversation_history.append(user_message)
-            logger.info("HIATORIQL CONVERSACION GEMINI: %s", conversation_history)
+            #logger.info("HISTORIAL CONVERSACION GEMINI: %s",
+                        #conversation_history)
 
+            
             assistant_value = conversations[thread_id].get("assistant")
             assistant_str = str(assistant_value)
             if assistant_str in ["0"]:
@@ -1239,39 +1250,32 @@ def generate_response_gemini(
                 tools_file_name = "default_tools.json"
 
             # Cargar el archivo de herramientas correspondiente
-            tools_file_path = os.path.join(os.path.dirname(__file__), tools_file_name)
+            tools_file_path = os.path.join(os.path.dirname(__file__),
+                                           tools_file_name)
             with open(tools_file_path, "r", encoding="utf-8") as tools_file:
                 tools_anthropic_format = json.load(tools_file)
 
-            logger.info("Herramientas cargadas desde %s (Gemini)", tools_file_name)
+            logger.info("Herramientas cargadas desde %s (Gemini)",
+                        tools_file_name)
 
-            tools_file_path = os.path.join(os.path.dirname(__file__), tools_file_name)
-            with open(tools_file_path, "r", encoding="utf-8") as tools_file:
-                tools_anthropic_format = json.load(tools_file)
-            logger.info("Herramientas cargadas desde %s", tools_file_name)
-
-            # Si tu JSON de tool pone "input_schema" en vez de "parameters", ajusta aquí
-            #schema = t.get("parameters") or t.get("input_schema")
-            # Convert tools to Gemini format
-            tools_gemini_format = []
+            # Según la documentación oficial de Gemini, las function declarations
+            # se pueden pasar como diccionarios JSON directamente
+            # Normalizar formato: si usa "input_schema" cambiarlo a "parameters"
+            function_declarations = []
             for tool in tools_anthropic_format:
-                gemini_tool = types.Tool(
-                    function_declarations=[
-                        types.FunctionDeclaration(
-                            name=tool["name"],
-                            description=tool["description"],
-                            parameters=types.Schema(
-                                type=tool["parameters"]["type"], # Use type from schema (OBJECT, STRING)
-                                properties=tool["parameters"]["properties"],
-                                required=tool["parameters"]["required"] if "required" in tool["parameters"] else []
-                            )
-                        )
-                    ]
-                )
-                tools_gemini_format.append(gemini_tool)
-            tools = tools_gemini_format
+                tool_declaration = {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("parameters") or tool.get("input_schema") or {}
+                }
+                function_declarations.append(tool_declaration)
 
-            # Tool functions mapping (reusing same functions)
+            # Crear Tool con las function declarations como diccionarios JSON
+            tools = [genai_types.Tool(function_declarations=function_declarations)] if function_declarations else []
+            if function_declarations:
+                logger.info("Funciones habilitadas (Gemini): %s", [fd["name"] for fd in function_declarations])
+
+            # Mapear herramientas a funciones
             tool_functions = {
                 "crear_pedido": crear_pedido,
                 "crear_link_pago": crear_link_pago,
@@ -1282,53 +1286,147 @@ def generate_response_gemini(
                 "pqrs": pqrs,
             }
 
-            # System instruction for Gemini
-            system_instruction = types.GenerateContentConfig(system_instruction=assistant_content_text)
+            # Prepare historial normalizado para Gemini
+            def build_gemini_messages(history):
+                normalized_messages = []
+                for entry in history:
+                    # Si ya es un objeto Content de Gemini, agregarlo directamente
+                    if isinstance(entry, genai_types.Content):
+                        normalized_messages.append(entry)
+                        continue
 
+                    if isinstance(entry, dict):
+                        role = entry.get("role", "user")
+                        # Mapear roles de Anthropic a Gemini
+                        if role == "assistant":
+                            role = "model"
 
-            # Start interaction with Gemini
-            messages_for_gemini = conversation_history # Gemini handles conversation history internally in chat object, but we are managing history ourselves.
+                        parts = entry.get("parts")
+                        if parts:
+                            normalized_parts = []
+                            for part in parts:
+                                # Si es un objeto Part de Gemini, agregarlo directamente
+                                if isinstance(part, genai_types.Part):
+                                    normalized_parts.append(part)
+                                elif isinstance(part, dict):
+                                    # Manejar diferentes tipos de parts
+                                    if part.get("text"):
+                                        normalized_parts.append(genai_types.Part.from_text(text=part.get("text")))
+                                    elif part.get("function_call"):
+                                        # Reconstruir function_call Part
+                                        fc = part.get("function_call")
+                                        normalized_parts.append(genai_types.Part.from_function_call(
+                                            name=fc.get("name"),
+                                            args=fc.get("args", {})
+                                        ))
+                                    elif part.get("function_response"):
+                                        # Reconstruir function_response Part
+                                        fr = part.get("function_response")
+                                        normalized_parts.append(genai_types.Part.from_function_response(
+                                            name=fr.get("name"),
+                                            response=fr.get("response", {})
+                                        ))
+                            if normalized_parts:
+                                normalized_messages.append(genai_types.Content(role=role, parts=normalized_parts))
+                                continue
+
+                        # Manejar formato Anthropic con "content"
+                        content_items = entry.get("content")
+                        if content_items:
+                            normalized_parts = []
+                            if isinstance(content_items, str):
+                                # Content es un string simple
+                                normalized_parts.append(genai_types.Part.from_text(text=content_items))
+                            elif isinstance(content_items, list):
+                                for item in content_items:
+                                    text_value = None
+                                    if isinstance(item, dict):
+                                        text_value = item.get("text")
+                                    elif isinstance(item, str):
+                                        text_value = item
+                                    if text_value:
+                                        normalized_parts.append(genai_types.Part.from_text(text=text_value))
+                            if normalized_parts:
+                                normalized_messages.append(genai_types.Content(role=role, parts=normalized_parts))
+                return normalized_messages
+
+            messages_for_gemini = build_gemini_messages(conversation_history)
+
+            # Start interaction con Gemini
             while True:
-                logger.info("PAYLOAD GEMINI: %s", messages_for_gemini)
+                logger.info("⤴️ PAYLOAD GEMINI: %s", messages_for_gemini)
 
                 # Generate content with tools
-                response_gemini = client.models.generate_content( 
+                response_gemini = client.models.generate_content(
                     contents=messages_for_gemini,
-                    model="gemini-2.5-pro-exp-03-25",
-                    config=types.GenerateContentConfig(
+                    model=llmID,
+                    config=genai_types.GenerateContentConfig(
                         tools=tools,
-                        system_instruction=assistant_content_text,
+                        system_instruction=[
+                            genai_types.Part.from_text(text=assistant_content_text),
+                        ],
+                        thinking_config=genai_types.ThinkingConfig(
+                            thinking_level="LOW",
+                        ),
                         temperature=0.9,
-                        max_output_tokens=1000
+                        max_output_tokens=1000,
+                        safety_settings=[
+                            genai_types.SafetySetting(
+                                category="HARM_CATEGORY_HATE_SPEECH",
+                                threshold="OFF"
+                            ),
+                            genai_types.SafetySetting(
+                                category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                                threshold="OFF"
+                            ),
+                            genai_types.SafetySetting(
+                                category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                                threshold="OFF"
+                            ),
+                            genai_types.SafetySetting(
+                                category="HARM_CATEGORY_HARASSMENT",
+                                threshold="OFF"
+                            )
+                        ]
                     ),
                 )
-                logger.info("RESPUESTA RAW GEMINI: %s", response_gemini)
+                logger.info("📢RESPUESTA RAW GEMINI: %s", response_gemini)
 
                 # Capturar información de tokens
                 if response_gemini.usage_metadata:
                     # Capturar información de tokens según el mapeo solicitado
                     usage = {
-                        "input_tokens": response_gemini.usage_metadata.total_token_count,
-                        "output_tokens": response_gemini.usage_metadata.candidates_token_count,
-                        "cache_creation_input_tokens": response_gemini.usage_metadata.prompt_token_count,
-                        "cache_read_input_tokens": 0,  # Establecido a 0 como solicitado
+                        "input_tokens":
+                        response_gemini.usage_metadata.total_token_count,
+                        "output_tokens":
+                        response_gemini.usage_metadata.candidates_token_count,
+                        "cache_creation_input_tokens":
+                        response_gemini.usage_metadata.prompt_token_count,
+                        "cache_read_input_tokens":
+                        response_gemini.usage_metadata.cached_content_token_count,
                     }
 
                     # Almacenar en la conversación
                     conversations[thread_id]["usage"] = usage
 
-                    # Registrar en logs
-                    logger.info(
-                        "Tokens utilizados - Input: %d, Output: %d",
-                        usage["input_tokens"],
-                        usage["output_tokens"]
-                    )
-                    logger.info("Cache Creation Input Tokens: %d", 
-                                usage["cache_creation_input_tokens"])
-                    logger.info("Cache Read Input Tokens: %d", 
-                                usage["cache_read_input_tokens"])
+                    # --- MODIFICACIÓN AQUÍ ---
+                    # Asegurar que los valores de tokens sean numéricos para el logging
+                    input_tokens_log = usage.get("input_tokens", 0) if usage.get("input_tokens") is not None else 0
+                    output_tokens_log = usage.get("output_tokens", 0) if usage.get("output_tokens") is not None else 0
+                    cache_creation_tokens_log = usage.get("cache_creation_input_tokens", 0) if usage.get("cache_creation_input_tokens") is not None else 0
+                    cache_read_tokens_log = usage.get("cache_read_input_tokens", 0) if usage.get("cache_read_input_tokens") is not None else 0
+                    # --- FIN DE MODIFICACIÓN ---
 
-                if response_gemini.candidates and response_gemini.candidates[0].content.parts:
+                    # Registrar en logs
+                    logger.info("Tokens utilizados - Input: %d, Output: %d",
+                                input_tokens_log, output_tokens_log)
+                    logger.info("Cache Creation Input Tokens: %d",
+                                cache_creation_tokens_log)
+                    logger.info("Cache Read Input Tokens: %d",
+                                cache_read_tokens_log)
+
+                if response_gemini.candidates and response_gemini.candidates[
+                        0].content.parts:
                     response_content = response_gemini.candidates[0].content
 
                     # Check for function calls in the response
@@ -1339,39 +1437,58 @@ def generate_response_gemini(
                             break
 
                     if function_call_part:
-                        logger.info("Respuesta con function_call detectada (Gemini): %s", function_call_part)
+                        logger.info(
+                            "Respuesta con function_call detectada (Gemini): %s",
+                            function_call_part)
 
                         tool_name = function_call_part.name
                         tool_arguments = function_call_part.args
 
-
-                        logger.info("Llamando a la herramienta (Gemini): %s", tool_name)
-                        logger.info("Argumentos de la herramienta (Gemini): %s", tool_arguments)
+                        logger.info("Llamando a la herramienta (Gemini): %s",
+                                    tool_name)
+                        logger.info(
+                            "Argumentos de la herramienta (Gemini): %s",
+                            tool_arguments)
 
                         if tool_name in tool_functions:
-                            result = tool_functions[tool_name](tool_arguments, subscriber_id) # Call tool function
-                            logger.debug("Resultado de la herramienta %s (Gemini): %s", tool_name, result)
+                            result = tool_functions[tool_name](
+                                tool_arguments,
+                                subscriber_id)  # Call tool function
+                            logger.debug(
+                                "Resultado de la herramienta %s (Gemini): %s",
+                                tool_name, result)
                             result_json = json.dumps(result)
-                            logger.info("Resultado de la herramienta %s (Gemini): %s", tool_name, result_json)
+                            logger.info(
+                                "Resultado de la herramienta %s (Gemini): %s",
+                                tool_name, result_json)
 
-                            # Add function response to history
-                            function_response_part = types.Part.from_function_response(
+                            # Add function response to history según documentación oficial de Gemini
+                            # Paso 1: Agregar la respuesta del modelo (con function call)
+                            conversation_history.append(response_content)
+
+                            # Paso 2: Crear y agregar function response con role="user"
+                            function_response_part = genai_types.Part.from_function_response(
                                 name=tool_name,
-                                response={"result": result_json} # Gemini expects result to be in a dict
+                                response={
+                                    "result": result_json
+                                }
                             )
-                            function_response_content = types.Content(role="tool", parts=[function_response_part])
+                            # Según la documentación: role="user" para function responses
+                            function_response_content = genai_types.Content(
+                                role="user", parts=[function_response_part])
+                            conversation_history.append(function_response_content)
 
-                            conversation_history.append({"role": "model", "parts": response_content.parts}) # Append assistant message with function call
-                            conversation_history.append(function_response_content) # Append tool response
+                            messages_for_gemini = build_gemini_messages(conversation_history)  # Update messages for next turn
 
-                            messages_for_gemini = conversation_history # Update messages for next turn
-
-                            logger.info("Mensaje function_response enviado a Gemini (Gemini): %s", function_response_content)
-
+                            logger.info(
+                                "Mensaje function_response enviado a Gemini (Gemini): %s",
+                                function_response_content)
 
                         else:
-                            logger.warning("Herramienta desconocida (Gemini): %s", tool_name)
-                            break # Exit loop if unknown tool
+                            logger.warning(
+                                "Herramienta desconocida (Gemini): %s",
+                                tool_name)
+                            break  # Exit loop if unknown tool
 
                     else:
                         # No function call, process text response
@@ -1379,29 +1496,39 @@ def generate_response_gemini(
                         for part in response_content.parts:
                             if part.text:
                                 assistant_response_text += part.text
-                        conversations[thread_id]["response"] = assistant_response_text
+                        conversations[thread_id][
+                            "response"] = assistant_response_text
                         conversations[thread_id]["status"] = "completed"
-                        logger.info("Respuesta generada para thread_id (Gemini): %s", thread_id)
+                        logger.info(
+                            "Respuesta generada para thread_id (Gemini): %s",
+                            thread_id)
 
-                        conversation_history.append({"role": "model", "parts": response_content.parts}) # Append assistant message to history
-                        break # Exit loop for final text response
+                        # Agregar respuesta del modelo al historial (response_content ya es Content de Gemini)
+                        conversation_history.append(response_content)
+                        break  # Exit loop for final text response
                 else:
-                    conversations[thread_id]["response"] = "Respuesta vacía del modelo Gemini"
+                    conversations[thread_id][
+                        "response"] = "Respuesta vacía del modelo Gemini"
                     conversations[thread_id]["status"] = "error"
-                    logger.warning("Respuesta vacía del modelo Gemini para thread_id: %s", thread_id)
+                    logger.warning(
+                        "Respuesta vacía del modelo Gemini para thread_id: %s",
+                        thread_id)
                     break
 
-
         except Exception as e:
-            logger.exception("Error en generate_response_gemini para thread_id %s: %s", thread_id, e)
+            logger.exception(
+                "Error en generate_response_gemini para thread_id %s: %s",
+                thread_id, e)
             conversations[thread_id]["response"] = f"Error Gemini: {str(e)}"
             conversations[thread_id]["status"] = "error"
         finally:
             event.set()
-            logger.debug("Evento establecido para thread_id (Gemini): %s", thread_id)
-            logger.info("Liberando lock para thread_id (Gemini): %s", thread_id)
+            logger.debug("Evento establecido para thread_id (Gemini): %s",
+                         thread_id)
+            logger.info("Liberando lock para thread_id (Gemini): %s",
+                        thread_id)
             # Lock is automatically released when exiting 'with' block
-
+   
 @app.route('/sendmensaje', methods=['POST'])
 def send_message():
     logger.info("Endpoint /sendmensaje llamado")

@@ -1,14 +1,12 @@
 [
-
   {
     "name": "enviar_menu",
-    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. ",
+    "description": "Envía el menú o la carta al cliente. Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta.",
     "parameters": {
       "type": "object",
       "properties": {
         "envio": {
           "type": "string",
-
           "description": "Se ha enviado el menu"
         }
       },
@@ -19,7 +17,7 @@
   },
   {
     "name": "crear_pedido",
-    "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos ya que el del domicilio ya esta en el sistema",
+    "description": "Crea un pedido con los productos elegidos por el cliente, incluyendo el valor unitario de cada producto, observaciones y recomendaciones del cliente. Para el valor total solo debes sumar el precio de los productos ya que el del domicilio ya esta en el sistema. Debes analizar si el producto del cliente necesita empaque, si es asi sumarle el valor del empaque a cada producto que lo requiera segun la base de conocimientos y siempre mencionarle al cliente el valor de este empaque para su pedido, ademas en la variable de valor total debes sumar el valor de estos empaques. Asegurate de confirmar el pedido del cliente usando esta funcion cuando ya se tenga toda la informacion y la confirmacion del cliente. ADEMAS Debes tener mucho cuidado con los adicionales de cada producto ya dicionarlo al valor total correctamente.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -33,7 +31,7 @@
         },
         "valor_total": {
           "type": "number",
-          "description": "Valor total del pedido (obligatorio), SOLO de los productos, SIN sumar el valor del domicilio"
+          "description": "Valor total del pedido (obligatorio), SOLO de los productos, Debes analizar si el producto del cliente necesita empaque, Este valor debe ser SIN sumar el valor del domicilio. Debes tener mucho cuidado con los adicionales de cada producto ya dicionarlo al valor total correctamente."
         }
       },
       "required": [

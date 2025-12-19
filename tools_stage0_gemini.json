@@ -1,18 +1,16 @@
 [
   {
     "name": "crear_direccion",
-    "description": "Crea una dirección de cliente. Esta herramienta debe usarse cuando ya se tiene toda la informacion de ubicacion y de detalles del pedido del cliente, para proseguir con la toma del pedido, debes tener mucho cuidado en la direccion del cliente. Ser preciso extrayendo la direcciion proporcionada, y los detalles e indicaciones ponerlos en indicaciones_direcccion_cliente. ",
+    "description": "Crea una dirección de cliente. Esta herramienta debe usarse cuando ya se tiene toda la informacion de ubicacion y de detalles del pedido del cliente, para proseguir con la toma del pedido, debes tener mucho cuidado en la direccion del cliente. Ser preciso extrayendo la direccion proporcionada, y los detalles e indicaciones ponerlos en indicaciones_direccion_cliente. Debes confirmar siempre la direccion guardada con el cliente cuando es para domicilio y si no es correcta modificarla con esta funcion",
     "parameters": {
       "type": "object",
       "properties": {
         "sede": {
           "type": "string",
           "enum": [
-            "CC Unicentro Pereira",
-            "Dosquebradas",
-            "Santa Rosa de Cabal"
+            "La Pradera Dosquebradas"
           ],
-          "description": "Sede del pedido (obligatorio: Dosquebradas, Santa Rosa de Cabal, o CC unicentro pereira)"
+          "description": "Sede del pedido (obligatorio: La Pradera Dosquebradas)"
         },
         "nombre_cliente": {
           "type": "string",
@@ -20,18 +18,17 @@
         },
         "direccion_cliente": {
           "type": "string",
-          "description": "Dirección del cliente (obligatorio), solo la direccion exacta TIENE que ser: ya sea nombre de el edificio, unidad residencial, el nombre de la empresa o en el formato de Calle con Carrera y numero. Sin referencia de casa, bdega u oficina"
+          "description": "Dirección del cliente (obligatorio), solo la direccion exacta TIENE que ser: ya sea nombre de el edificio, unidad residencial, el nombre de la empresa o en el formato de Calle con Carrera y numero. Sin referencia de casa, bodega u oficina"
         },
         "indicaciones_direccion_cliente": {
           "type": "string",
-          "description": "Comentarios adicionales sobre la direccion proporcionada por el cliente, referencias, tiene que ser el numero de casa, oficina, o bodega puede incluir el barrio, pero siempre si hay referencias sobre donde queda la ubiccion del cliente debes ponerla en esta variable. "
+          "description": "Comentarios adicionales sobre la direccion proporcionada por el cliente, referencias, tiene que ser el numero de casa, oficina, o bodega puede incluir el barrio, pero siempre si hay referencias sobre donde queda la ubiccion del cliente debes ponerla en esta variable."
         },
         "ciudad_cliente": {
           "type": "string",
           "enum": [
             "Pereira",
-            "Dosquebradas",
-            "Santa Rosa de Cabal"
+            "Dosquebradas"
           ],
           "description": "Ciudad del cliente (obligatorio: Pereira, Dosquebradas, Santa Rosa de Cabal)"
         },
@@ -56,13 +53,12 @@
   },
   {
     "name": "enviar_menu",
-    "description": "Envía el menú o la carta al cliente.  Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta. ",
+    "description": "Envía el menú o la carta al cliente. Esta herramienta debe usarse cuando el cliente pide ver el menú o la carta.",
     "parameters": {
       "type": "object",
       "properties": {
         "envio": {
           "type": "string",
-
           "description": "Se ha enviado el menu"
         }
       },
