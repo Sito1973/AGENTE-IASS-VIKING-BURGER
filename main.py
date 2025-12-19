@@ -1648,7 +1648,7 @@ def send_message():
                                   thread_id, event, subscriber_id, llmID))
             logger.info("Ejecutando Gemini para thread_id: %s", thread_id)
 
-        elif modelID == 'llmo':
+        elif modelID == 'llm':
             thread = Thread(target=generate_response_openai,
                             args=(message, assistant_content,
                                   thread_id, event, subscriber_id, llmID))
