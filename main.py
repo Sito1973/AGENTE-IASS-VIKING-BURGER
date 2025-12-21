@@ -56,7 +56,7 @@ app = Flask(__name__)
 
 # Configuración del logging
 logging.basicConfig(
-    level=logging.ERROR,  # Solo errores críticos y logs de información importantes
+    level=logging.INFO,  # Solo errores críticos y logs de información importantes
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
         logging.StreamHandler()  # Salida a la consola
