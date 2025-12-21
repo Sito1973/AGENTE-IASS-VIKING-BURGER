@@ -1354,40 +1354,69 @@ def generate_response_gemini(
             while True:
                 logger.info("⤴️ PAYLOAD GEMINI: %s", messages_for_gemini)
 
-                # Generate content with tools
-                response_gemini = client.models.generate_content(
-                    contents=messages_for_gemini,
-                    model=llmID,
-                    config=genai_types.GenerateContentConfig(
-                        tools=tools,
-                        system_instruction=[
-                            genai_types.Part.from_text(text=assistant_content_text),
-                        ],
-                        thinking_config=genai_types.ThinkingConfig(
-                            thinking_level="LOW",
-                        ),
-                        temperature=0.9,
-                        max_output_tokens=1000,
-                        safety_settings=[
-                            genai_types.SafetySetting(
-                                category="HARM_CATEGORY_HATE_SPEECH",
-                                threshold="OFF"
+                # Generate content with tools - CON REINTENTOS PARA ERRORES 500
+                max_retries = 3
+                retry_delay = 2  # segundos iniciales
+                response_gemini = None
+
+                for attempt in range(max_retries):
+                    try:
+                        response_gemini = client.models.generate_content(
+                            contents=messages_for_gemini,
+                            model=llmID,
+                            config=genai_types.GenerateContentConfig(
+                                tools=tools,
+                                system_instruction=[
+                                    genai_types.Part.from_text(text=assistant_content_text),
+                                ],
+                                thinking_config=genai_types.ThinkingConfig(
+                                    thinking_level="LOW",
+                                ),
+                                temperature=0.9,
+                                max_output_tokens=1000,
+                                safety_settings=[
+                                    genai_types.SafetySetting(
+                                        category="HARM_CATEGORY_HATE_SPEECH",
+                                        threshold="OFF"
+                                    ),
+                                    genai_types.SafetySetting(
+                                        category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                                        threshold="OFF"
+                                    ),
+                                    genai_types.SafetySetting(
+                                        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                                        threshold="OFF"
+                                    ),
+                                    genai_types.SafetySetting(
+                                        category="HARM_CATEGORY_HARASSMENT",
+                                        threshold="OFF"
+                                    )
+                                ]
                             ),
-                            genai_types.SafetySetting(
-                                category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                                threshold="OFF"
-                            ),
-                            genai_types.SafetySetting(
-                                category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                                threshold="OFF"
-                            ),
-                            genai_types.SafetySetting(
-                                category="HARM_CATEGORY_HARASSMENT",
-                                threshold="OFF"
-                            )
-                        ]
-                    ),
-                )
+                        )
+                        # Si llegamos aquí, la llamada fue exitosa
+                        break
+                    except Exception as api_error:
+                        error_str = str(api_error)
+                        # Verificar si es un error 500 (interno) o 503 (servicio no disponible)
+                        if "500" in error_str or "503" in error_str or "INTERNAL" in error_str:
+                            if attempt < max_retries - 1:
+                                logger.warning(
+                                    "⚠️ Error temporal de Gemini (intento %d/%d): %s. Reintentando en %d segundos...",
+                                    attempt + 1, max_retries, error_str, retry_delay
+                                )
+                                time.sleep(retry_delay)
+                                retry_delay *= 2  # Exponential backoff
+                            else:
+                                logger.error("❌ Error de Gemini después de %d intentos: %s", max_retries, error_str)
+                                raise  # Re-lanzar la excepción después de agotar reintentos
+                        else:
+                            # Para otros errores, no reintentar
+                            raise
+
+                if response_gemini is None:
+                    raise Exception("No se pudo obtener respuesta de Gemini después de reintentos")
+
                 logger.info("📢RESPUESTA RAW GEMINI: %s", response_gemini)
 
                 # Capturar información de tokens
