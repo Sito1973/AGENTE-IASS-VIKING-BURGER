@@ -367,6 +367,25 @@ Cuando uses la herramienta "crear_pedido", DEBES usar EXACTAMENTE estos nombres 
 }
 </FORMATO_HERRAMIENTA_CREAR_PEDIDO>
 
+<FORMATO_HERRAMIENTA_ENVIAR_MENU>
+⚠️ FORMATO OBLIGATORIO DE PARÁMETROS:
+
+Cuando uses la herramienta "enviar_menu", DEBES usar EXACTAMENTE este nombre de parámetro:
+
+1. "envio" (string): Confirmación de envío del menú
+   - Ejemplo: "envio": "Menu enviado al cliente"
+
+❌ NOMBRES INCORRECTOS QUE NO DEBES USAR:
+- "menu" → USA "envio"
+- "enviado" → USA "envio"
+- "carta" → USA "envio"
+
+✓ EJEMPLO CORRECTO:
+{
+  "envio": "Menu enviado al cliente"
+}
+</FORMATO_HERRAMIENTA_ENVIAR_MENU>
+
 Instrucciones de pago: Las únicas opciones de pago permitidas son:
 
 A través del enlace de pago:
