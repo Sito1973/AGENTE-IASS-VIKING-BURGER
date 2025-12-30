@@ -1372,7 +1372,7 @@ def generate_response_gemini(
                                 thinking_config=genai_types.ThinkingConfig(
                                     thinking_level="MEDIUM",
                                 ),
-                                temperature=0.9,
+                                temperature=1.0,
                                 max_output_tokens=1000,
                                 safety_settings=[
                                     genai_types.SafetySetting(
