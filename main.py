@@ -22,6 +22,7 @@ from google import genai
 from google.genai import types as genai_types  # <-- Cambiar esta línea
 import time
 from functools import wraps
+import seqlog
 
 def retry_on_exception(max_retries=3, initial_wait=1):
     """Reintenta llamadas a la API con backoff exponencial."""
@@ -64,6 +65,18 @@ logging.basicConfig(
 
 
 logger = logging.getLogger(__name__)
+
+# Configuración de Seq para logs persistentes
+SEQ_SERVER_URL = os.environ.get('SEQ_SERVER_URL')
+if SEQ_SERVER_URL:
+    seqlog.log_to_seq(
+        server_url=SEQ_SERVER_URL,
+        level=logging.INFO,
+        batch_size=10,
+        auto_flush_timeout=10,
+        override_root_logger=True
+    )
+    logger.info("✅ Seq logging habilitado: %s", SEQ_SERVER_URL)
 
 # URL del webhook de n8n (ajusta esto según tu configuración)
 N8N_WEBHOOK_URL = os.environ.get(
