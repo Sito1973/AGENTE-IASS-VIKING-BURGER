@@ -1478,14 +1478,15 @@ def generate_response_gemini(
                     logger.info("Cache Read Input Tokens: %d",
                                 cache_read_tokens_log)
 
-                if response_gemini.candidates and response_gemini.candidates[
-                        0].content.parts:
-                    response_content = response_gemini.candidates[0].content
-
-                    # Capturar finish_reason tal cual viene de Gemini
+                # Capturar finish_reason SIEMPRE que haya candidates (incluso si content está vacío)
+                if response_gemini.candidates:
                     finish_reason_raw = response_gemini.candidates[0].finish_reason
                     conversations[thread_id]["finish_reason"] = str(finish_reason_raw) if finish_reason_raw else None
                     logger.info("📢 FINISH_REASON GEMINI: %s", conversations[thread_id]["finish_reason"])
+
+                if response_gemini.candidates and response_gemini.candidates[
+                        0].content.parts:
+                    response_content = response_gemini.candidates[0].content
 
                     # Check for function calls in the response
                     function_call_part = None
@@ -1565,9 +1566,8 @@ def generate_response_gemini(
                         conversation_history.append(response_content)
                         break  # Exit loop for final text response
                 else:
-                    conversations[thread_id][
-                        "response"] = "Respuesta vacía del modelo Gemini"
-                    conversations[thread_id]["status"] = "error"
+                    conversations[thread_id]["response"] = ""
+                    conversations[thread_id]["status"] = "completed"
                     logger.warning(
                         "Respuesta vacía del modelo Gemini para thread_id: %s",
                         thread_id)
