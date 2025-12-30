@@ -1456,6 +1456,11 @@ def generate_response_gemini(
                         0].content.parts:
                     response_content = response_gemini.candidates[0].content
 
+                    # Capturar finish_reason tal cual viene de Gemini
+                    finish_reason_raw = response_gemini.candidates[0].finish_reason
+                    conversations[thread_id]["finish_reason"] = str(finish_reason_raw) if finish_reason_raw else None
+                    logger.info("📢 FINISH_REASON GEMINI: %s", conversations[thread_id]["finish_reason"])
+
                     # Check for function calls in the response
                     function_call_part = None
                     for part in response_content.parts:
@@ -1696,7 +1701,8 @@ def send_message():
         # Preparar respuesta final
         response_data = {
             "thread_id": thread_id,
-            "usage": conversations[thread_id].get("usage")
+            "usage": conversations[thread_id].get("usage"),
+            "finish_reason": conversations[thread_id].get("finish_reason")
         }
 
         if conversations[thread_id]["status"] == "completed":
