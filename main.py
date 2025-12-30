@@ -22,7 +22,6 @@ from google import genai
 from google.genai import types as genai_types  # <-- Cambiar esta línea
 import time
 from functools import wraps
-import seqlog
 
 def retry_on_exception(max_retries=3, initial_wait=1):
     """Reintenta llamadas a la API con backoff exponencial."""
@@ -55,27 +54,33 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# Configuración de Seq para logs persistentes
+SEQ_SERVER_URL = os.environ.get('SEQ_SERVER_URL')
+
+# Crear lista de handlers
+log_handlers = [logging.StreamHandler()]  # Salida a la consola
+
+# Agregar handler de Seq si está configurado
+if SEQ_SERVER_URL:
+    from seqlog import SeqLogHandler
+    seq_handler = SeqLogHandler(
+        server_url=SEQ_SERVER_URL,
+        batch_size=10,
+        auto_flush_timeout=10
+    )
+    seq_handler.setLevel(logging.INFO)
+    log_handlers.append(seq_handler)
+
 # Configuración del logging
 logging.basicConfig(
-    level=logging.INFO,  # Solo errores críticos y logs de información importantes
+    level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler()  # Salida a la consola
-    ])
-
+    handlers=log_handlers
+)
 
 logger = logging.getLogger(__name__)
 
-# Configuración de Seq para logs persistentes
-SEQ_SERVER_URL = os.environ.get('SEQ_SERVER_URL')
 if SEQ_SERVER_URL:
-    seqlog.log_to_seq(
-        server_url=SEQ_SERVER_URL,
-        level=logging.INFO,
-        batch_size=10,
-        auto_flush_timeout=10,
-        override_root_logger=True
-    )
     logger.info("✅ Seq logging habilitado: %s", SEQ_SERVER_URL)
 
 # URL del webhook de n8n (ajusta esto según tu configuración)
