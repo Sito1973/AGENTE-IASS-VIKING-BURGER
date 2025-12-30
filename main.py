@@ -1373,7 +1373,7 @@ def generate_response_gemini(
                                     thinking_level="MEDIUM",
                                 ),
                                 temperature=1.0,
-                                max_output_tokens=1000,
+                                max_output_tokens=3000,
                                 safety_settings=[
                                     genai_types.SafetySetting(
                                         category="HARM_CATEGORY_HATE_SPEECH",
