@@ -1443,7 +1443,7 @@ def generate_response_gemini(
                 if response_gemini is None:
                     raise Exception("No se pudo obtener respuesta de Gemini después de reintentos")
 
-                #logger.info("📢RESPUESTA RAW GEMINI: %s", response_gemini)
+                logger.info("📢RESPUESTA RAW GEMINI: %s", response_gemini)
 
                 # Capturar información de tokens
                 if response_gemini.usage_metadata:
