@@ -47,6 +47,12 @@ import os
 SEQ_SERVER_URL = os.environ.get('SEQ_SERVER_URL')
 APP_NAME = os.environ.get('APP_NAME', 'default-app')
 
+# Filtro para agregar Application a todos los logs
+class AppNameFilter(logging.Filter):
+    def filter(self, record):
+        record.Application = APP_NAME
+        return True
+
 # Crear lista de handlers
 log_handlers = [logging.StreamHandler()]  # Salida a la consola
 
@@ -56,12 +62,10 @@ if SEQ_SERVER_URL:
     seq_handler = SeqLogHandler(
         server_url=SEQ_SERVER_URL,
         batch_size=10,
-        auto_flush_timeout=10,
-        extra_properties={
-            "Application": APP_NAME
-        }
+        auto_flush_timeout=10
     )
     seq_handler.setLevel(logging.INFO)
+    seq_handler.addFilter(AppNameFilter())
     log_handlers.append(seq_handler)
 
 # Configuración del logging
