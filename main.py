@@ -56,6 +56,7 @@ app = Flask(__name__)
 
 # Configuración de Seq para logs persistentes
 SEQ_SERVER_URL = os.environ.get('SEQ_SERVER_URL')
+APP_NAME = os.environ.get('APP_NAME', 'viking-burger')
 
 # Crear lista de handlers
 log_handlers = [logging.StreamHandler()]  # Salida a la consola
@@ -66,7 +67,10 @@ if SEQ_SERVER_URL:
     seq_handler = SeqLogHandler(
         server_url=SEQ_SERVER_URL,
         batch_size=10,
-        auto_flush_timeout=10
+        auto_flush_timeout=10,
+        extra_properties={
+            "Application": APP_NAME
+        }
     )
     seq_handler.setLevel(logging.INFO)
     log_handlers.append(seq_handler)
@@ -81,7 +85,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if SEQ_SERVER_URL:
-    logger.info("✅ Seq logging habilitado: %s", SEQ_SERVER_URL)
+    logger.info("✅ Seq logging habilitado: %s (App: %s)", SEQ_SERVER_URL, APP_NAME)
 
 # URL del webhook de n8n (ajusta esto según tu configuración)
 N8N_WEBHOOK_URL = os.environ.get(
