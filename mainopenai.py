@@ -851,20 +851,14 @@ def generate_response_openai(
 
             # Agregar mensajes de la conversación
             for i, msg in enumerate(conversation_history):
+                # Validar que msg sea un diccionario
                 if not isinstance(msg, dict):
+                    logger.warning(f"Mensaje {i} no es un diccionario, ignorando: {type(msg)}")
                     continue
 
-                # --- FIX PARA REASONING ---
+                # --- FIX PARA REASONING (OPCIÓN A) ---
                 if "type" in msg and msg["type"] == "reasoning":
-                    # Importante: Asegurarse de que el objeto reasoning tenga todos los campos requeridos
-                    reasoning_obj = {
-                        "type": "reasoning",
-                        "id": msg.get("id"),
-                        "encrypted_content": msg.get("encrypted_content"),
-                        # Si por alguna razón histórica falta el summary, ponemos uno genérico
-                        "summary": msg.get("summary", "Reasoning continued...")
-                    }
-                    input_messages.append(reasoning_obj)
+                    input_messages.append(msg)
                 
                 # Verificar si el mensaje tiene 'role' (mensajes normales)
                 elif "role" in msg:
@@ -887,16 +881,24 @@ def generate_response_openai(
                 # Verificar si el mensaje tiene 'type' (function calls y outputs)
                 elif "type" in msg:
                     if msg["type"] == "function_call":
+                        # Agregar function calls directamente
                         input_messages.append(msg)
                     elif msg["type"] == "function_call_output":
+                        # Agregar function call outputs directamente
                         input_messages.append(msg)
+
+                # Si no tiene ni 'role' ni 'type', ignorar el mensaje y log warning
+                else:
+                    logger.warning(f"Mensaje {i} sin 'role' ni 'type' ignorado: {msg}")
+                    continue
 
             # Variable para seguir track de llamadas a herramientas
             call_counter = 0
-            max_iterations = 5
+            max_iterations = 5  # Límite de iteraciones para evitar bucles infinitos
 
             while call_counter < max_iterations:
                 try:
+                    # Llamar a la API en el nuevo formato
                     logger.info("🚨PAYLOAD OPENAI LENGTH: %s", len(input_messages))
 
                     response = client.responses.create(
@@ -904,31 +906,47 @@ def generate_response_openai(
                         instructions=assistant_content_text,
                         input=input_messages,
                         tools=tools,
-                        text={"format": {"type": "text"}, "verbosity": "low"},
-                        reasoning={"effort": "medium", "summary": "auto"},
+                        #temperature=0.7,
+                        text={"format": {"type": "text"},
+                            "verbosity": "low"},
+                        reasoning={"effort": "medium",
+                            "summary": "auto"},
                         service_tier="priority",  
                         max_output_tokens=2000,
                         top_p=1,
                         store=True,
-                        include=["reasoning.encrypted_content"]
+                        include=["reasoning.encrypted_content"] # <-- CRUCIAL PARA OPCIÓN A
                     )
                     logger.info("✅RESPUESTA OPENAI RECIBIDA")
-                    
+                    # Imprimir la estructura completa para debug
+                    #print("✅RESPUESTA RAW OPENAI: %s", response.output)
+                    print("💰💰 TOKENIZACION: %s", response.usage)  # Deshabilitado
+
                     # Extraer y almacenar información de tokens
                     if hasattr(response, 'usage'):
                         usage = {
                             "input_tokens": response.usage.input_tokens,
                             "output_tokens": response.usage.output_tokens,
-                            "cache_creation_input_tokens": 0,
-                            "cache_read_input_tokens": response.usage.total_tokens,
+                            "cache_creation_input_tokens": 0,  # Valor predeterminado
+                            "cache_read_input_tokens": response.usage.total_tokens,  # Según lo solicitado
                         }
 
+                        # Si hay detalles adicionales de tokens, actualizar cache_creation_input_tokens
                         if (hasattr(response.usage, 'input_tokens_details') and 
                             hasattr(response.usage.input_tokens_details, 'cached_tokens')):
                             usage["cache_creation_input_tokens"] = response.usage.input_tokens_details.cached_tokens
 
                         conversations[thread_id]["usage"] = usage
-                        logger.info("Tokens utilizados - Input: %d, Output: %d", usage["input_tokens"], usage["output_tokens"])
+
+                        logger.info(
+                            "Tokens utilizados - Input: %d, Output: %d",
+                            usage["input_tokens"],
+                            usage["output_tokens"]
+                        )
+                        logger.info("Cache Creation Input Tokens: %d", 
+                                    usage["cache_creation_input_tokens"])
+                        logger.info("Cache Read Input Tokens: %d", 
+                                    usage["cache_read_input_tokens"])
 
                     # Variables para rastrear el tipo de respuesta
                     assistant_response_text = None
@@ -938,17 +956,12 @@ def generate_response_openai(
                     # Procesar la respuesta
                     if hasattr(response, 'output') and response.output:
                         for output_item in response.output:
-                            
-                            # --- CAPTURA DE REASONING CORREGIDA ---
+                            # --- CAPTURA DE REASONING (OPCIÓN A) ---
                             if hasattr(output_item, 'type') and output_item.type == 'reasoning':
-                                # AQUÍ ESTABA EL ERROR: FALTABA EXTRAER 'summary'
-                                summary_content = getattr(output_item, 'summary', "Auto summary")
-                                
                                 reasoning_entry = {
                                     "type": "reasoning",
                                     "id": output_item.id,
-                                    "encrypted_content": output_item.encrypted_content,
-                                    "summary": summary_content # <--- CAMBIO CRÍTICO: Guardar el summary
+                                    "encrypted_content": output_item.encrypted_content
                                 }
                                 # Guardar en historial y añadir a input para siguiente iteración
                                 conversation_history.append(reasoning_entry)
@@ -956,6 +969,7 @@ def generate_response_openai(
                             
                             # Caso 1: La respuesta es un texto normal (Message)
                             elif hasattr(output_item, 'type') and output_item.type == 'message':
+                                # Extraer ID del mensaje
                                 message_id = getattr(output_item, 'id', None)
                                 logger.info("ID del mensaje extraído: %s", message_id)
 
@@ -990,7 +1004,8 @@ def generate_response_openai(
                                 call_id = output_item.call_id if hasattr(output_item, 'call_id') else f"call_{call_counter}"
                                 function_call_id = getattr(output_item, 'id', None)
 
-                                logger.info("Llamada a función detectada: %s", tool_name)
+                                logger.info("Llamada a función detectada: %s con ID %s", tool_name, call_id)
+                                logger.info("Argumentos: %s", tool_arguments_str)
 
                                 try:
                                     tool_arguments = json.loads(tool_arguments_str)
@@ -999,14 +1014,15 @@ def generate_response_openai(
 
                                 result_str = ""
                                 if tool_name in tool_functions:
+                                    # Ejecutar la función
                                     result = tool_functions[tool_name](tool_arguments, subscriber_id)
                                     result_str = str(result)
-                                    logger.info("Resultado: %s", result_str)
+                                    logger.info("Resultado de la llamada a función: %s", result_str)
                                 else:
                                     logger.warning("Herramienta desconocida: %s", tool_name)
                                     result_str = "Error: Tool not found"
 
-                                # Agregar function call y output al historial
+                                # Agregar function call y output al historial en formato correcto
                                 function_call_entry = {
                                     "type": "function_call",
                                     "call_id": call_id,
@@ -1038,11 +1054,12 @@ def generate_response_openai(
                     elif assistant_response_text:
                         conversations[thread_id]["response"] = assistant_response_text
                         conversations[thread_id]["status"] = "completed"
+                        logger.info("Respuesta final obtenida.")
                         break
                     
                     else:
                         logger.warning("Respuesta vacía o formato inesperado de OpenAI")
-                        conversations[thread_id]["response"] = "Error interno."
+                        conversations[thread_id]["response"] = "Lo siento, hubo un error interno."
                         conversations[thread_id]["status"] = "error"
                         break
 
@@ -1059,7 +1076,9 @@ def generate_response_openai(
         finally:
             event.set()
             elapsed_time = time.time() - start_time
-            print(f"⏰ Respuesta generada en {elapsed_time:.1f}s")
+            print(f"⏰ Respuesta generada en {elapsed_time:.1f}s")  # Info importante como print
+            logger.debug("Evento establecido para thread_id (OpenAI): %s", thread_id)
+            #logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
 
 def generate_response_gemini(
     message,
@@ -1263,7 +1282,7 @@ def generate_response_gemini(
                                         category="HARM_CATEGORY_HARASSMENT",
                                         threshold="OFF"
                                     )
-                                ]
+                                ],
                             ),
                         )
                         # Si llegamos aquí, la llamada fue exitosa
