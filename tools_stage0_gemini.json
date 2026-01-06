@@ -11,7 +11,7 @@
             "La Pradera Dosquebradas",
             "Centro Comercial Victoria"
           ],
-          "description": "Sede del pedido (obligatorio: La Pradera Dosquebradas)"
+          "description": "Sede del pedido (obligatorio: La Pradera Dosquebradas O centro comercial Ciudada Victoria- pereira)"
         },
         "nombre_cliente": {
           "type": "string",
