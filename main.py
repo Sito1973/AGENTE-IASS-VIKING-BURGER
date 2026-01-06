@@ -1026,7 +1026,11 @@ def generate_response_openai(
                                             instructions=assistant_content_text,
                                             input=input_messages,
                                             tools=tools,
-                                            temperature=0.7,
+                                            #temperature=0.7,
+                                            text={"format": {"type": "text"},
+                                                "verbosity": "low"},
+                                            reasoning={"effort": "medium",
+                                                "summary": "auto"}
                                             max_output_tokens=2000,
                                             top_p=1,
                                             store=True
