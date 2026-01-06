@@ -768,7 +768,7 @@ def generate_response_openai(
     llmID=None
 ):
     if not llmID:
-        llmID = "gpt-4.1-mini"
+        llmID = "gpt-4.1"
 
     logger.info("Intentando adquirir lock para thread_id (OpenAI): %s", thread_id)
     lock = thread_locks.get(thread_id)
@@ -908,18 +908,18 @@ def generate_response_openai(
                     logger.info("🚨PAYLOAD OPENAI: %s", conversation_history)
 
                     response = client.responses.create(
-                        model="gpt-4.1",
+                        model=llmID,
                         instructions=assistant_content_text,
                         input=input_messages,
                         tools=tools,
                         temperature=0.7,
-                        max_output_tokens=1000,
+                        max_output_tokens=2000,
                         top_p=1,
                         store=True
                     )
-
+                    logger.info("✅RESPUESTA OPENAI: %s", response)
                     # Imprimir la estructura completa para debug
-                    print("✅RESPUESTA RAW OPENAI: %s", response.output)
+                    #print("✅RESPUESTA RAW OPENAI: %s", response.output)
                     print("💰💰 TOKENIZACION: %s", response.usage)  # Deshabilitado
 
                     # Extraer y almacenar información de tokens
@@ -1018,12 +1018,12 @@ def generate_response_openai(
 
                                         # Solicitar continuación de la conversación después de la llamada a la función
                                         continue_response = client.responses.create(
-                                            model="gpt-4.1",
+                                            model=llmID,
                                             instructions=assistant_content_text,
                                             input=input_messages,
                                             tools=tools,
                                             temperature=0.7,
-                                            max_output_tokens=1000,
+                                            max_output_tokens=2000,
                                             top_p=1,
                                             store=True
                                         )
