@@ -8,8 +8,7 @@
         "sede": {
           "type": "string",
           "enum": [
-            "La Pradera Dosquebradas",
-            "Centro Comercial Victoria"
+            "La Pradera Dosquebradas"
           ],
           "description": "Sede del pedido (obligatorio: La Pradera Dosquebradas)"
         },
