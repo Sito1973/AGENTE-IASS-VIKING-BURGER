@@ -916,7 +916,8 @@ def generate_response_openai(
                         text={"format": {"type": "text"},
                             "verbosity": "low"},
                         reasoning={"effort": "medium",
-                            "summary": "auto"},  
+                            "summary": "auto"},
+                        service_tier="priority",  
                         max_output_tokens=2000,
                         top_p=1,
                         store=True
@@ -1030,7 +1031,8 @@ def generate_response_openai(
                                             text={"format": {"type": "text"},
                                                 "verbosity": "low"},
                                             reasoning={"effort": "medium",
-                                                "summary": "auto"}
+                                                "summary": "auto"},
+                                            service_tier="priority",
                                             max_output_tokens=2000,
                                             top_p=1,
                                             store=True
