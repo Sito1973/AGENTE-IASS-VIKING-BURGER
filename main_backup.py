@@ -790,6 +790,7 @@ def generate_response_openai(
                 logger.error("API key de OpenAI no configurada en Replit Secrets")
                 raise Exception("API key de OpenAI no configurada")
 
+            # Inicializar cliente con la nueva importación
             from openai import OpenAI
             client = OpenAI(api_key=api_key)
 
@@ -846,6 +847,15 @@ def generate_response_openai(
                 "pqrs": pqrs,
             }
 
+            # Debug: Log del historial antes de procesarlo
+            logger.debug(f"Procesando {len(conversation_history)} mensajes del historial")
+            for i, msg in enumerate(conversation_history):
+                if isinstance(msg, dict):
+                    keys = list(msg.keys())
+                    logger.debug(f"Mensaje {i} - Claves: {keys}")
+                else:
+                    logger.debug(f"Mensaje {i} - Tipo: {type(msg)} - Valor: {msg}")
+
             # Preparar los mensajes para la nueva API
             input_messages = []
 
@@ -856,12 +866,8 @@ def generate_response_openai(
                     logger.warning(f"Mensaje {i} no es un diccionario, ignorando: {type(msg)}")
                     continue
 
-                # --- FIX PARA REASONING (OPCIÓN A) ---
-                if "type" in msg and msg["type"] == "reasoning":
-                    input_messages.append(msg)
-                
                 # Verificar si el mensaje tiene 'role' (mensajes normales)
-                elif "role" in msg:
+                if "role" in msg:
                     if msg["role"] == "user":
                         input_messages.append({
                             "role": "user",
@@ -899,7 +905,7 @@ def generate_response_openai(
             while call_counter < max_iterations:
                 try:
                     # Llamar a la API en el nuevo formato
-                    logger.info("🚨PAYLOAD OPENAI LENGTH: %s", len(input_messages))
+                    logger.info("🚨PAYLOAD OPENAI: %s", conversation_history)
 
                     response = client.responses.create(
                         model=llmID,
@@ -914,10 +920,9 @@ def generate_response_openai(
                         service_tier="priority",  
                         max_output_tokens=2000,
                         top_p=1,
-                        store=True,
-                        include=["reasoning.encrypted_content"] # <-- CRUCIAL PARA OPCIÓN A
+                        store=True
                     )
-                    logger.info("✅RESPUESTA OPENAI RECIBIDA")
+                    logger.info("✅RESPUESTA OPENAI: %s", response)
                     # Imprimir la estructura completa para debug
                     #print("✅RESPUESTA RAW OPENAI: %s", response.output)
                     print("💰💰 TOKENIZACION: %s", response.usage)  # Deshabilitado
@@ -955,113 +960,253 @@ def generate_response_openai(
 
                     # Procesar la respuesta
                     if hasattr(response, 'output') and response.output:
+                        # Caso 1: La respuesta es un texto normal
                         for output_item in response.output:
-                            # --- CAPTURA DE REASONING (OPCIÓN A) ---
-                            if hasattr(output_item, 'type') and output_item.type == 'reasoning':
-                                reasoning_entry = {
-                                    "type": "reasoning",
-                                    "id": output_item.id,
-                                    "encrypted_content": output_item.encrypted_content
-                                }
-                                # Guardar en historial y añadir a input para siguiente iteración
-                                conversation_history.append(reasoning_entry)
-                                input_messages.append(reasoning_entry)
-                            
-                            # Caso 1: La respuesta es un texto normal (Message)
-                            elif hasattr(output_item, 'type') and output_item.type == 'message':
-                                # Extraer ID del mensaje
-                                message_id = getattr(output_item, 'id', None)
-                                logger.info("ID del mensaje extraído: %s", message_id)
+                            if hasattr(output_item, 'type'):
+                                # Es un objeto (no un diccionario)
+                                if output_item.type == 'message' and hasattr(output_item, 'content'):
+                                    # Extraer ID del mensaje
+                                    message_id = getattr(output_item, 'id', None)
+                                    logger.info("ID del mensaje extraído: %s", message_id)
 
-                                if hasattr(output_item, 'content'):
                                     for content_item in output_item.content:
                                         if hasattr(content_item, 'type') and content_item.type == 'output_text':
                                             assistant_response_text = content_item.text
-                                            # Guardar mensaje de texto
-                                            msg_entry = {
+                                            #logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
+                                            break
+
+                                # Caso 2: La respuesta es una llamada a función
+                                elif output_item.type == 'function_call':
+                                    function_called = True
+                                    tool_name = output_item.name
+                                    tool_arguments_str = output_item.arguments
+                                    call_id = output_item.call_id if hasattr(output_item, 'call_id') else f"call_{call_counter}"
+                                    function_call_id = getattr(output_item, 'id', None)
+
+                                    logger.info("Llamada a función detectada: %s con ID %s", tool_name, call_id)
+                                    logger.info("Argumentos: %s", tool_arguments_str)
+
+                                    try:
+                                        tool_arguments = json.loads(tool_arguments_str)
+                                    except json.JSONDecodeError:
+                                        tool_arguments = {}
+
+                                    if tool_name in tool_functions:
+                                        # Ejecutar la función
+                                        result = tool_functions[tool_name](tool_arguments, subscriber_id)
+                                        result_str = str(result)
+                                        logger.info("Resultado de la llamada a función: %s", result_str)
+
+                                        # Agregar function call y output al historial en formato correcto
+                                        function_call_entry = {
+                                            "type": "function_call",
+                                            "call_id": call_id,
+                                            "name": tool_name,
+                                            "arguments": tool_arguments_str
+                                        }
+                                        # Agregar ID si existe
+                                        if function_call_id:
+                                            function_call_entry["id"] = function_call_id
+
+                                        function_output_entry = {
+                                            "type": "function_call_output",
+                                            "call_id": call_id,
+                                            "output": result_str
+                                        }
+
+                                        conversation_history.append(function_call_entry)
+                                        conversation_history.append(function_output_entry)
+
+                                        # Preparar entrada para la siguiente iteración
+                                        input_messages.append(function_call_entry)
+                                        input_messages.append(function_output_entry)
+
+                                        # Solicitar continuación de la conversación después de la llamada a la función
+                                        continue_response = client.responses.create(
+                                            model=llmID,
+                                            instructions=assistant_content_text,
+                                            input=input_messages,
+                                            tools=tools,
+                                            #temperature=0.7,
+                                            text={"format": {"type": "text"},
+                                                "verbosity": "low"},
+                                            reasoning={"effort": "medium",
+                                                "summary": "auto"},
+                                            service_tier="priority",
+                                            max_output_tokens=2000,
+                                            top_p=1,
+                                            store=True
+                                        )
+
+                                        logger.info("✅✅Respuesta después de la llamada a la función: %s", continue_response.output)
+
+                                        # Actualizar información de tokens con la respuesta continua
+                                        if hasattr(continue_response, 'usage'):
+                                            if not conversations[thread_id].get("usage"):
+                                                conversations[thread_id]["usage"] = {
+                                                    "input_tokens": 0,
+                                                    "output_tokens": 0,
+                                                    "cache_creation_input_tokens": 0,
+                                                    "cache_read_input_tokens": 0
+                                                }
+
+                                            # Actualizar los tokens acumulativos
+                                            current_usage = conversations[thread_id]["usage"]
+                                            current_usage["input_tokens"] += continue_response.usage.input_tokens
+                                            current_usage["output_tokens"] += continue_response.usage.output_tokens
+
+                                            # Actualizar cache_read_input_tokens con total_tokens
+                                            current_usage["cache_read_input_tokens"] += continue_response.usage.total_tokens
+
+                                            # Actualizar cache_creation_input_tokens si está disponible
+                                            if (hasattr(continue_response.usage, 'input_tokens_details') and 
+                                                hasattr(continue_response.usage.input_tokens_details, 'cached_tokens')):
+                                                current_usage["cache_creation_input_tokens"] += continue_response.usage.input_tokens_details.cached_tokens
+
+                                            logger.info(
+                                                "Tokens acumulados - Input: %d, Output: %d",
+                                                current_usage["input_tokens"],
+                                                current_usage["output_tokens"]
+                                            )
+                                            logger.info("Cache Creation Input Tokens acumulados: %d", 
+                                                        current_usage["cache_creation_input_tokens"])
+                                            logger.info("Cache Read Input Tokens acumulados: %d", 
+                                                        current_usage["cache_read_input_tokens"])
+
+                                        # Procesar la respuesta de continuación
+                                        continue_message_id = None
+                                        if hasattr(continue_response, 'output') and continue_response.output:
+                                            for continue_item in continue_response.output:
+                                                if hasattr(continue_item, 'type') and continue_item.type == 'message':
+                                                    # Extraer ID de continuación
+                                                    continue_message_id = getattr(continue_item, 'id', None)
+                                                    logger.info("ID del mensaje de continuación: %s", continue_message_id)
+
+                                                    if hasattr(continue_item, 'content'):
+                                                        for content_item in continue_item.content:
+                                                            if hasattr(content_item, 'type') and content_item.type == 'output_text':
+                                                                assistant_response_text = content_item.text
+                                                                logger.info("Respuesta de texto después de la función: %s", assistant_response_text)
+                                                                break
+
+                                        # Si obtuvimos una respuesta de texto, guardémosla CON ID
+                                        if assistant_response_text:
+                                            conversations[thread_id]["response"] = assistant_response_text
+                                            conversations[thread_id]["status"] = "completed"
+                                            # Crear mensaje con ID de continuación
+                                            final_message = {
                                                 "role": "assistant",
                                                 "content": assistant_response_text
                                             }
-                                            if message_id:
-                                                msg_entry["id"] = message_id
-                                            conversation_history.append(msg_entry)
-                                            
-                                            # Preparar para siguiente vuelta del while
-                                            input_entry = {
+                                            if continue_message_id:
+                                                final_message["id"] = continue_message_id
+
+                                            conversation_history.append(final_message)
+
+                                            # IMPORTANTE: Salir del bucle while aquí
+                                            logger.info("Respuesta final obtenida después de llamada a función, saliendo del bucle")
+                                            break  # Salir del bucle for
+                                        else:
+                                            # Si no obtuvimos respuesta, usemos un mensaje genérico
+                                            assistant_response_text = f"He procesado tu solicitud correctamente. ¿En qué más puedo ayudarte?"
+                                            conversations[thread_id]["response"] = assistant_response_text
+                                            conversations[thread_id]["status"] = "completed"
+                                            conversation_history.append({
                                                 "role": "assistant",
-                                                "content": [{"type": "output_text", "text": assistant_response_text}]
-                                            }
-                                            if message_id:
-                                                input_entry["id"] = message_id
-                                            input_messages.append(input_entry)
-                                            break
+                                                "content": assistant_response_text
+                                            })
 
-                            # Caso 2: La respuesta es una llamada a función
-                            elif hasattr(output_item, 'type') and output_item.type == 'function_call':
+                                            # IMPORTANTE: Salir del bucle while aquí también
+                                            logger.info("Respuesta genérica después de llamada a función, saliendo del bucle")
+                                            break  # Salir del bucle for
+
+                                    else:
+                                        logger.warning("Herramienta desconocida: %s", tool_name)
+                                        break
+
+                    # IMPORTANTE: Si procesamos una función y obtuvimos respuesta, salir del bucle while
+                    if function_called and assistant_response_text:
+                        logger.info("Función procesada y respuesta obtenida, saliendo del bucle while")
+                        break
+
+                    # Si encontramos un texto de respuesta y no hubo llamada a función, estamos listos
+                    if assistant_response_text and not function_called:
+                        # Crear mensaje con ID
+                        assistant_message = {
+                            "role": "assistant",
+                            "content": assistant_response_text
+                        }
+                        if message_id:
+                            assistant_message["id"] = message_id
+
+                        conversations[thread_id]["response"] = assistant_response_text
+                        conversations[thread_id]["status"] = "completed"
+                        conversation_history.append(assistant_message)
+                        break
+
+                    # Si no encontramos ni texto ni llamada a función, algo salió mal
+                    if not assistant_response_text and not function_called:
+                        # Intentar una última extracción con un método diferente
+                        if hasattr(response, 'output') and isinstance(response.output, list) and len(response.output) > 0:
+                            first_output = response.output[0]
+                            if hasattr(first_output, 'type') and first_output.type == 'function_call':
                                 function_called = True
-                                tool_name = output_item.name
-                                tool_arguments_str = output_item.arguments
-                                call_id = output_item.call_id if hasattr(output_item, 'call_id') else f"call_{call_counter}"
-                                function_call_id = getattr(output_item, 'id', None)
+                                tool_name = first_output.name
+                                tool_arguments_str = first_output.arguments
+                                call_id = first_output.call_id if hasattr(first_output, 'call_id') else f"call_{call_counter}"
+                                alt_function_call_id = getattr(first_output, 'id', None)
 
-                                logger.info("Llamada a función detectada: %s con ID %s", tool_name, call_id)
-                                logger.info("Argumentos: %s", tool_arguments_str)
+                                logger.info("Llamada a función detectada (método alternativo): %s", tool_name)
 
                                 try:
                                     tool_arguments = json.loads(tool_arguments_str)
                                 except json.JSONDecodeError:
                                     tool_arguments = {}
 
-                                result_str = ""
                                 if tool_name in tool_functions:
                                     # Ejecutar la función
                                     result = tool_functions[tool_name](tool_arguments, subscriber_id)
                                     result_str = str(result)
                                     logger.info("Resultado de la llamada a función: %s", result_str)
-                                else:
-                                    logger.warning("Herramienta desconocida: %s", tool_name)
-                                    result_str = "Error: Tool not found"
 
-                                # Agregar function call y output al historial en formato correcto
-                                function_call_entry = {
-                                    "type": "function_call",
-                                    "call_id": call_id,
-                                    "name": tool_name,
-                                    "arguments": tool_arguments_str
-                                }
-                                if function_call_id:
-                                    function_call_entry["id"] = function_call_id
+                                    # Mensaje genérico después de ejecutar la función
+                                    assistant_response_text = f"He procesado tu solicitud correctamente. ¿En qué más puedo ayudarte?"
+                                    conversations[thread_id]["response"] = assistant_response_text
+                                    conversations[thread_id]["status"] = "completed"
 
-                                function_output_entry = {
-                                    "type": "function_call_output",
-                                    "call_id": call_id,
-                                    "output": result_str
-                                }
+                                    # Agregar function call y output al historial
+                                    function_call_entry = {
+                                        "type": "function_call",
+                                        "call_id": call_id,
+                                        "name": tool_name,
+                                        "arguments": tool_arguments_str
+                                    }
+                                    if alt_function_call_id:
+                                        function_call_entry["id"] = alt_function_call_id
 
-                                conversation_history.append(function_call_entry)
-                                conversation_history.append(function_output_entry)
+                                    function_output_entry = {
+                                        "type": "function_call_output",
+                                        "call_id": call_id,
+                                        "output": result_str
+                                    }
 
-                                # Preparar entrada para la siguiente iteración
-                                input_messages.append(function_call_entry)
-                                input_messages.append(function_output_entry)
+                                    final_message = {
+                                        "role": "assistant",
+                                        "content": assistant_response_text
+                                    }
 
-                    # --- CONTROL DE FLUJO ---
-                    if function_called:
-                        call_counter += 1
-                        logger.info("Función ejecutada, continuando ciclo... (%d/%d)", call_counter, max_iterations)
-                        continue
-                    
-                    elif assistant_response_text:
-                        conversations[thread_id]["response"] = assistant_response_text
-                        conversations[thread_id]["status"] = "completed"
-                        logger.info("Respuesta final obtenida.")
-                        break
-                    
-                    else:
-                        logger.warning("Respuesta vacía o formato inesperado de OpenAI")
-                        conversations[thread_id]["response"] = "Lo siento, hubo un error interno."
-                        conversations[thread_id]["status"] = "error"
-                        break
+                                    conversation_history.append(function_call_entry)
+                                    conversation_history.append(function_output_entry)
+                                    conversation_history.append(final_message)
+
+                                    break
+
+                        # Si aún no hemos encontrado respuesta, reportar error
+                        if not assistant_response_text and not function_called:
+                            logger.warning("No se encontró respuesta ni llamada a función en la respuesta de la API")
+                            conversations[thread_id]["response"] = "Lo siento, no pude procesar tu solicitud en este momento."
+                            conversations[thread_id]["status"] = "error"
+                            break
 
                 except Exception as api_error:
                     logger.exception("Error en la llamada a la API: %s", api_error)
@@ -1282,7 +1427,7 @@ def generate_response_gemini(
                                         category="HARM_CATEGORY_HARASSMENT",
                                         threshold="OFF"
                                     )
-                                ],
+                                ]
                             ),
                         )
                         # Si llegamos aquí, la llamada fue exitosa
