@@ -1,4 +1,4 @@
-este es el codigo completo import json
+import json
 import openai
 import requests
 import threading
