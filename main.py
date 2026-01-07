@@ -797,13 +797,13 @@ def generate_response(api_key,
             # Cargar herramientas
             assistant_value = conversations[thread_id].get("assistant")
             assistant_str = str(assistant_value)
-            if assistant_str in ["0"]:
+            if assistant_str in ["0","5"]:
                 tools_file_name = "tools_stage0.json"
             elif assistant_str in ["1", "2"]:
                 tools_file_name = "tools_stage1.json"
             elif assistant_str in ["3"]:
                 tools_file_name = "tools_stage2.json"
-            elif assistant_str in ["4", "5"]:
+            elif assistant_str in ["4"]:
                 tools_file_name = "tools_stage3.json"
             else:
                 tools_file_name = "default_tools.json"
