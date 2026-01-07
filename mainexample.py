@@ -1,5 +1,7 @@
 import json
 import openai
+from google import genai
+from google.genai import types as genai_types
 import requests
 import threading
 import random
@@ -18,14 +20,15 @@ import xmlrpc.client
 from bs4 import BeautifulSoup  # Importar BeautifulSoup para convertir HTML a texto
 from openai import OpenAI
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types as genai_types  # <-- Cambiar esta línea
 import time
 from functools import wraps
 
+
 def retry_on_exception(max_retries=3, initial_wait=1):
     """Reintenta llamadas a la API con backoff exponencial."""
+
     def decorator(func):
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             retries = 0
@@ -34,79 +37,76 @@ def retry_on_exception(max_retries=3, initial_wait=1):
                     return func(*args, **kwargs)
                 except Exception as e:
                     retries += 1
-                    wait_time = initial_wait * (2 ** retries)
+                    wait_time = initial_wait * (2**retries)
                     if retries >= max_retries:
-                        logger.error(f"Error definitivo tras {max_retries} intentos: {e}")
+                        logger.error(
+                            f"Error definitivo tras {max_retries} intentos: {e}"
+                        )
                         raise
-                    # Removido warning de reintentos para simplificar logs
+                    logger.warning(
+                        f"Error en llamada a API (intento {retries}). Reintentando en {wait_time}s: {e}"
+                    )
                     time.sleep(wait_time)
+
         return wrapper
+
     return decorator
+
 
 @retry_on_exception(max_retries=3, initial_wait=1)
 def call_anthropic_api(client, **kwargs):
     """Llama a la API de Anthropic con reintentos automáticos."""
-    return client.messages.create(**kwargs)
+    # Extraer headers adicionales si existen
+    extra_headers = kwargs.pop('anthropic-beta', None)
+    
+    # Configurar headers si se requiere TTL extendido
+    if extra_headers:
+        # Crear nuevo cliente con headers adicionales
+        api_key = client.api_key
+        client_with_headers = anthropic.Anthropic(
+            api_key=api_key,
+            default_headers={"anthropic-beta": extra_headers}
+        )
+        return client_with_headers.messages.create(**kwargs)
+    else:
+        return client.messages.create(**kwargs)
+
+
 # Cargar variables de entorno (al principio del archivo)
 load_dotenv()
+
+# Control de logs verbosos para Anthropic y espera con latidos
+ANTHROPIC_DEBUG = os.getenv("ANTHROPIC_DEBUG", "0").strip() in {"1", "true", "True", "yes", "YES"}
 
 #https://github.com/googleapis/python-genai
 
 app = Flask(__name__)
 
-# Configuración de Seq para logs persistentes
-SEQ_SERVER_URL = os.environ.get('SEQ_SERVER_URL')
-APP_NAME = os.environ.get('APP_NAME', 'viking-burger')
-
-# Filtro para agregar Application a todos los logs
-class AppNameFilter(logging.Filter):
-    def filter(self, record):
-        record.Application = APP_NAME
-        return True
-
-# Crear lista de handlers
-log_handlers = [logging.StreamHandler()]  # Salida a la consola
-
-# Agregar handler de Seq si está configurado
-if SEQ_SERVER_URL:
-    from seqlog import SeqLogHandler
-    seq_handler = SeqLogHandler(
-        server_url=SEQ_SERVER_URL,
-        batch_size=10,
-        auto_flush_timeout=10
-    )
-    seq_handler.setLevel(logging.INFO)
-    seq_handler.addFilter(AppNameFilter())
-    log_handlers.append(seq_handler)
-
 # Configuración del logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.
+    INFO,  # Nivel de logging: DEBUG, INFO, WARNING, ERROR, CRITICAL
     format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=log_handlers
-)
+    handlers=[
+        logging.StreamHandler()  # Salida a la consola
+    ])
 
 logger = logging.getLogger(__name__)
 
-# Variable para debug de Anthropic
-ANTHROPIC_DEBUG = os.getenv("ANTHROPIC_DEBUG", "0").strip() in {"1", "true", "True", "yes", "YES"}
-
-if SEQ_SERVER_URL:
-    logger.info("✅ Seq logging habilitado: %s (App: %s)", SEQ_SERVER_URL, APP_NAME)
-
 # URL del webhook de n8n (ajusta esto según tu configuración)
-N8N_WEBHOOK_URL = os.environ.get(
-    'N8N_WEBHOOK_URL',
-    'https://n8niass.cocinandosonrisas.co/webhook/eleccionFormaPagoTheVikingBurgerApi')
+WEBHOOK_URL_NUEVO_LINK = os.environ.get('WEBHOOK_URL_NUEVO_LINK')
+WEBHOOK_URL_BOTON_DOMICILIARIOS = os.environ.get('WEBHOOK_URL_BOTON_DOMICILIARIOS')
 
 # Mapa para asociar valores de 'assistant' con nombres de archivos
 ASSISTANT_FILES = {
-    0: "PROMPTS/URBAN/ASISTENTE_INICIAL.txt",
-    1: 'PROMPTS/URBAN/ASISTENTE_DOMICILIO.txt',
-    2: 'PROMPTS/URBAN/ASISTENTE_RECOGER.txt',
-    3: 'PROMPTS/URBAN/ASISTENTE_FORMA_PAGO.txt',
-    4: 'PROMPTS/URBAN/ASISTENTE_POSTVENTA.txt',
-    5: 'PROMPTS/URBAN/ASISTENTE_INICIAL_FUERA_DE_HORARIO.txt' 
+    0: "PROMPTS/BANDIDOS/2_ASISTENTE_INICIAL_BANDIDOS.txt",
+    1: 'PROMPTS/BANDIDOS/2_ASISTENTE_DOMICILIO_BANDIDOS.txt',
+    2: 'PROMPTS/BANDIDOS/2_ASISTENTE_RECOGER_BANDIDOS.txt',
+    3: 'PROMPTS/BANDIDOS/2_ASISTENTE_FORMA_PAGO_BANDIDOS.txt',
+    4:
+    'PROMPTS/BANDIDOS/2_ASISTENTE_POSTVENTA_DOMICILIO_BANDIDOS.txt',
+    20:
+    'PROMPTS/BANDIDOS/2_ASISTENTE_BM2025.txt'
 }
 
 conversations = {}
@@ -115,19 +115,25 @@ conversations = {}
 class N8nAPI:
 
     def __init__(self):
-        self.crear_pedido_webhook_url = os.environ.get("N8N_CREAR_PEDIDO_WEBHOOK_URL")
-        self.link_pago_webhook_url = os.environ.get("N8N_LINK_PAGO_WEBHOOK_URL")
-        self.enviar_menu_webhook_url = os.environ.get("N8N_ENVIAR_MENU_WEBHOOK_URL")
-        self.crear_direccion_webhook_url =os.environ.get("N8N_CREAR_DIRECCION_WEBHOOK_URL")
-        self.eleccion_forma_pago_url =os.environ.get("N8N_ELECCION_FORMA_PAGO_WEBHOOK_URL")
-        self.facturacion_electronica_url =os.environ.get("N8N_FACTURACION_ELECTRONICA_WEBHOOK_URL")
-        self.pqrs_url =os.environ.get("N8N_PQRS_WEBHOOK_URL")
+        self.crear_pedido_webhook_url = os.environ.get(
+            "N8N_CREAR_PEDIDO_WEBHOOK_URL")
+        self.link_pago_webhook_url = os.environ.get(
+            "N8N_LINK_PAGO_WEBHOOK_URL")
+        self.enviar_menu_webhook_url = os.environ.get(
+            "N8N_ENVIAR_MENU_WEBHOOK_URL")
+        self.crear_direccion_webhook_url = os.environ.get(
+            "N8N_CREAR_DIRECCION_WEBHOOK_URL")
+        self.eleccion_forma_pago_url = os.environ.get(
+            "N8N_ELECCION_FORMA_PAGO_WEBHOOK_URL")
+        self.facturacion_electronica_url = os.environ.get(
+            "N8N_FACTURACION_ELECTRONICA_WEBHOOK_URL")
+        self.pqrs_url = os.environ.get("N8N_PQRS_WEBHOOK_URL")
         self.crear_reserva_webhook_url = os.environ.get(
-            "N8N_RESERVA_WEBHOOK_URL",
+            "N8N_RESERVA_WEBHOOK_URL", 
             "https://n8niass.cocinandosonrisas.co/webhook/herramientaEnviarFormularioReservaBandidosApi"
         )
         self.enviar_ubicacion_webhook_url = os.environ.get(
-            "N8N_ENVIAR_UBICACION_WEBHOOK_URL",
+            "N8N_ENVIAR_UBICACION_WEBHOOK_URL", 
             "https://n8niass.cocinandosonrisas.co/webhook/herramientaEnviarUbicacionBandidosApi"
         )
         # Puedes añadir más URLs de webhook si lo necesitas
@@ -161,57 +167,63 @@ class N8nAPI:
 
     def crear_direccion(self, payload):
         """Envía los datos para generar el link de pago al webhook de n8n"""
-        logger.debug("Enviando datos para crear direccion a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.crear_direccion_webhook_url, json=payload)
+        logger.debug(
+            "Enviando datos para crear direccion a n8n con payload: %s",
+            payload)
+        response = requests.post(self.crear_direccion_webhook_url,
+                                 json=payload)
         logger.info("Respuesta de n8n al enviar datos crear direccion: %s %s",
                     response.status_code, response.text)
         return response
 
     def eleccion_forma_pago(self, payload):
         """Envía los datos para registrar la forma de pago al webhook de n8n"""
-        logger.debug("Enviando datos para eleccion forma de pago a n8n con payload: %s",
-                     payload)
-        response = requests.post( self.eleccion_forma_pago_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos eleccion_forma_pago: %s %s",
-                    response.status_code, response.text)
+        logger.debug(
+            "Enviando datos para eleccion forma de pago a n8n con payload: %s",
+            payload)
+        response = requests.post(self.eleccion_forma_pago_url, json=payload)
+        logger.info(
+            "Respuesta de n8n al enviar datos eleccion_forma_pago: %s %s",
+            response.status_code, response.text)
         return response
 
     def facturacion_electronica(self, payload):
         """Envía los datos para registrar facturacion electronica al webhook de n8n"""
-        logger.debug("Enviando datos para facturacion electronica a n8n con payload: %s",
-                     payload)
-        response = requests.post( self.facturacion_electronica_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos facturacion_electronica: %s %s",
-                    response.status_code, response.text)
+        logger.debug(
+            "Enviando datos para facturacion electronica a n8n con payload: %s",
+            payload)
+        response = requests.post(self.facturacion_electronica_url,
+                                 json=payload)
+        logger.info(
+            "Respuesta de n8n al enviar datos facturacion_electronica: %s %s",
+            response.status_code, response.text)
         return response
 
     def pqrs(self, payload):
         """Envía los datos para registrar pqrs al webhook de n8n"""
-        logger.debug("Enviando datos para pqrs a n8n con payload: %s",
-                     payload)
-        response = requests.post( self.pqrs_url, json=payload)
+        logger.debug("Enviando datos para pqrs a n8n con payload: %s", payload)
+        response = requests.post(self.pqrs_url, json=payload)
         logger.info("Respuesta de n8n al enviar datos pqrs: %s %s",
                     response.status_code, response.text)
         return response
-
+    
     def reserva_mesa(self, payload):
-        """Envía los datos para reserva de mesa al webhook de n8n"""
-        logger.debug("Enviando datos de reserva mesa a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.crear_reserva_webhook_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos de reserva_mesa: %s %s",
-                    response.status_code, response.text)
-        return response
+         """Envía los datos para generar el link de pago al webhook de n8n"""
+         logger.debug("Enviando datos de enviar menu a n8n con payload: %s",
+                      payload)
+         response = requests.post(self.crear_reserva_webhook_url, json=payload)
+         logger.info("Respuesta de n8n al enviar datos de enviar_menu: %s %s",
+                     response.status_code, response.text)
+         return response
 
     def enviar_ubicacion(self, payload):
-        """Envía los datos de ubicación al webhook de n8n"""
-        logger.debug("Enviando datos de ubicación a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.enviar_ubicacion_webhook_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos de enviar_ubicacion: %s %s",
-                    response.status_code, response.text)
-        return response
+         """Envía los datos para generar el link de pago al webhook de n8n"""
+         logger.debug("Enviando datos de enviar menu a n8n con payload: %s",
+                      payload)
+         response = requests.post(self.enviar_ubicacion_webhook_url, json=payload)
+         logger.info("Respuesta de n8n al enviar datos de enviar_menu: %s %s",
+                     response.status_code, response.text)
+         return response
 
     # Añade más métodos si necesitas interactuar con otros webhooks de n8n
 
@@ -279,12 +291,17 @@ def crear_pedido(tool_input, subscriber_id):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
+            logger.error("Error al enviar datos al webhook de n8n: %s",
+                         response.text)
             # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            response_content = response.json(
+            ) if 'application/json' in response.headers.get(
+                'Content-Type', '') else {
+                    "message": response.text
+                }
 
             # Extraer directamente el mensaje sin envolverlo en "result"
             result = response_content.get('message', 'Operación exitosa.')
@@ -322,15 +339,21 @@ def crear_link_pago(tool_input, subscriber_id):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
+            logger.error("Error al enviar datos al webhook de n8n: %s",
+                         response.text)
             # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            response_content = response.json(
+            ) if 'application/json' in response.headers.get(
+                'Content-Type', '') else {
+                    "message": response.text
+                }
 
             # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'LInk de pago generado exitosamente')
+            result = response_content.get(
+                'message', 'LInk de pago generado exitosamente')
 
         logger.info("crear_link_pago result: %s", result)
         return result  # Retornamos el resultado al modelo
@@ -359,7 +382,6 @@ def enviar_menu(tool_input, subscriber_id):
             }
         }
 
-
         logger.debug("Payload para enviar al webhook de n8n: %s", payload)
 
         # Enviar el payload al webhook de n8n
@@ -367,12 +389,17 @@ def enviar_menu(tool_input, subscriber_id):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
+            logger.error("Error al enviar datos al webhook de n8n: %s",
+                         response.text)
             # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            response_content = response.json(
+            ) if 'application/json' in response.headers.get(
+                'Content-Type', '') else {
+                    "message": response.text
+                }
 
             # Extraer directamente el mensaje sin envolverlo en "result"
             result = response_content.get('message', 'MENU Operación exitosa.')
@@ -384,7 +411,8 @@ def enviar_menu(tool_input, subscriber_id):
         logger.exception("Error en enviar_menu: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
-def crear_direccion(tool_input, subscriber_id ):
+
+def crear_direccion(tool_input, subscriber_id):
     """
     Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
     """
@@ -403,7 +431,6 @@ def crear_direccion(tool_input, subscriber_id ):
             }
         }
 
-
         logger.debug("Payload para enviar al webhook de n8n: %s", payload)
 
         # Enviar el payload al webhook de n8n
@@ -411,12 +438,17 @@ def crear_direccion(tool_input, subscriber_id ):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
+            logger.error("Error al enviar datos al webhook de n8n: %s",
+                         response.text)
             # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            response_content = response.json(
+            ) if 'application/json' in response.headers.get(
+                'Content-Type', '') else {
+                    "message": response.text
+                }
 
             # Extraer directamente el mensaje sin envolverlo en "result"
             result = response_content.get('message', 'Operación exitosa.')
@@ -428,7 +460,8 @@ def crear_direccion(tool_input, subscriber_id ):
         logger.exception("Error en enviar_menu: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
-def eleccion_forma_pago(tool_input, subscriber_id ):
+
+def eleccion_forma_pago(tool_input, subscriber_id):
     """
     Función para enviar los datos de la froma de pago al webhook de n8n y devolver su respuesta al modelo
     """
@@ -440,13 +473,10 @@ def eleccion_forma_pago(tool_input, subscriber_id ):
 
         # Construir el payload con la información del tool_input y las variables adicionales
         payload = {
-
-                "tool_code": "eleccion_forma_pago",
-                "id": subscriber_id,
-                "forma": tool_input  # Datos provenientes del LLM
-
+            "tool_code": "eleccion_forma_pago",
+            "id": subscriber_id,
+            "forma": tool_input  # Datos provenientes del LLM
         }
-
 
         logger.debug("Payload para enviar al webhook de n8n: %s", payload)
 
@@ -455,15 +485,21 @@ def eleccion_forma_pago(tool_input, subscriber_id ):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
+            logger.error("Error al enviar datos al webhook de n8n: %s",
+                         response.text)
             # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            response_content = response.json(
+            ) if 'application/json' in response.headers.get(
+                'Content-Type', '') else {
+                    "message": response.text
+                }
 
             # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'Eleccion FPG Operación exitosa.')
+            result = response_content.get('message',
+                                          'Eleccion FPG Operación exitosa.')
 
         logger.info("eleccion_forma_pagoresult: %s", result)
         return result  # Retornamos el resultado como diccionario con 'result' o 'error'
@@ -472,7 +508,8 @@ def eleccion_forma_pago(tool_input, subscriber_id ):
         logger.exception("Error en enviar_menu: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
-def facturacion_electronica(tool_input, subscriber_id ):
+
+def facturacion_electronica(tool_input, subscriber_id):
     """
     Función para enviar los datos de la facturacion electronica al webhook de n8n y devolver su respuesta al modelo
     """
@@ -484,13 +521,10 @@ def facturacion_electronica(tool_input, subscriber_id ):
 
         # Construir el payload con la información del tool_input y las variables adicionales
         payload = {
-
-                "tool_code": "facturacion_electronica",
-                "id": subscriber_id,
-                "datos": tool_input  # Datos provenientes del LLM
-
+            "tool_code": "facturacion_electronica",
+            "id": subscriber_id,
+            "datos": tool_input  # Datos provenientes del LLM
         }
-
 
         logger.debug("Payload para enviar al webhook de n8n: %s", payload)
 
@@ -499,15 +533,21 @@ def facturacion_electronica(tool_input, subscriber_id ):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
+            logger.error("Error al enviar datos al webhook de n8n: %s",
+                         response.text)
             # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            response_content = response.json(
+            ) if 'application/json' in response.headers.get(
+                'Content-Type', '') else {
+                    "message": response.text
+                }
 
             # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'Fact Elect Operación exitosa.')
+            result = response_content.get('message',
+                                          'Fact Elect Operación exitosa.')
 
         logger.info("facturacion_electronica result: %s", result)
         return result  # Retornamos el resultado como diccionario con 'result' o 'error'
@@ -516,7 +556,8 @@ def facturacion_electronica(tool_input, subscriber_id ):
         logger.exception("Error en facturacion electronica: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
-def pqrs(tool_input, subscriber_id ):
+
+def pqrs(tool_input, subscriber_id):
     """
     Función para enviar los datos de la pqrs al webhook de n8n y devolver su respuesta al modelo
     """
@@ -528,13 +569,10 @@ def pqrs(tool_input, subscriber_id ):
 
         # Construir el payload con la información del tool_input y las variables adicionales
         payload = {
-
-                "tool_code": "pqrs",
-                "id": subscriber_id,
-                "datos": tool_input  # Datos provenientes del LLM
-
+            "tool_code": "pqrs",
+            "id": subscriber_id,
+            "datos": tool_input  # Datos provenientes del LLM
         }
-
 
         logger.debug("Payload para enviar al webhook de n8n: %s", payload)
 
@@ -543,12 +581,17 @@ def pqrs(tool_input, subscriber_id ):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
+            logger.error("Error al enviar datos al webhook de n8n: %s",
+                         response.text)
             # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            response_content = response.json(
+            ) if 'application/json' in response.headers.get(
+                'Content-Type', '') else {
+                    "message": response.text
+                }
 
             # Extraer directamente el mensaje sin envolverlo en "result"
             result = response_content.get('message', 'Operación exitosa.')
@@ -564,8 +607,8 @@ def reserva_mesa(tool_input, subscriber_id):
     """
     Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
     """
-    logger.info("Iniciando reserva_mesa con datos: %s", tool_input)
-    logger.debug("subscriber_id en reserva_mesa: %s", subscriber_id)
+    logger.info("Iniciando enviar_menu con datos: %s", tool_input)
+    logger.debug("subscriber_id en crear_pedido: %s", subscriber_id)
 
     try:
         n8n_api = N8nAPI()
@@ -601,11 +644,11 @@ def reserva_mesa(tool_input, subscriber_id):
             # Extraer directamente el mensaje sin envolverlo en "result"
             result = response_content.get('message', 'formulario enviado exitosamente.')
 
-        logger.info("reserva_mesa result: %s", result)
+        logger.info("enviar_menu result: %s", result)
         return result  # Retornamos el resultado como diccionario con 'result' o 'error'
 
     except Exception as e:
-        logger.exception("Error en reserva_mesa: %s", e)
+        logger.exception("Error en enviar_menu: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
 def enviar_ubicacion(tool_input, subscriber_id):
@@ -656,6 +699,7 @@ def enviar_ubicacion(tool_input, subscriber_id):
         logger.exception("Error en enviar_ubicacion: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
+
 def validate_conversation_history(history):
     """Valida que la estructura del historial sea correcta para Anthropic."""
     if not isinstance(history, list):
@@ -668,7 +712,9 @@ def validate_conversation_history(history):
             logger.error("Mensaje no es un diccionario: %s", message)
             return False
 
-        if "role" not in message or message["role"] not in ["user", "assistant"]:
+        if "role" not in message or message["role"] not in [
+                "user", "assistant"
+        ]:
             logger.error("Rol inválido en mensaje: %s", message)
             return False
 
@@ -677,6 +723,7 @@ def validate_conversation_history(history):
             return False
 
     return True
+
 
 # Versión mejorada de get_field
 def get_field(item, key):
@@ -692,12 +739,6 @@ def get_field(item, key):
     except Exception as e:
         logger.warning("Error al acceder a atributo %s: %s", key, e)
         return None
-
-# Función auxiliar para acceder a un campo, ya sea en un diccionario o en un objeto
-#def get_field(item, key):
-    #if isinstance(item, dict):
-        #return item.get(key)
-    #return getattr(item, key, None)
 
 
 thread_locks = {}
@@ -742,23 +783,23 @@ def generate_response(api_key,
 
             # Agregar el mensaje del usuario al historial
             user_message_content = {"type": "text", "text": message}
-
+            
             # ========================================
-            # SISTEMA AUTOMÁTICO DE CACHE MANAGEMENT
+            # SISTEMA AUTOMÁTICO DE CACHE MANAGEMENT 
             # ========================================
             # Gestión inteligente de máximo 4 bloques cache por conversación
             # Reseteo automático cada 5 minutos, priorización estratégica
-
+            
             cache_blocks_used = 0
             max_cache_blocks = 4
             current_time = time.time()
-
+            
             # Verificar si necesitamos resetear cache (4 min 50 seg de INACTIVIDAD = 290 segundos)
             # Margen de seguridad de 10 segundos antes de que Anthropic expire el cache a los 5 min
             last_activity_time = conversations[thread_id].get("last_activity", 0)
             cache_expired_by_inactivity = (current_time - last_activity_time) > 290
             is_new_conversation = last_activity_time == 0 or len(conversation_history) == 0
-
+            
             if is_new_conversation:
                 conversations[thread_id]["cache_reset"] = True
                 conversations[thread_id]["last_activity"] = current_time
@@ -772,19 +813,19 @@ def generate_response(api_key,
                 conversations[thread_id]["last_activity"] = current_time  # Actualizar actividad
                 time_remaining = 290 - (current_time - last_activity_time)
                 logger.info("🔄 Cache activo para thread_id: %s (TTL restante: %.0f segundos)", thread_id, time_remaining)
-
+            
             # Análisis de conversación para cache inteligente
             messages_count = len(conversation_history)
             current_stage = conversations[thread_id].get("assistant", 0)
             is_conversation_established = messages_count >= 3
-
+            
             # Determinar tokens estimados para modelos (mínimos requeridos)
             model_cache_minimum = 2048 if "haiku" in llmID.lower() else 1024
-
+            
             # Función helper para estimar tokens (aproximadamente 4 caracteres = 1 token)
             def estimate_tokens(text):
                 return len(text) // 4
-
+            
             # ========================================
             # FUNCIONES DE CACHE MANAGEMENT
             # ========================================
@@ -796,7 +837,7 @@ def generate_response(api_key,
                             if isinstance(content_item, dict) and "cache_control" in content_item:
                                 del content_item["cache_control"]
                 return conversation_history
-
+            
             def count_existing_cache_blocks(conversation_history):
                 """Cuenta cuántos bloques de cache están actualmente en uso"""
                 cache_count = 0
@@ -806,7 +847,7 @@ def generate_response(api_key,
                             if isinstance(content_item, dict) and "cache_control" in content_item:
                                 cache_count += 1
                 return cache_count
-
+            
             # Limpiar cache_control existentes SOLO cuando hay reset (nueva conversación o TTL expirado)
             if conversations[thread_id].get("cache_reset", False):
                 conversation_history = clean_existing_cache_controls(conversation_history)
@@ -816,29 +857,29 @@ def generate_response(api_key,
                 # Mantener cache existente, solo contar bloques usados
                 cache_blocks_used = count_existing_cache_blocks(conversation_history)
                 logger.info("🔄 Cache existente mantenido para thread_id: %s (%d bloques usados)", thread_id, cache_blocks_used)
-
+            
             # ============================================
             # BLOQUE 1: USER MESSAGE CACHE (Prioridad 4)
             # ============================================
             user_message_content = {"type": "text", "text": message}
-
+            
             # Cachear mensaje del usuario SOLO cuando hay reset (nueva conversación o TTL expirado)
             should_cache_user_message = False  # Por defecto NO cachear user messages
-
+            
             if should_cache_user_message:
                 user_message_content["cache_control"] = {"type": "ephemeral"}
                 cache_blocks_used += 1
-                logger.info("💬 User message cached (bloque %d/4) para thread_id: %s (maximizando uso de cache)",
+                logger.info("💬 User message cached (bloque %d/4) para thread_id: %s (maximizando uso de cache)", 
                            cache_blocks_used, thread_id)
             else:
                 reason = "cache reset por TTL/stage" if conversations[thread_id].get("cache_reset", False) else f"límite bloques alcanzado ({cache_blocks_used}/4)"
                 logger.info("💬 User message sin cache para thread_id: %s (%s)", thread_id, reason)
-
+            
             conversation_history.append({
                 "role": "user",
                 "content": [user_message_content]
             })
-
+            
             # ============================================
             # BLOQUE EXTRA: CACHE INCREMENTAL DEL HISTORIAL
             # ============================================
@@ -851,7 +892,7 @@ def generate_response(api_key,
                         if isinstance(content_item, dict) and "cache_control" not in content_item:
                             content_item["cache_control"] = {"type": "ephemeral"}
                             cache_blocks_used += 1
-                            logger.info("📜 Historial cached (bloque %d/4) para thread_id: %s (cache incremental)",
+                            logger.info("📜 Historial cached (bloque %d/4) para thread_id: %s (cache incremental)", 
                                        cache_blocks_used, thread_id)
                             break  # Solo uno por mensaje
 
@@ -886,7 +927,7 @@ def generate_response(api_key,
             if tools:
                 tools_text = f"\n\n<tools>\n{json.dumps(tools, ensure_ascii=False, indent=2)}\n</tools>\n\n"
                 tools_tokens = estimate_tokens(tools_text)
-                logger.info("🔧 Tools preparadas para combinar con system (%d tokens) para thread_id: %s",
+                logger.info("🔧 Tools preparadas para combinar con system (%d tokens) para thread_id: %s", 
                            tools_tokens, thread_id)
 
             # ========================================
@@ -894,29 +935,29 @@ def generate_response(api_key,
             # ========================================
             # SOLO aplicar cache_control cuando hay reset (nueva conversación o TTL expirado)
             should_apply_system_cache = conversations[thread_id].get("cache_reset", False)
-
+            
             if should_apply_system_cache and cache_blocks_used < max_cache_blocks:
                 # Combinar tools con system prompt para máxima eficiencia
                 combined_content = tools_text + assistant_content_text
-
+                
                 # Separación inteligente estático/dinámico para maximizar cache hits
                 separators = ["Información del Cliente:", "<customer_info>", "Nombre del Cliente:"]
                 static_part = combined_content
                 dynamic_part = ""
                 separator_found = None
-
+                
                 for separator in separators:
                     if separator in combined_content:
                         static_part = combined_content.split(separator)[0]
                         dynamic_part = combined_content[len(static_part):]
                         separator_found = separator
                         break
-
+                
                 # Verificar si la parte estática tiene suficientes tokens para cachear
                 static_tokens = estimate_tokens(static_part.strip())
                 total_tokens = estimate_tokens(combined_content)
                 combined_tokens = tools_tokens + estimate_tokens(assistant_content_text)
-
+                
                 # Aplicar cache estratégico según contenido y tokens mínimos
                 if dynamic_part.strip() and cache_blocks_used < max_cache_blocks and static_tokens >= model_cache_minimum:
                     # Contenido mixto: cachear solo parte estática SI supera el mínimo
@@ -927,12 +968,12 @@ def generate_response(api_key,
                             "cache_control": {"type": "ephemeral"}
                         },
                         {
-                            "type": "text",
+                            "type": "text", 
                             "text": dynamic_part.strip()  # Variables no se cachean
                         }
                     ]
                     cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached (bloque %d/4) - separación estático/dinámico en '%s' (%d+%d=%d tokens) para thread_id: %s",
+                    logger.info("🔧📝 Tools+System cached (bloque %d/4) - separación estático/dinámico en '%s' (%d+%d=%d tokens) para thread_id: %s", 
                                cache_blocks_used, separator_found, tools_tokens, static_tokens-tools_tokens, static_tokens, thread_id)
                 elif not dynamic_part.strip() and cache_blocks_used < max_cache_blocks and total_tokens >= model_cache_minimum:
                     # Contenido completamente estático
@@ -942,7 +983,7 @@ def generate_response(api_key,
                         "cache_control": {"type": "ephemeral"}
                     }]
                     cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - sin variables (%d+%d=%d tokens) para thread_id: %s",
+                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - sin variables (%d+%d=%d tokens) para thread_id: %s", 
                                cache_blocks_used, tools_tokens, total_tokens-tools_tokens, total_tokens, thread_id)
                 elif dynamic_part.strip() and static_tokens < model_cache_minimum and total_tokens >= model_cache_minimum:
                     # Parte estática muy pequeña: cachear todo junto
@@ -952,7 +993,7 @@ def generate_response(api_key,
                         "cache_control": {"type": "ephemeral"}
                     }]
                     cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - estático insuficiente, cacheando todo (%d+%d=%d tokens) para thread_id: %s",
+                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - estático insuficiente, cacheando todo (%d+%d=%d tokens) para thread_id: %s", 
                                cache_blocks_used, tools_tokens, total_tokens-tools_tokens, total_tokens, thread_id)
                 else:
                     # Sin cache: no hay espacio o no alcanza tokens mínimos
@@ -973,28 +1014,28 @@ def generate_response(api_key,
                         "cache_control": {"type": "ephemeral"}
                     }]
                     cache_blocks_used += 1
-                    logger.info("📝 System cache reutilizado para thread_id: %s (bloque %d/4)",
+                    logger.info("📝 System cache reutilizado para thread_id: %s (bloque %d/4)", 
                                thread_id, cache_blocks_used)
                 else:
                     assistant_content = [{
                         "type": "text",
                         "text": assistant_content_text
                     }]
-                    logger.info("📝 System prompt sin cache para thread_id: %s (límite bloques alcanzado: %d/4)",
+                    logger.info("📝 System prompt sin cache para thread_id: %s (límite bloques alcanzado: %d/4)", 
                                thread_id, cache_blocks_used)
 
-            # ========================================
+            # ========================================  
             # RESUMEN CACHE MANAGEMENT AUTOMÁTICO
             # ========================================
             # Determinar estado de cache para tools y system
             tools_cache_applied = any("cache_control" in tool for tool in tools) if tools else False
             system_cache_applied = any("cache_control" in item for item in assistant_content)
-
+            
             # Calcular TTL restante basado en inactividad (4 min 50 seg = 290 segundos)
             cache_ttl_seconds = 290
             time_elapsed = current_time - conversations[thread_id].get("last_activity", current_time)
             ttl_remaining = max(0, cache_ttl_seconds - int(time_elapsed))
-
+            
             cache_summary = {
                 "bloques_usados": cache_blocks_used,
                 "maximo_permitido": max_cache_blocks,
@@ -1009,9 +1050,9 @@ def generate_response(api_key,
                 "system_tokens": (static_tokens - tools_tokens) if 'static_tokens' in locals() and 'tools_tokens' in locals() else (total_tokens - tools_tokens) if 'total_tokens' in locals() and 'tools_tokens' in locals() else 0,
                 "cache_ttl_remaining_seconds": ttl_remaining
             }
-
+            
             logger.info("🎯 CACHE SUMMARY para thread_id %s: %s", thread_id, cache_summary)
-
+            
             # Actualizar estadísticas del hilo
             conversations[thread_id]["cache_stats"] = cache_summary
 
@@ -1024,8 +1065,8 @@ def generate_response(api_key,
                 "eleccion_forma_pago": eleccion_forma_pago,
                 "facturacion_electronica": facturacion_electronica,
                 "pqrs": pqrs,
-                "reserva_mesa": reserva_mesa,
-                "enviar_ubicacion": enviar_ubicacion,
+                "reserva_mesa":reserva_mesa,
+                "enviar_ubicacion":enviar_ubicacion,
             }
 
             # Iniciar interacción con el modelo
@@ -1050,7 +1091,7 @@ def generate_response(api_key,
                     # Preparar headers para cache TTL extendido si es necesario
                     extra_headers = {}
                     if use_cache_control and any(
-                        tool.get("cache_control", {}).get("ttl") == "1h"
+                        tool.get("cache_control", {}).get("ttl") == "1h" 
                         for tool in tools if isinstance(tool, dict)
                     ):
                         extra_headers["anthropic-beta"] = "extended-cache-ttl-2025-04-11"
@@ -1101,7 +1142,7 @@ def generate_response(api_key,
                         "cache_read_input_tokens":
                         response.usage.cache_read_input_tokens,
                     }
-
+                    
                     # Actualizar contadores acumulativos del thread
                     if "total_usage" not in conversations[thread_id]:
                         conversations[thread_id]["total_usage"] = {
@@ -1110,23 +1151,23 @@ def generate_response(api_key,
                             "total_cache_creation_tokens": 0,
                             "total_cache_read_tokens": 0
                         }
-
+                    
                     # Acumular tokens
                     conversations[thread_id]["total_usage"]["total_input_tokens"] += current_usage["input_tokens"]
-                    conversations[thread_id]["total_usage"]["total_output_tokens"] += current_usage["output_tokens"]
+                    conversations[thread_id]["total_usage"]["total_output_tokens"] += current_usage["output_tokens"] 
                     conversations[thread_id]["total_usage"]["total_cache_creation_tokens"] += current_usage["cache_creation_input_tokens"]
                     conversations[thread_id]["total_usage"]["total_cache_read_tokens"] += current_usage["cache_read_input_tokens"]
-
+                    
                     # Calcular costos del turno actual (en USD)
                     def calculate_costs(tokens, cost_per_mtok):
                         return (tokens / 1_000_000) * cost_per_mtok
-
+                    
                     current_cost_input = calculate_costs(current_usage["input_tokens"], cost_base_input)
                     current_cost_output = calculate_costs(current_usage["output_tokens"], cost_output)
                     current_cost_cache_creation = calculate_costs(current_usage["cache_creation_input_tokens"], cost_cache_write_5m)
                     current_cost_cache_read = calculate_costs(current_usage["cache_read_input_tokens"], cost_cache_read)
                     current_total_cost = current_cost_input + current_cost_output + current_cost_cache_creation + current_cost_cache_read
-
+                    
                     # Inicializar costos acumulativos si no existen
                     if "total_costs" not in conversations[thread_id]:
                         conversations[thread_id]["total_costs"] = {
@@ -1136,14 +1177,14 @@ def generate_response(api_key,
                             "total_cost_cache_read": 0.0,
                             "total_cost_all": 0.0
                         }
-
+                    
                     # Acumular costos
                     conversations[thread_id]["total_costs"]["total_cost_input"] += current_cost_input
                     conversations[thread_id]["total_costs"]["total_cost_output"] += current_cost_output
                     conversations[thread_id]["total_costs"]["total_cost_cache_creation"] += current_cost_cache_creation
                     conversations[thread_id]["total_costs"]["total_cost_cache_read"] += current_cost_cache_read
                     conversations[thread_id]["total_costs"]["total_cost_all"] += current_total_cost
-
+                    
                     usage = current_usage
                     conversations[thread_id]["usage"] = usage
 
@@ -1197,7 +1238,7 @@ def generate_response(api_key,
                                 })
                             except Exception as tool_error:
                                 logger.exception("Error ejecutando herramienta %s: %s", tool_name, tool_error)
-
+                                
                                 # Agregar tool_result de error cuando la función falla
                                 conversation_history.append({
                                     "role": "user",
@@ -1211,7 +1252,7 @@ def generate_response(api_key,
                                 logger.info("Tool_result de error agregado para función fallida: %s", tool_name)
                         else:
                             logger.warning("Herramienta desconocida: %s", tool_name)
-
+                            
                             # Agregar tool_result de error para mantener balance tool_use/tool_result
                             conversation_history.append({
                                 "role": "user",
@@ -1276,10 +1317,13 @@ def generate_response_openai(
     thread_id,
     event,
     subscriber_id,
-    llmID=None
+    llmID=None,
+    cost_base_input=None,
+    cost_cache_read=None,
+    cost_output=None
 ):
     if not llmID:
-        llmID = "gpt-4.1"
+        llmID = "gpt-5-mini"
 
     logger.info("Intentando adquirir lock para thread_id (OpenAI): %s", thread_id)
     lock = thread_locks.get(thread_id)
@@ -1321,14 +1365,14 @@ def generate_response_openai(
                 tools_file_name = "tools_stage1.json"
             elif assistant_str in ["3"]:
                 tools_file_name = "tools_stage2.json"
-            elif assistant_str in ["4"]:
+            elif assistant_str in ["4", "5"]:
                 tools_file_name = "tools_stage3.json"
-            elif assistant_str in ["5"]:
-                tools_file_name = "tools_stage0.json"
+            elif assistant_str in ["20"]:
+                tools_file_name = "tools_bm2025.json"
             else:
                 tools_file_name = "default_tools.json"
 
-            # Cargar el archivo de herramientas correspondiente
+        # Cargar el archivo de herramientas correspondiente
             tools_file_path = os.path.join(os.path.dirname(__file__), tools_file_name)
             with open(tools_file_path, "r", encoding="utf-8") as tools_file:
                 tools_anthropic_format = json.load(tools_file)
@@ -1337,11 +1381,17 @@ def generate_response_openai(
             # Convertir herramientas al formato de OpenAI Function Calling
             tools_openai_format = []
             for tool in tools_anthropic_format:
+                parameters = tool.get("parameters", tool.get("input_schema", {}))
+                
+                # Agregar additionalProperties: false para cumplir con OpenAI
+                if isinstance(parameters, dict) and parameters.get("type") == "object":
+                    parameters["additionalProperties"] = False
+                
                 openai_tool = {
                     "type": "function",
                     "name": tool["name"],
                     "description": tool["description"],
-                    "parameters": tool.get("parameters", tool.get("input_schema", {})),
+                    "parameters": parameters,
                     "strict": tool.get("strict", True)
                 }
                 tools_openai_format.append(openai_tool)
@@ -1367,47 +1417,32 @@ def generate_response_openai(
                 else:
                     logger.debug(f"Mensaje {i} - Tipo: {type(msg)} - Valor: {msg}")
 
-            # Preparar los mensajes para la nueva API
+            # Preparar input para la API
+            last_response_output_items = conversations[thread_id].get("last_response_output_items")
             input_messages = []
-
-            # Agregar mensajes de la conversación
-            for i, msg in enumerate(conversation_history):
-                # Validar que msg sea un diccionario
-                if not isinstance(msg, dict):
-                    logger.warning(f"Mensaje {i} no es un diccionario, ignorando: {type(msg)}")
-                    continue
-
-                # Verificar si el mensaje tiene 'role' (mensajes normales)
-                if "role" in msg:
-                    if msg["role"] == "user":
-                        input_messages.append({
-                            "role": "user",
-                            "content": [{"type": "input_text", "text": msg["content"]}]
-                        })
-                    elif msg["role"] == "assistant":
-                        assistant_input = {
-                            "role": "assistant",
-                            "content": [{"type": "output_text", "text": msg["content"]}]
-                        }
-                        # Solo agregar IDs válidos que empiecen con 'msg_'
-                        if "id" in msg and msg["id"] and msg["id"].startswith("msg_"):
-                            assistant_input["id"] = msg["id"]
-
-                        input_messages.append(assistant_input)
-
-                # Verificar si el mensaje tiene 'type' (function calls y outputs)
-                elif "type" in msg:
-                    if msg["type"] == "function_call":
-                        # Agregar function calls directamente
-                        input_messages.append(msg)
-                    elif msg["type"] == "function_call_output":
-                        # Agregar function call outputs directamente
-                        input_messages.append(msg)
-
-                # Si no tiene ni 'role' ni 'type', ignorar el mensaje y log warning
-                else:
-                    logger.warning(f"Mensaje {i} sin 'role' ni 'type' ignorado: {msg}")
-                    continue
+            use_previous_response_id = None
+            
+            if last_response_output_items and len(conversation_history) > 1:
+                # Conversación existente con function calls - incluir todos los output items desde la última respuesta
+                logger.info("🔄 Conversación existente - incluyendo %d output items previos", 
+                          len(last_response_output_items))
+                
+                # Convertir los output items a formato input
+                for item in last_response_output_items:
+                    input_messages.append(item)
+                
+                # Agregar el nuevo mensaje del usuario
+                input_messages.append({
+                    "role": "user", 
+                    "content": message
+                })
+            else:
+                # Conversación nueva - usar el mensaje actual solamente
+                logger.info("🆕 Nueva conversación, solo mensaje del usuario")
+                input_messages.append({
+                    "role": "user",
+                    "content": message
+                })
 
             # Variable para seguir track de llamadas a herramientas
             call_counter = 0
@@ -1416,22 +1451,37 @@ def generate_response_openai(
             while call_counter < max_iterations:
                 try:
                     # Llamar a la API en el nuevo formato
-                    logger.info("🚨PAYLOAD OPENAI: %s", conversation_history)
+                    logger.info("🚨PAYLOAD OPENAI: %s", input_messages)
 
-                    response = client.responses.create(
-                        model=llmID,
-                        instructions=assistant_content_text,
-                        input=input_messages,
-                        tools=tools,
-                        temperature=0.7,
-                        max_output_tokens=2000,
-                        top_p=1,
-                        store=True
-                    )
-                    logger.info("✅RESPUESTA OPENAI: %s", response)
+                    # Preparar parámetros de la API
+                    api_params = {
+                        "model": llmID,
+                        "instructions": assistant_content_text,
+                        "input": input_messages,
+                        "tools": tools,
+                        "reasoning": {
+                            "effort": "low"
+                        },
+                        "text": {
+                            "verbosity": "low"
+                        },
+                        "max_output_tokens": 1000,
+                        "top_p": 1,
+                        "store": True
+                    }
+                    
+                    # No necesitamos previous_response_id ya que incluimos los output items directamente
+
+                    response = client.responses.create(**api_params)
+
                     # Imprimir la estructura completa para debug
-                    #print("✅RESPUESTA RAW OPENAI: %s", response.output)
-                    print("💰💰 TOKENIZACION: %s", response.usage)  # Deshabilitado
+                    logger.info("✅RESPUESTA RAW OPENAI: %s", response.output)
+                    logger.info("💰💰 TOKENIZACION: %s", response.usage)
+                    
+                    # Almacenar response.id para usar en siguientes conversaciones
+                    response_id = getattr(response, 'id', None)
+                    if response_id:
+                        logger.info("📝 Response ID almacenado: %s", response_id)
 
                     # Extraer y almacenar información de tokens
                     if hasattr(response, 'usage'):
@@ -1478,7 +1528,7 @@ def generate_response_openai(
                                     for content_item in output_item.content:
                                         if hasattr(content_item, 'type') and content_item.type == 'output_text':
                                             assistant_response_text = content_item.text
-                                            #logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
+                                            logger.info("Respuesta de texto encontrada: %s", assistant_response_text)
                                             break
 
                                 # Caso 2: La respuesta es una llamada a función
@@ -1523,18 +1573,33 @@ def generate_response_openai(
                                         conversation_history.append(function_call_entry)
                                         conversation_history.append(function_output_entry)
 
-                                        # Preparar entrada para la siguiente iteración
-                                        input_messages.append(function_call_entry)
-                                        input_messages.append(function_output_entry)
+                                        # Preparar entrada para continue_response incluyendo TODOS los output items de response actual
+                                        continue_input_messages = []
+                                        
+                                        # Incluir todos los output items de la respuesta actual
+                                        if hasattr(response, 'output'):
+                                            for item in response.output:
+                                                continue_input_messages.append(item)
+                                        
+                                        # Agregar el function_call_output que acabamos de crear
+                                        continue_input_messages.append(function_output_entry)
+                                        
+                                        logger.info("🔄 Continue input preparado con %d items", len(continue_input_messages))
 
                                         # Solicitar continuación de la conversación después de la llamada a la función
                                         continue_response = client.responses.create(
                                             model=llmID,
                                             instructions=assistant_content_text,
-                                            input=input_messages,
+                                            input=continue_input_messages,
                                             tools=tools,
-                                            temperature=0.7,
-                                            max_output_tokens=2000,
+                                            #temperature=0.7,
+                                             reasoning={
+        "effort": "minimal"
+    },
+                                            text={
+        "verbosity": "low"
+    },
+                                            max_output_tokens=1000,
                                             top_p=1,
                                             store=True
                                         )
@@ -1603,6 +1668,12 @@ def generate_response_openai(
                                                 final_message["id"] = continue_message_id
 
                                             conversation_history.append(final_message)
+                                            
+                                            # Almacenar todos los output items del continue_response para próximas conversaciones
+                                            if hasattr(continue_response, 'output'):
+                                                conversations[thread_id]["last_response_output_items"] = continue_response.output
+                                                logger.info("📦 Almacenados %d output items del continue_response para thread_id: %s", 
+                                                          len(continue_response.output), thread_id)
 
                                             # IMPORTANTE: Salir del bucle while aquí
                                             logger.info("Respuesta final obtenida después de llamada a función, saliendo del bucle")
@@ -1642,6 +1713,14 @@ def generate_response_openai(
 
                         conversations[thread_id]["response"] = assistant_response_text
                         conversations[thread_id]["status"] = "completed"
+                        # Almacenar response_id para próximas requests
+                        if response_id:
+                            conversations[thread_id]["last_response_id"] = response_id
+                        # Almacenar todos los output items (incluyendo reasoning items)
+                        if hasattr(response, 'output'):
+                            conversations[thread_id]["last_response_output_items"] = response.output
+                            logger.info("📦 Almacenados %d output items para thread_id: %s", 
+                                      len(response.output), thread_id)
                         conversation_history.append(assistant_message)
                         break
 
@@ -1722,9 +1801,11 @@ def generate_response_openai(
         finally:
             event.set()
             elapsed_time = time.time() - start_time
-            print(f"⏰ Respuesta generada en {elapsed_time:.1f}s")  # Info importante como print
+            logger.info("⏰Generación completada en %.2f segundos para thread_id: %s", elapsed_time, thread_id)
             logger.debug("Evento establecido para thread_id (OpenAI): %s", thread_id)
-            #logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
+            logger.info("Liberando lock para thread_id (OpenAI): %s", thread_id)
+
+# OpenAI function replacement completed successfully
 
 def generate_response_gemini(
     message,
@@ -1732,7 +1813,10 @@ def generate_response_gemini(
     thread_id,
     event,
     subscriber_id,
-    llmID=None):
+    llmID=None,
+    cost_base_input=0.50,
+    cost_cache_read=0.125,
+    cost_output=3.0):
     if not llmID:
         llmID = "gemini-3-flash-preview"  # Modelo más reciente de Gemini
         
@@ -1767,8 +1851,8 @@ def generate_response_gemini(
                 parts=[genai_types.Part.from_text(text=message)]
             )
             conversation_history.append(user_message)
-            #logger.info("HISTORIAL CONVERSACION GEMINI: %s",
-                        #conversation_history)
+            logger.info("HISTORIAL CONVERSACION GEMINI: %s",
+                        conversation_history)
 
             
             assistant_value = conversations[thread_id].get("assistant")
@@ -1819,6 +1903,8 @@ def generate_response_gemini(
                 "eleccion_forma_pago": eleccion_forma_pago,
                 "facturacion_electronica": facturacion_electronica,
                 "pqrs": pqrs,
+                "reserva_mesa":reserva_mesa,
+                "enviar_ubicacion":enviar_ubicacion,
             }
 
             # Prepare historial normalizado para Gemini
@@ -1933,41 +2019,52 @@ def generate_response_gemini(
                         )
                         # Si llegamos aquí, la llamada fue exitosa
                         break
+
                     except Exception as api_error:
                         error_str = str(api_error)
-                        # Verificar si es un error 500 (interno) o 503 (servicio no disponible)
-                        if "500" in error_str or "503" in error_str or "INTERNAL" in error_str:
-                            if attempt < max_retries - 1:
-                                logger.warning(
-                                    "⚠️ Error temporal de Gemini (intento %d/%d): %s. Reintentando en %d segundos...",
-                                    attempt + 1, max_retries, error_str, retry_delay
-                                )
-                                time.sleep(retry_delay)
-                                retry_delay *= 2  # Exponential backoff
-                            else:
-                                logger.error("❌ Error de Gemini después de %d intentos: %s", max_retries, error_str)
-                                raise  # Re-lanzar la excepción después de agotar reintentos
+                        # Verificar si es un error 500 (INTERNAL)
+                        is_500_error = "500" in error_str or "INTERNAL" in error_str.upper()
+
+                        if is_500_error and attempt < max_retries - 1:
+                            logger.warning(
+                                "⚠️ Error 500 de Gemini (intento %d/%d): %s. Reintentando en %d segundos...",
+                                attempt + 1, max_retries, error_str, retry_delay
+                            )
+                            time.sleep(retry_delay)
+                            retry_delay *= 2  # Backoff exponencial
                         else:
-                            # Para otros errores, no reintentar
-                            raise
+                            # No es error 500 o se agotaron los reintentos
+                            logger.error(
+                                "❌ Error de Gemini después de %d intentos: %s",
+                                attempt + 1, error_str
+                            )
+                            raise  # Re-lanzar la excepción para que la maneje el bloque except principal
 
                 if response_gemini is None:
-                    raise Exception("No se pudo obtener respuesta de Gemini después de reintentos")
+                    raise Exception("No se pudo obtener respuesta de Gemini después de todos los reintentos")
 
                 logger.info("📢RESPUESTA RAW GEMINI: %s", response_gemini)
 
+                # Capturar finish_reason de Gemini
+                if response_gemini.candidates and len(response_gemini.candidates) > 0:
+                    finish_reason = response_gemini.candidates[0].finish_reason
+                    conversations[thread_id]["finish_reason"] = str(finish_reason) if finish_reason else None
+                    logger.info("📦 finish_reason Gemini: %s", finish_reason)
+
                 # Capturar información de tokens
                 if response_gemini.usage_metadata:
-                    # Capturar información de tokens según el mapeo solicitado
+                    # Mapeo correcto de tokens de Gemini:
+                    # - prompt_token_count = tokens de entrada (INPUT)
+                    # - candidates_token_count = tokens de salida (OUTPUT)
+                    # - cached_content_token_count = tokens leídos de cache
+                    cached_tokens = response_gemini.usage_metadata.cached_content_token_count or 0
                     usage = {
                         "input_tokens":
-                        response_gemini.usage_metadata.total_token_count,
+                        response_gemini.usage_metadata.prompt_token_count,
                         "output_tokens":
                         response_gemini.usage_metadata.candidates_token_count,
-                        "cache_creation_input_tokens":
-                        response_gemini.usage_metadata.prompt_token_count,
-                        "cache_read_input_tokens":
-                        response_gemini.usage_metadata.cached_content_token_count,
+                        "cache_creation_input_tokens": 0,  # Gemini no tiene este concepto
+                        "cache_read_input_tokens": cached_tokens,
                     }
 
                     # Almacenar en la conversación
@@ -1981,6 +2078,40 @@ def generate_response_gemini(
                     cache_read_tokens_log = usage.get("cache_read_input_tokens", 0) if usage.get("cache_read_input_tokens") is not None else 0
                     # --- FIN DE MODIFICACIÓN ---
 
+                    # Calcular costos del turno actual (en USD)
+                    def calculate_costs(tokens, cost_per_mtok):
+                        return (tokens / 1_000_000) * cost_per_mtok
+
+                    current_cost_input = calculate_costs(input_tokens_log, cost_base_input)
+                    current_cost_output = calculate_costs(output_tokens_log, cost_output)
+                    current_cost_cache_read = calculate_costs(cache_read_tokens_log, cost_cache_read)
+                    current_total_cost = current_cost_input + current_cost_output + current_cost_cache_read
+
+                    # Inicializar costos acumulativos si no existen
+                    if "total_costs" not in conversations[thread_id]:
+                        conversations[thread_id]["total_costs"] = {
+                            "total_cost_input": 0.0,
+                            "total_cost_output": 0.0,
+                            "total_cost_cache_creation": 0.0,
+                            "total_cost_cache_read": 0.0,
+                            "total_cost_all": 0.0
+                        }
+
+                    # Acumular costos
+                    conversations[thread_id]["total_costs"]["total_cost_input"] += current_cost_input
+                    conversations[thread_id]["total_costs"]["total_cost_output"] += current_cost_output
+                    conversations[thread_id]["total_costs"]["total_cost_cache_read"] += current_cost_cache_read
+                    conversations[thread_id]["total_costs"]["total_cost_all"] += current_total_cost
+
+                    # Almacenar costos del turno actual para el endpoint
+                    conversations[thread_id]["current_turn_costs"] = {
+                        "current_cost_input": current_cost_input,
+                        "current_cost_output": current_cost_output,
+                        "current_cost_cache_creation": 0.0,  # Gemini no tiene cache creation separado
+                        "current_cost_cache_read": current_cost_cache_read,
+                        "current_total_cost": current_total_cost
+                    }
+
                     # Registrar en logs
                     logger.info("Tokens utilizados - Input: %d, Output: %d",
                                 input_tokens_log, output_tokens_log)
@@ -1988,12 +2119,8 @@ def generate_response_gemini(
                                 cache_creation_tokens_log)
                     logger.info("Cache Read Input Tokens: %d",
                                 cache_read_tokens_log)
-
-                # Capturar finish_reason SIEMPRE que haya candidates (incluso si content está vacío)
-                if response_gemini.candidates:
-                    finish_reason_raw = response_gemini.candidates[0].finish_reason
-                    conversations[thread_id]["finish_reason"] = str(finish_reason_raw) if finish_reason_raw else None
-                    logger.info("📢 FINISH_REASON GEMINI: %s", conversations[thread_id]["finish_reason"])
+                    logger.info("Costo turno actual (Gemini) - Input: $%.6f, Output: $%.6f, Cache Read: $%.6f, Total: $%.6f",
+                                current_cost_input, current_cost_output, current_cost_cache_read, current_total_cost)
 
                 if response_gemini.candidates and response_gemini.candidates[
                         0].content.parts:
@@ -2077,8 +2204,9 @@ def generate_response_gemini(
                         conversation_history.append(response_content)
                         break  # Exit loop for final text response
                 else:
-                    conversations[thread_id]["response"] = ""
-                    conversations[thread_id]["status"] = "completed"
+                    conversations[thread_id][
+                        "response"] = "Respuesta vacía del modelo Gemini"
+                    conversations[thread_id]["status"] = "error"
                     logger.warning(
                         "Respuesta vacía del modelo Gemini para thread_id: %s",
                         thread_id)
@@ -2097,13 +2225,15 @@ def generate_response_gemini(
             logger.info("Liberando lock para thread_id (Gemini): %s",
                         thread_id)
             # Lock is automatically released when exiting 'with' block
-   
+
+
 @app.route('/sendmensaje', methods=['POST'])
 def send_message():
     logger.info("Endpoint /sendmensaje llamado")
     data = request.json
 
     # Extraer parámetros principales
+    api_key = data.get('api_key')
     message = data.get('message')
     assistant_value = data.get('assistant')
     thread_id = data.get('thread_id')
@@ -2112,15 +2242,26 @@ def send_message():
     modelID = data.get('modelID', '').lower()
     telefono = data.get('telefono')
     direccionCliente = data.get('direccionCliente')
-    use_cache_control = data.get('use_cache_control', False)
+    # Cache control siempre habilitado internamente - no depende del request
+    use_cache_control = True
     llmID = data.get('llmID')
+    
+    # Parámetros de costo (precios por millón de tokens - MTok)
+    cost_base_input = data.get('cost_base_input', 3.0)  # Claude Sonnet 4: $3/MTok
+    cost_cache_write_5m = data.get('cost_cache_write_5m', 3.75)  # $3.75/MTok (TTL por defecto)
+    cost_cache_write_1h = data.get('cost_cache_write_1h', 6.0)   # $6/MTok  
+    cost_cache_read = data.get('cost_cache_read', 0.30)  # $0.30/MTok
+    cost_output = data.get('cost_output', 15.0)  # $15/MTok
 
     logger.info("MENSAJE CLIENTE: %s", message)
     # Extraer variables adicionales para sustitución
     variables = data.copy()
     keys_to_remove = [
-        'message', 'assistant', 'thread_id', 'subscriber_id',
-        'thinking', 'modelID', 'direccionCliente', 'use_cache_control'
+        'api_key', 'message', 'assistant', 'thread_id', 'subscriber_id',
+        'thinking', 'modelID', 'direccionCliente', 'llmID',
+        'cost_base_input', 'cost_cache_write_5m', 'cost_cache_write_1h',
+        'cost_cache_read', 'cost_output',
+        'gemini_cost_input', 'gemini_cost_cache_read', 'gemini_cost_output'
     ]
     for key in keys_to_remove:
         variables.pop(key, None)
@@ -2190,60 +2331,210 @@ def send_message():
         logger.info("Nueva conversación creada: %s", thread_id)
     else:
         conversations[thread_id].update({
-            "assistant": assistant_value or conversations[thread_id]["assistant"],
-            "thinking": thinking,
-            "telefono": telefono,
-            "direccionCliente": direccionCliente,
-            "last_activity": time.time()  # Actualizar timestamp
+            "assistant":
+            assistant_value or conversations[thread_id]["assistant"],
+            "thinking":
+            thinking,
+            "telefono":
+            telefono,
+            "direccionCliente":
+            direccionCliente,
+            "last_activity":
+            time.time()  # Actualizar timestamp
         })
 
     # --- Asegurar que haya un lock para este thread_id ---
     if thread_id not in thread_locks:
         thread_locks[thread_id] = threading.Lock()
         logger.info("Lock creado para thread_id: %s", thread_id)
+    else:
+        if thread_locks[thread_id].locked() and ANTHROPIC_DEBUG:
+            logger.info("🔒 Lock ocupado (endpoint) para thread_id: %s", thread_id)
 
     # Crear y ejecutar hilo según el modelo
     event = Event()
 
     try:
-        if modelID == 'llmO3':
-            thread = Thread(target=generate_response_openai_o3,
-                           args=(message, assistant_content,
-                                thread_id, event, subscriber_id, llmID))
-            logger.info("Ejecutando LLM2 para thread_id: %s", thread_id)
+        if modelID == 'deepseek':
+            thread = Thread(target=generate_response_deepseek,
+                            args=(api_key, message, assistant_content,
+                                  thread_id, event, subscriber_id,
+                                  data.get('modelId', 'deepseek-chat')))
+            logger.info("Ejecutando Deepseek para thread_id: %s", thread_id)
 
         elif modelID == 'gemini':
+            # Costos de Gemini 2.0 Flash (USD por millón de tokens)
+            gemini_cost_input = data.get('gemini_cost_input', 0.50)  # $0.50/MTok input
+            gemini_cost_cache_read = data.get('gemini_cost_cache_read', 0.125)  # $0.125/MTok cached (25% del input)
+            gemini_cost_output = data.get('gemini_cost_output', 3.0)  # $3.00/MTok output
             thread = Thread(target=generate_response_gemini,
-                            args=(message, assistant_content,
-                                  thread_id, event, subscriber_id, llmID))
+                            args=(message, assistant_content, thread_id, event,
+                                  subscriber_id, llmID, gemini_cost_input,
+                                  gemini_cost_cache_read, gemini_cost_output))
             logger.info("Ejecutando Gemini para thread_id: %s", thread_id)
 
         elif modelID == 'llm':
             thread = Thread(target=generate_response_openai,
-                            args=(message, assistant_content,
-                                  thread_id, event, subscriber_id, llmID))
+                            args=(message, assistant_content, thread_id, event,
+                                  subscriber_id, llmID, cost_base_input, 
+                                  cost_cache_read, cost_output))
             logger.info("Ejecutando LLM para thread_id: %s", thread_id)
 
         else:  # Default to Anthropic
-            anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-            if not anthropic_api_key:
-                logger.error("API key de Anthropic no configurada en .env")
-                return jsonify({"error": "Configuración del servidor incompleta - ANTHROPIC_API_KEY"}), 500
             thread = Thread(target=generate_response,
-                            args=(anthropic_api_key, message, assistant_content,
+                            args=(api_key, message, assistant_content,
                                   thread_id, event, subscriber_id,
-                                  use_cache_control, llmID))
+                                  use_cache_control, llmID,
+                                  cost_base_input, cost_cache_write_5m,
+                                  cost_cache_read, cost_output))
             logger.info("Ejecutando Anthropic para thread_id: %s", thread_id)
 
         thread.start()
-        event.wait(timeout=60)
+
+        # Sistema de timeout con un solo período de espera de 140s
+        initial_timeout = 140
+        retry_timeout = 10  # Conservado por compatibilidad, no se usa con heartbeat
+        max_retries = 0
+        start_timeout = time.time()
+
+        # Variables para diagnóstico detallado
+        timeout_diagnostics = {
+            "thread_alive": thread.is_alive(),
+            "initial_timeout_reached": False,
+            "retries_attempted": 0,
+            "total_wait_time": 0,
+            "thread_status": "running",
+            "conversation_status": conversations[thread_id].get("status", "processing")
+        }
+
+        # Espera con heartbeat cada 10s hasta initial_timeout
+        poll_interval = 10
+        elapsed = 0
+        if ANTHROPIC_DEBUG:
+            logger.info("⏳ Iniciando espera con latidos (hasta %ds) para thread_id: %s", initial_timeout, thread_id)
+        while elapsed < initial_timeout:
+            remaining = initial_timeout - elapsed
+            if event.wait(timeout=min(poll_interval, remaining)):
+                break
+            elapsed += poll_interval
+            timeout_diagnostics["thread_alive"] = thread.is_alive()
+            timeout_diagnostics["conversation_status"] = conversations[thread_id].get("status", "processing")
+            if ANTHROPIC_DEBUG:
+                logger.info(
+                    "⏳ Esperando respuesta (%ds/%ds) | thread_alive=%s | status=%s",
+                    elapsed, initial_timeout, timeout_diagnostics["thread_alive"], timeout_diagnostics["conversation_status"],
+                )
+
+        # Si no se completó dentro del tiempo, construir diagnóstico y error
+        if not event.is_set():
+            timeout_diagnostics["initial_timeout_reached"] = True
+            timeout_diagnostics["thread_alive_after_initial"] = thread.is_alive()
+            end_timeout = time.time()
+            timeout_diagnostics["total_wait_time"] = end_timeout - start_timeout
+            timeout_diagnostics["thread_alive_final"] = thread.is_alive()
+            timeout_diagnostics["final_conversation_status"] = conversations[thread_id].get("status", "unknown")
+
+            # Determinar causa específica del timeout
+            failure_reasons = []
+            if timeout_diagnostics["thread_alive_final"]:
+                failure_reasons.append("Hilo de ejecución aún activo pero no responde")
+            else:
+                failure_reasons.append("Hilo de ejecución terminado sin completar")
+
+            if conversations[thread_id].get("status") == "error":
+                failure_reasons.append("Error interno en generate_response()")
+            elif conversations[thread_id].get("status") == "processing":
+                failure_reasons.append("API de Anthropic no responde")
+
+            if timeout_diagnostics["total_wait_time"] >= initial_timeout:
+                failure_reasons.append("Timeout total excedido (140+ segundos)")
+
+            # Crear mensaje de error detallado
+            failure_detail = "; ".join(failure_reasons) if failure_reasons else "Causa desconocida"
+            detailed_error = f"error API anthropic: Timeout - {failure_detail} | Diagnóstico: {timeout_diagnostics}"
+
+            logger.error(
+                f"Timeout definitivo tras {max_retries} reintentos para thread_id: {thread_id}. Diagnóstico: {timeout_diagnostics}")
+            conversations[thread_id]["response"] = detailed_error
+            conversations[thread_id]["status"] = "error"
+            conversations[thread_id]["timeout_diagnostics"] = timeout_diagnostics
 
         # Preparar respuesta final
         response_data = {
             "thread_id": thread_id,
-            "usage": conversations[thread_id].get("usage"),
-            "finish_reason": conversations[thread_id].get("finish_reason")
+            "usage": conversations[thread_id].get("usage")
         }
+        
+        # Agregar estadísticas de cache al usage si existen
+        if "cache_stats" in conversations[thread_id]:
+            cache_stats = conversations[thread_id]["cache_stats"]
+            if "usage" in response_data and response_data["usage"]:
+                response_data["usage"].update({
+                    "cache_blocks_used": cache_stats.get("bloques_usados", 0),
+                    "cache_blocks_max": cache_stats.get("maximo_permitido", 4),
+                    "tools_cache_status": cache_stats.get("tools_cache", "no_applied"),
+                    "system_cache_status": cache_stats.get("system_cache", "no_applied"),
+                    "tools_cache_tokens": cache_stats.get("tools_tokens", 0),
+                    "system_cache_tokens": cache_stats.get("system_tokens", 0),
+                    "combined_cache_tokens": cache_stats.get("tools_tokens", 0) + cache_stats.get("system_tokens", 0),
+                    "cache_reset": cache_stats.get("cache_reset", False),
+                    "cache_ttl_remaining_seconds": cache_stats.get("cache_ttl_remaining_seconds", 0)
+                })
+        
+        # Agregar totales acumulativos del thread si existen
+        if "total_usage" in conversations[thread_id]:
+            total_usage = conversations[thread_id]["total_usage"]
+            if "usage" in response_data and response_data["usage"]:
+                response_data["usage"].update({
+                    "thread_total_input_tokens": total_usage.get("total_input_tokens", 0),
+                    "thread_total_output_tokens": total_usage.get("total_output_tokens", 0),
+                    "thread_total_cache_creation_tokens": total_usage.get("total_cache_creation_tokens", 0),
+                    "thread_total_cache_read_tokens": total_usage.get("total_cache_read_tokens", 0),
+                    "thread_total_all_tokens": (
+                        total_usage.get("total_input_tokens", 0) + 
+                        total_usage.get("total_output_tokens", 0) + 
+                        total_usage.get("total_cache_creation_tokens", 0) + 
+                        total_usage.get("total_cache_read_tokens", 0)
+                    )
+                })
+        
+        # Agregar costos del turno actual y totales acumulativos si existen
+        if "total_costs" in conversations[thread_id]:
+            total_costs = conversations[thread_id]["total_costs"]
+            if "usage" in response_data and response_data["usage"]:
+                # Usar costos pre-calculados si existen (Gemini), o calcularlos (Anthropic/OpenAI)
+                if "current_turn_costs" in conversations[thread_id]:
+                    # Usar costos ya calculados en la función generate_response_*
+                    turn_costs = conversations[thread_id]["current_turn_costs"]
+                    current_cost_input = turn_costs.get("current_cost_input", 0)
+                    current_cost_output = turn_costs.get("current_cost_output", 0)
+                    current_cost_cache_creation = turn_costs.get("current_cost_cache_creation", 0)
+                    current_cost_cache_read = turn_costs.get("current_cost_cache_read", 0)
+                    current_total_cost = turn_costs.get("current_total_cost", 0)
+                else:
+                    # Calcular costos del turno actual (Anthropic/OpenAI)
+                    current_usage = response_data["usage"]
+                    current_cost_input = (current_usage.get("input_tokens", 0) / 1_000_000) * cost_base_input
+                    current_cost_output = (current_usage.get("output_tokens", 0) / 1_000_000) * cost_output
+                    current_cost_cache_creation = (current_usage.get("cache_creation_input_tokens", 0) / 1_000_000) * cost_cache_write_5m
+                    current_cost_cache_read = (current_usage.get("cache_read_input_tokens", 0) / 1_000_000) * cost_cache_read
+                    current_total_cost = current_cost_input + current_cost_output + current_cost_cache_creation + current_cost_cache_read
+
+                response_data["usage"].update({
+                    # Costos del turno actual (USD)
+                    "current_cost_input_usd": round(current_cost_input, 6),
+                    "current_cost_output_usd": round(current_cost_output, 6),
+                    "current_cost_cache_creation_usd": round(current_cost_cache_creation, 6),
+                    "current_cost_cache_read_usd": round(current_cost_cache_read, 6),
+                    "current_total_cost_usd": round(current_total_cost, 6),
+
+                    # Costos acumulativos del thread (USD)
+                    "thread_total_cost_input_usd": round(total_costs.get("total_cost_input", 0), 6),
+                    "thread_total_cost_output_usd": round(total_costs.get("total_cost_output", 0), 6),
+                    "thread_total_cost_cache_creation_usd": round(total_costs.get("total_cost_cache_creation", 0), 6),
+                    "thread_total_cost_cache_read_usd": round(total_costs.get("total_cost_cache_read", 0), 6),
+                    "thread_total_cost_all_usd": round(total_costs.get("total_cost_all", 0), 6)
+                })
 
         if conversations[thread_id]["status"] == "completed":
             original_response = conversations[thread_id]["response"]
@@ -2259,8 +2550,15 @@ def send_message():
             response_data["razonamiento"] = conversations[thread_id].get(
                 "razonamiento", "")
 
+        elif conversations[thread_id]["status"] == "error":
+            # Enviar el error tal como lo devuelve la API, no "Procesando..."
+            response_data["response"] = conversations[thread_id]["response"]
         else:
             response_data["response"] = "Procesando..."
+
+        # Agregar finish_reason si existe (Gemini)
+        if "finish_reason" in conversations[thread_id]:
+            response_data["finish_reason"] = conversations[thread_id]["finish_reason"]
 
         return jsonify(response_data)
 
@@ -2270,7 +2568,6 @@ def send_message():
             "error": "Error interno del servidor",
             "details": str(e)
         }), 500
-
 
 
 @app.route('/extract', methods=['POST'])
@@ -2346,127 +2643,6 @@ def letra_nombre():
 
     # Devolver las imágenes en formato JSON
     return jsonify(imagenes)
-
-
-@app.route('/time', methods=['POST'])
-def convert_time():
-    logger.info("Endpoint /time llamado")
-    data = request.json
-    input_time = data.get('datetime')
-
-    if not input_time:
-        logger.warning("Falta el parámetro 'datetime'")
-        return jsonify({"error": "Falta el parámetro 'datetime'"}), 400
-
-    try:
-        local_time = datetime.fromisoformat(input_time)
-        utc_time = local_time.astimezone(pytz.utc)
-        new_time = utc_time + timedelta(hours=1)
-        new_time_str = new_time.strftime('%Y-%m-%dT%H:%M:%SZ')
-        result = {"original": input_time, "converted": new_time_str}
-        logger.info("Tiempo convertido: %s", result)
-        return jsonify(result)
-    except Exception as e:
-        logger.exception("Error al convertir el tiempo: %s", e)
-        return jsonify({"error": str(e)}), 400
-
-
-# Agrega el nuevo endpoint /upload
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    logger.info("Endpoint /upload llamado")
-    data = request.json
-    url = data.get('url')
-    is_shared = data.get('is_shared',
-                         True)  # Por defecto, true si no se proporciona
-    targetable_id = data.get('targetable_id')
-    targetable_type = data.get('targetable_type')
-    name = data.get('name', 'file')  # Nombre por defecto si no se proporciona
-
-    # Verificar que los parámetros necesarios estén presentes
-    if not url or not targetable_id or not targetable_type:
-        logger.warning("Faltan parámetros requeridos en /upload")
-        return jsonify({
-            "error":
-            "Faltan parámetros requeridos (url, targetable_id, targetable_type)"
-        }), 400
-
-    # Descargar el archivo desde la URL
-    logger.info("Descargando archivo desde URL: %s", url)
-    response = requests.get(url)
-    if response.status_code == 200:
-        file_content = response.content
-        logger.info("Archivo descargado exitosamente")
-    else:
-        logger.error(
-            "No se pudo descargar el archivo desde la URL, status_code: %s",
-            response.status_code)
-        return jsonify({
-            "error": "No se pudo descargar el archivo desde la URL",
-            "status_code": response.status_code
-        }), 400
-
-    # Obtener la clave API y la URL base de Freshsales desde variables de entorno
-    FRESHSALES_API_KEY = os.environ.get('FRESHSALES_API_KEY',
-                                        "TU_FRESHSALES_API_KEY_AQUI")
-    FRESHSALES_BASE_URL = os.environ.get(
-        'FRESHSALES_BASE_URL', 'https://tu_dominio.myfreshworks.com')
-
-    if not FRESHSALES_API_KEY:
-        logger.error("Falta la clave API de Freshsales")
-        return jsonify({"error": "Falta la clave API de Freshsales"}), 500
-
-    headers = {'Authorization': f'Token token={FRESHSALES_API_KEY}'}
-
-    # Asegurar que is_shared sea una cadena 'true' o 'false'
-    is_shared_str = 'true' if is_shared else 'false'
-
-    data_payload = {
-        'file_name': name,
-        'is_shared': is_shared_str,
-        'targetable_id': str(targetable_id),
-        'targetable_type': targetable_type
-    }
-    logger.debug("Payload para upload: %s", data_payload)
-
-    # Obtener el tipo de contenido del archivo
-    content_type = response.headers.get('Content-Type',
-                                        'application/octet-stream')
-
-    files = {'file': (name, file_content, content_type)}
-
-    upload_url = FRESHSALES_BASE_URL + '/crm/sales/documents'
-    logger.info("Subiendo archivo a Freshsales en URL: %s", upload_url)
-
-    upload_response = requests.post(upload_url,
-                                    headers=headers,
-                                    data=data_payload,
-                                    files=files)
-    logger.info("Respuesta de subida: %s %s", upload_response.status_code,
-                upload_response.text)
-
-    try:
-        response_json = upload_response.json()
-        logger.debug("Respuesta JSON de subida: %s", response_json)
-    except ValueError:
-        response_json = None
-        logger.warning("No se pudo parsear la respuesta de subida como JSON")
-
-    if upload_response.status_code in (200, 201):
-        # Subida exitosa
-        logger.info("Archivo subido exitosamente a Freshsales")
-        return jsonify({
-            "message": "Archivo subido exitosamente",
-            "response": response_json
-        }), upload_response.status_code
-    else:
-        # Error en la subida
-        logger.error("Error al subir el archivo a Freshsales: %s",
-                     response_json or upload_response.text)
-        return jsonify({
-            "error": "No se pudo subir el archivo",
-            "details": response_json or upload_response.text
-        }), upload_response.status_code
 
 
 @app.route('/crearactividad', methods=['POST'])
@@ -2638,138 +2814,6 @@ def crear_evento():
         return jsonify({'error': f"Ocurrió un error: {e}"}), 500
 
 
-@app.route('/leeractividades', methods=['POST'])
-def leer_actividades():
-    try:
-        # Obtener los datos del cuerpo de la solicitud
-        datos = request.get_json()
-        if not datos:
-            return jsonify(
-                {'error':
-                 'El cuerpo de la solicitud debe ser JSON válido.'}), 400
-
-        # Extraer credenciales y parámetros necesarios
-        url = datos.get('url')  # URL de la instancia de Odoo
-        db = datos.get('db')  # Nombre de la base de datos
-        username = datos.get('username')
-        password = datos.get('password')
-        res_id = datos.get('res_id')  # ID de la oportunidad (lead) a consultar
-
-        # Verificar que todos los campos obligatorios están presentes
-        campos_obligatorios = [url, db, username, password, res_id]
-        if not all(campos_obligatorios):
-            return jsonify(
-                {'error': 'Faltan campos obligatorios en la solicitud.'}), 400
-
-        # Autenticación con Odoo
-        common = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/common')
-        uid = common.authenticate(db, username, password, {})
-        if not uid:
-            return jsonify(
-                {'error':
-                 'Autenticación fallida. Verifica tus credenciales.'}), 401
-
-        # Conexión con los modelos de Odoo
-        models = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/object')
-
-        # Verificar que el lead existe
-        lead_exists = models.execute_kw(db, uid, password, 'crm.lead',
-                                        'search', [[['id', '=', res_id]]])
-        if not lead_exists:
-            return jsonify(
-                {'error': f"No se encontró el lead con ID {res_id}."}), 404
-
-        # Obtener información del lead
-        opportunity_data = models.execute_kw(db, uid, password, 'crm.lead',
-                                             'read', [res_id])
-
-        if opportunity_data and isinstance(opportunity_data, list):
-            opportunity_data = opportunity_data[0]
-
-        # Obtener los IDs de las actividades asociadas
-        activity_ids = opportunity_data.get('activity_ids', [])
-
-        # Inicializar variables para la descripción, el asesor y la etapa
-        descripcion_oportunidad = ""
-        asesor = "N/A"
-        etapa = "N/A"
-
-        # Obtener y procesar la descripción de la oportunidad
-        description_html = opportunity_data.get('description', '')
-        if description_html:
-            # Convertir HTML a texto plano usando BeautifulSoup
-            soup = BeautifulSoup(description_html, 'html.parser')
-            descripcion_oportunidad = soup.get_text(separator='\n').strip()
-
-        # Obtener el nombre del asesor desde 'create_uid'
-        create_uid = opportunity_data.get('create_uid', [0, 'N/A'])
-        if isinstance(create_uid, list) and len(create_uid) >= 2:
-            asesor = create_uid[1]
-        else:
-            asesor = "N/A"
-
-        # Obtener la etapa desde 'stage_id'
-        stage_id = opportunity_data.get('stage_id', [0, 'N/A'])
-        if isinstance(stage_id, list) and len(stage_id) >= 2:
-            etapa = stage_id[1]
-        else:
-            etapa = "N/A"
-
-        # Verificar si hay actividades asociadas
-        if activity_ids:
-            # Especificar los campos que deseas obtener de cada actividad
-            campos_actividades = [
-                'create_date', 'summary', 'note', 'date_deadline'
-            ]
-
-            # Obtener información de las actividades con campos específicos
-            activities_data = models.execute_kw(db, uid, password,
-                                                'mail.activity', 'read',
-                                                [activity_ids],
-                                                {'fields': campos_actividades})
-
-            # Procesar las actividades para consolidarlas en una sola cadena de texto
-            actividades_texto = ""
-            for actividad in activities_data:
-                fecha_creada = actividad.get('create_date', 'N/A')
-                descripcion = actividad.get('summary', 'N/A')
-                nota = actividad.get('note', 'N/A')
-                fecha_vencimiento = actividad.get('date_deadline', 'N/A')
-
-                # Formatear la información de cada actividad
-                actividad_formateada = (
-                    f"Fecha Creada: {fecha_creada}\n"
-                    f"Descripción: {descripcion}\n"
-                    f"Nota: {nota}\n"
-                    f"Fecha Vencimiento Actividad: {fecha_vencimiento}\n"
-                    f"{'-'*40}\n")
-                actividades_texto += actividad_formateada
-
-            # Crear el diccionario final con todas las actividades, descripción, asesor y etapa
-            resultado_final = {
-                "actividades":
-                actividades_texto.strip(),  # Eliminar el último salto de línea
-                "descrpcion_oportunidad": descripcion_oportunidad,
-                "asesor": asesor,
-                "etapa": etapa
-            }
-
-            return jsonify(resultado_final), 200
-        else:
-            # No hay actividades asociadas
-            resultado_final = {
-                "actividades": "",
-                "descrpcion_oportunidad": descripcion_oportunidad,
-                "asesor": asesor,
-                "etapa": etapa
-            }
-            return jsonify(resultado_final), 200
-
-    except xmlrpc.client.Fault as fault:
-        return jsonify({'error':
-                        f"Error al comunicarse con Odoo: {fault}"}), 500
-    except Exception as e:
-        return jsonify({'error': f"Ocurrió un error: {e}"}), 500
 
 @app.route('/linkpago', methods=['GET'])
 def linkpago():
@@ -2807,38 +2851,14 @@ def linkpago():
 
     try:
         # Realizar la solicitud POST al webhook de n8n original
-        response = requests.post(N8N_WEBHOOK_URL, json=data, timeout=10)
+        response = requests.post(WEBHOOK_URL_NUEVO_LINK, json=data, timeout=10)
         response.raise_for_status()
 
         logger.info(
             f"Webhook de n8n respondió con status {response.status_code}: {response.text}"
         )
 
-        # NUEVO: Envío al webhook adicional
-        # Obtener la URL del nuevo webhook desde variables de entorno
-        new_webhook_url = os.environ.get('WEBHOOK_URL_NUEVO_LINK')
-
-        if new_webhook_url:
-            # Preparar datos específicos para el nuevo webhook
-            new_data = {
-                "pedido_id": pedido_id,
-                "telefono": telefono,
-                "formato": forma,
-                "link": link
-            }
-
-            logger.info(f"Enviando datos al nuevo webhook de n8n: {new_data}")
-
-            # Realizar la solicitud POST al nuevo webhook
-            new_response = requests.post(new_webhook_url, json=new_data, timeout=10)
-            new_response.raise_for_status()
-
-            logger.info(
-                f"Nuevo webhook de n8n respondió con status {new_response.status_code}: {new_response.text}"
-            )
-        else:
-            logger.warning("N8N_NUEVO_WEBHOOK_URL no está definido en el archivo .env")
-
+        
     except requests.exceptions.RequestException as e:
         logger.error(f"Error al enviar datos a webhook de n8n: {e}")
         return jsonify({
@@ -2847,11 +2867,220 @@ def linkpago():
         }), 500
 
     # Construir la URL de redirección a Bold
-    bold_url = f"https://checkout.bold.co/payment/{link}"
+    bold_url = f"https://payco.link/{link}"
     logger.info(f"Redireccionando al usuario a: {bold_url}")
 
     # Redireccionar al usuario a la URL de Bold
     return redirect(bold_url, code=302)
+
+
+@app.route('/boton-domiciliarios', methods=['GET'])
+def boton_domiciliarios():
+    logger.info("="*60)
+    logger.info("SOLICITUD DE META/WHATSAPP - BOTON DOMICILIARIOS")
+    logger.info("="*60)
+    
+    # Log completo de toda la información de la solicitud
+    logger.info(f"Método HTTP: {request.method}")
+    logger.info(f"URL completa: {request.url}")
+    logger.info(f"URL base: {request.base_url}")
+    logger.info(f"Path: {request.path}")
+    logger.info(f"Query String: {request.query_string.decode('utf-8')}")
+    
+    # Headers de la solicitud
+    logger.info("HEADERS RECIBIDOS:")
+    for header, value in request.headers:
+        logger.info(f"  {header}: {value}")
+    
+    # Todos los parámetros de la URL
+    logger.info("PARÁMETROS DE LA URL:")
+    for key, value in request.args.items():
+        logger.info(f"  {key}: {value}")
+    
+    # Información del cliente
+    logger.info(f"IP del cliente: {request.remote_addr}")
+    logger.info(f"User-Agent: {request.user_agent}")
+    logger.info(f"Referrer: {request.referrer}")
+    logger.info(f"Host: {request.host}")
+    
+    # Extraer los dos teléfonos de la URL query parameters
+    telefono = request.args.get('telefono')  # Teléfono del cliente
+    telefono_domiciliario = request.args.get('telefono_domiciliario')
+    
+    logger.info(f"TELÉFONO CLIENTE: {telefono}")
+    logger.info(f"TELÉFONO DOMICILIARIO: {telefono_domiciliario}")
+    logger.info("="*60)
+
+    # Validar que ambos teléfonos estén presentes
+    if not telefono:
+        logger.warning("Falta el parámetro telefono en la URL /boton-domiciliarios")
+        return jsonify({
+            "error": "Falta el parámetro requerido en la URL: telefono"
+        }), 400
+        
+    if not telefono_domiciliario:
+        logger.warning("Falta el parámetro telefono_domiciliario en la URL /boton-domiciliarios")
+        return jsonify({
+            "error": "Falta el parámetro requerido en la URL: telefono_domiciliario"
+        }), 400
+
+    # Preparar los datos para enviar al webhook de n8n
+    data = {
+        "telefono": telefono,
+        "telefono_domiciliario": telefono_domiciliario,
+        "accion": "boton_domiciliarios"
+    }
+
+    logger.info(f"Enviando datos al webhook de n8n: {data}")
+
+    try:
+        # Realizar la solicitud POST al webhook de n8n
+        response = requests.post(WEBHOOK_URL_BOTON_DOMICILIARIOS, json=data, timeout=10)
+        response.raise_for_status()
+
+        logger.info(
+            f"Webhook de n8n respondió con status {response.status_code}: {response.text}"
+        )
+        
+        # Retornar página HTML con mensaje de confirmación
+        html_response = """
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Solicitud Enviada - Bandidos</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .container {
+                    background: white;
+                    border-radius: 20px;
+                    padding: 40px;
+                    text-align: center;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    max-width: 500px;
+                    animation: fadeIn 0.5s ease-in;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .logo {
+                    font-size: 60px;
+                    margin-bottom: 20px;
+                }
+                h1 {
+                    color: #333;
+                    font-size: 28px;
+                    margin-bottom: 20px;
+                }
+                .message {
+                    color: #666;
+                    font-size: 18px;
+                    line-height: 1.6;
+                    margin-bottom: 30px;
+                }
+                .signature {
+                    color: #764ba2;
+                    font-weight: bold;
+                    font-size: 20px;
+                    margin-top: 20px;
+                }
+                .check-icon {
+                    color: #4CAF50;
+                    font-size: 80px;
+                    margin-bottom: 20px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="check-icon">✓</div>
+                <h1>¡Solicitud Recibida!</h1>
+                <div class="message">
+                    En un instante te avisaremos por Whatsapp si te ha sido asignado el domicilio.
+                </div>
+                <div class="signature">
+                    Atte: BandidoS 🍔
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return html_response, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error al enviar datos a webhook de n8n: {e}")
+        
+        # Página de error
+        error_html = """
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Error - Bandidos</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .container {
+                    background: white;
+                    border-radius: 20px;
+                    padding: 40px;
+                    text-align: center;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    max-width: 500px;
+                }
+                .error-icon {
+                    color: #f5576c;
+                    font-size: 80px;
+                    margin-bottom: 20px;
+                }
+                h1 {
+                    color: #333;
+                    font-size: 28px;
+                    margin-bottom: 20px;
+                }
+                .message {
+                    color: #666;
+                    font-size: 18px;
+                    line-height: 1.6;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="error-icon">⚠️</div>
+                <h1>Oops!</h1>
+                <div class="message">
+                    No se pudo procesar la solicitud.<br>
+                    Por favor, intenta de nuevo más tarde.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return error_html, 500, {'Content-Type': 'text/html; charset=utf-8'}
+
 
 def cleanup_inactive_conversations():
     """Limpia conversaciones inactivas después de 3 horas."""
@@ -2863,18 +3092,23 @@ def cleanup_inactive_conversations():
 
     for thread_id in thread_ids:
         if "last_activity" in conversations[thread_id]:
-            if current_time - conversations[thread_id]["last_activity"] > expiration_time:
-                logger.info(f"Limpiando conversación inactiva (>3h): {thread_id}")
+            if current_time - conversations[thread_id][
+                    "last_activity"] > expiration_time:
+                logger.info(
+                    f"Limpiando conversación inactiva (>3h): {thread_id}")
                 try:
                     del conversations[thread_id]
                     if thread_id in thread_locks:
                         del thread_locks[thread_id]
                     cleaned += 1
                 except Exception as e:
-                    logger.error(f"Error al limpiar thread_id {thread_id}: {e}")
+                    logger.error(
+                        f"Error al limpiar thread_id {thread_id}: {e}")
 
     if cleaned > 0:
-        logger.info(f"Limpieza completada: {cleaned} conversaciones eliminadas")
+        logger.info(
+            f"Limpieza completada: {cleaned} conversaciones eliminadas")
+
 
 # Iniciar un hilo para ejecutar la limpieza periódica
 def start_cleanup_thread():
@@ -2893,6 +3127,26 @@ def start_cleanup_thread():
     cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
     cleanup_thread.start()
     logger.info("Hilo de limpieza iniciado")
+
+
+# ========================================
+# ENDPOINT PARA ESTADÍSTICAS DE CACHE
+# ========================================
+@app.route("/cache-stats", methods=["GET"])
+def cache_stats():
+    """Endpoint para verificar estadísticas de cache por hilo"""
+    stats = {}
+    for thread_id, conversation in conversations.items():
+        if "cache_stats" in conversation:
+            stats[thread_id] = conversation["cache_stats"]
+    
+    return jsonify({
+        "total_conversations": len(conversations),
+        "conversations_with_cache": len(stats),
+        "auto_cache_enabled": True,
+        "max_cache_blocks": 4,
+        "cache_statistics": stats
+    })
 
 # Agregar esta línea justo antes de 'if __name__ == '__main__'
 start_cleanup_thread()

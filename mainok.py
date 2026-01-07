@@ -88,9 +88,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Variable para debug de Anthropic
-ANTHROPIC_DEBUG = os.getenv("ANTHROPIC_DEBUG", "0").strip() in {"1", "true", "True", "yes", "YES"}
-
 if SEQ_SERVER_URL:
     logger.info("✅ Seq logging habilitado: %s (App: %s)", SEQ_SERVER_URL, APP_NAME)
 
@@ -122,16 +119,8 @@ class N8nAPI:
         self.eleccion_forma_pago_url =os.environ.get("N8N_ELECCION_FORMA_PAGO_WEBHOOK_URL")
         self.facturacion_electronica_url =os.environ.get("N8N_FACTURACION_ELECTRONICA_WEBHOOK_URL")
         self.pqrs_url =os.environ.get("N8N_PQRS_WEBHOOK_URL")
-        self.crear_reserva_webhook_url = os.environ.get(
-            "N8N_RESERVA_WEBHOOK_URL",
-            "https://n8niass.cocinandosonrisas.co/webhook/herramientaEnviarFormularioReservaBandidosApi"
-        )
-        self.enviar_ubicacion_webhook_url = os.environ.get(
-            "N8N_ENVIAR_UBICACION_WEBHOOK_URL",
-            "https://n8niass.cocinandosonrisas.co/webhook/herramientaEnviarUbicacionBandidosApi"
-        )
         # Puedes añadir más URLs de webhook si lo necesitas
-        logger.info("Inicializado N8nAPI con las URLs")
+        print("N8nAPI inicializado")  # Info importante como print directo
 
     def crear_pedido(self, payload):
         """Envía el pedido al webhook de n8n"""
@@ -195,23 +184,7 @@ class N8nAPI:
                     response.status_code, response.text)
         return response
 
-    def reserva_mesa(self, payload):
-        """Envía los datos para reserva de mesa al webhook de n8n"""
-        logger.debug("Enviando datos de reserva mesa a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.crear_reserva_webhook_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos de reserva_mesa: %s %s",
-                    response.status_code, response.text)
-        return response
 
-    def enviar_ubicacion(self, payload):
-        """Envía los datos de ubicación al webhook de n8n"""
-        logger.debug("Enviando datos de ubicación a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.enviar_ubicacion_webhook_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos de enviar_ubicacion: %s %s",
-                    response.status_code, response.text)
-        return response
 
     # Añade más métodos si necesitas interactuar con otros webhooks de n8n
 
@@ -560,102 +533,6 @@ def pqrs(tool_input, subscriber_id ):
         logger.exception("Error en pqrs: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
-def reserva_mesa(tool_input, subscriber_id):
-    """
-    Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
-    """
-    logger.info("Iniciando reserva_mesa con datos: %s", tool_input)
-    logger.debug("subscriber_id en reserva_mesa: %s", subscriber_id)
-
-    try:
-        n8n_api = N8nAPI()
-
-        # Construir el payload con la información del tool_input y las variables adicionales
-        payload = {
-            "response": {
-                "tool_code": "reservar_mesa",
-                "subscriber_id": subscriber_id,
-                "sede": tool_input  # Datos provenientes del LLM
-            }
-        }
-
-        logger.debug("Payload para enviar al webhook de n8n: %s", payload)
-
-        # Enviar el payload al webhook de n8n
-        response = n8n_api.reserva_mesa(payload)
-
-        # Verificar si la respuesta es exitosa
-        if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s",
-                         response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
-            result = {"error": response.text}
-        else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json(
-            ) if 'application/json' in response.headers.get(
-                'Content-Type', '') else {
-                    "message": response.text
-                }
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'formulario enviado exitosamente.')
-
-        logger.info("reserva_mesa result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
-
-    except Exception as e:
-        logger.exception("Error en reserva_mesa: %s", e)
-        return {"error": f"Error al procesar la solicitud: {str(e)}"}
-
-def enviar_ubicacion(tool_input, subscriber_id):
-    """
-    Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
-    """
-    logger.info("Iniciando enviar_ubicacion con datos: %s", tool_input)
-    logger.debug("subscriber_id en enviar_ubicacion: %s", subscriber_id)
-
-    try:
-        n8n_api = N8nAPI()
-
-        # Construir el payload con la información del tool_input y las variables adicionales
-        payload = {
-            "response": {
-                "tool_code": "enviar_ubicacion",
-                "subscriber_id": subscriber_id,
-                "sede": tool_input  # Datos provenientes del LLM
-            }
-        }
-
-        logger.debug("Payload para enviar al webhook de n8n: %s", payload)
-
-        # Enviar el payload al webhook de n8n
-        response = n8n_api.enviar_ubicacion(payload)
-
-        # Verificar si la respuesta es exitosa
-        if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s",
-                         response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
-            result = {"error": response.text}
-        else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json(
-            ) if 'application/json' in response.headers.get(
-                'Content-Type', '') else {
-                    "message": response.text
-                }
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message')
-
-        logger.info("enviar_ubicacion result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
-
-    except Exception as e:
-        logger.exception("Error en enviar_ubicacion: %s", e)
-        return {"error": f"Error al procesar la solicitud: {str(e)}"}
-
 def validate_conversation_history(history):
     """Valida que la estructura del historial sea correcta para Anthropic."""
     if not isinstance(history, list):
@@ -703,20 +580,18 @@ def get_field(item, key):
 thread_locks = {}
 
 
-def generate_response(api_key,
-                      message,
-                      assistant_content_text,
-                      thread_id,
-                      event,
-                      subscriber_id,
-                      use_cache_control,
-                      llmID=None,
-                      cost_base_input=3.0,
-                      cost_cache_write_5m=3.75,
-                      cost_cache_read=0.30,
-                      cost_output=15.0):
+def generate_response(
+    api_key,
+    message,
+    assistant_content_text,
+    thread_id,
+    event,
+    subscriber_id,
+    use_cache_control,
+    llmID=None
+    ):
     if not llmID:
-        llmID = "claude-haiku-4-5-20251001"  # Modelo por defecto
+        llmID = "claude-3-5-haiku-latest"
 
     logger.info("Intentando adquirir lock para thread_id: %s", thread_id)
     lock = thread_locks.get(thread_id)
@@ -724,10 +599,6 @@ def generate_response(api_key,
         logger.error("No se encontró lock para thread_id: %s", thread_id)
         thread_locks[thread_id] = threading.Lock()
         lock = thread_locks[thread_id]
-
-    if lock and lock.locked():
-        if ANTHROPIC_DEBUG:
-            logger.info("🔒 Lock ocupado para thread_id: %s", thread_id)
 
     with lock:
         logger.info("Lock adquirido para thread_id: %s", thread_id)
@@ -742,118 +613,12 @@ def generate_response(api_key,
 
             # Agregar el mensaje del usuario al historial
             user_message_content = {"type": "text", "text": message}
-
-            # ========================================
-            # SISTEMA AUTOMÁTICO DE CACHE MANAGEMENT
-            # ========================================
-            # Gestión inteligente de máximo 4 bloques cache por conversación
-            # Reseteo automático cada 5 minutos, priorización estratégica
-
-            cache_blocks_used = 0
-            max_cache_blocks = 4
-            current_time = time.time()
-
-            # Verificar si necesitamos resetear cache (4 min 50 seg de INACTIVIDAD = 290 segundos)
-            # Margen de seguridad de 10 segundos antes de que Anthropic expire el cache a los 5 min
-            last_activity_time = conversations[thread_id].get("last_activity", 0)
-            cache_expired_by_inactivity = (current_time - last_activity_time) > 290
-            is_new_conversation = last_activity_time == 0 or len(conversation_history) == 0
-
-            if is_new_conversation:
-                conversations[thread_id]["cache_reset"] = True
-                conversations[thread_id]["last_activity"] = current_time
-                logger.info("🔄 Cache inicial para nueva conversación thread_id: %s", thread_id)
-            elif cache_expired_by_inactivity:
-                conversations[thread_id]["cache_reset"] = True
-                conversations[thread_id]["last_activity"] = current_time
-                logger.info("🔄 Cache reseteado por inactividad para thread_id: %s (4 min 50 seg sin mensajes)", thread_id)
-            else:
-                conversations[thread_id]["cache_reset"] = False
-                conversations[thread_id]["last_activity"] = current_time  # Actualizar actividad
-                time_remaining = 290 - (current_time - last_activity_time)
-                logger.info("🔄 Cache activo para thread_id: %s (TTL restante: %.0f segundos)", thread_id, time_remaining)
-
-            # Análisis de conversación para cache inteligente
-            messages_count = len(conversation_history)
-            current_stage = conversations[thread_id].get("assistant", 0)
-            is_conversation_established = messages_count >= 3
-
-            # Determinar tokens estimados para modelos (mínimos requeridos)
-            model_cache_minimum = 2048 if "haiku" in llmID.lower() else 1024
-
-            # Función helper para estimar tokens (aproximadamente 4 caracteres = 1 token)
-            def estimate_tokens(text):
-                return len(text) // 4
-
-            # ========================================
-            # FUNCIONES DE CACHE MANAGEMENT
-            # ========================================
-            def clean_existing_cache_controls(conversation_history):
-                """Limpia cache_control existentes para implementar cache incremental"""
-                for message in conversation_history:
-                    if "content" in message and isinstance(message["content"], list):
-                        for content_item in message["content"]:
-                            if isinstance(content_item, dict) and "cache_control" in content_item:
-                                del content_item["cache_control"]
-                return conversation_history
-
-            def count_existing_cache_blocks(conversation_history):
-                """Cuenta cuántos bloques de cache están actualmente en uso"""
-                cache_count = 0
-                for message in conversation_history:
-                    if "content" in message and isinstance(message["content"], list):
-                        for content_item in message["content"]:
-                            if isinstance(content_item, dict) and "cache_control" in content_item:
-                                cache_count += 1
-                return cache_count
-
-            # Limpiar cache_control existentes SOLO cuando hay reset (nueva conversación o TTL expirado)
-            if conversations[thread_id].get("cache_reset", False):
-                conversation_history = clean_existing_cache_controls(conversation_history)
-                cache_blocks_used = 0  # Reiniciar conteo después de limpiar
-                logger.info("🧹 Cache controls existentes limpiados para thread_id: %s", thread_id)
-            else:
-                # Mantener cache existente, solo contar bloques usados
-                cache_blocks_used = count_existing_cache_blocks(conversation_history)
-                logger.info("🔄 Cache existente mantenido para thread_id: %s (%d bloques usados)", thread_id, cache_blocks_used)
-
-            # ============================================
-            # BLOQUE 1: USER MESSAGE CACHE (Prioridad 4)
-            # ============================================
-            user_message_content = {"type": "text", "text": message}
-
-            # Cachear mensaje del usuario SOLO cuando hay reset (nueva conversación o TTL expirado)
-            should_cache_user_message = False  # Por defecto NO cachear user messages
-
-            if should_cache_user_message:
+            if use_cache_control:
                 user_message_content["cache_control"] = {"type": "ephemeral"}
-                cache_blocks_used += 1
-                logger.info("💬 User message cached (bloque %d/4) para thread_id: %s (maximizando uso de cache)",
-                           cache_blocks_used, thread_id)
-            else:
-                reason = "cache reset por TTL/stage" if conversations[thread_id].get("cache_reset", False) else f"límite bloques alcanzado ({cache_blocks_used}/4)"
-                logger.info("💬 User message sin cache para thread_id: %s (%s)", thread_id, reason)
-
             conversation_history.append({
                 "role": "user",
                 "content": [user_message_content]
             })
-
-            # ============================================
-            # BLOQUE EXTRA: CACHE INCREMENTAL DEL HISTORIAL
-            # ============================================
-            # Si tenemos espacio y hay varios mensajes, cachear el último mensaje del historial
-            if cache_blocks_used < max_cache_blocks and len(conversation_history) > 1:
-                # Cachear el penúltimo mensaje (no el que acabamos de agregar)
-                previous_message = conversation_history[-2]
-                if "content" in previous_message and isinstance(previous_message["content"], list):
-                    for content_item in previous_message["content"]:
-                        if isinstance(content_item, dict) and "cache_control" not in content_item:
-                            content_item["cache_control"] = {"type": "ephemeral"}
-                            cache_blocks_used += 1
-                            logger.info("📜 Historial cached (bloque %d/4) para thread_id: %s (cache incremental)",
-                                       cache_blocks_used, thread_id)
-                            break  # Solo uno por mensaje
 
             # Cargar herramientas
             assistant_value = conversations[thread_id].get("assistant")
@@ -866,154 +631,15 @@ def generate_response(api_key,
                 tools_file_name = "tools_stage2.json"
             elif assistant_str in ["4", "5"]:
                 tools_file_name = "tools_stage3.json"
-            elif assistant_str in ["20"]:
-                tools_file_name = "tools_stage20.json"
             else:
                 tools_file_name = "default_tools.json"
 
-            tools_file_path = os.path.join(os.path.dirname(__file__),
-                                           tools_file_name)
+            tools_file_path = os.path.join(os.path.dirname(__file__), tools_file_name)
             with open(tools_file_path, "r", encoding="utf-8") as tools_file:
                 tools = json.load(tools_file)
-            logger.info("HERRAMIENTAS CARGADAS DESDE (ANTHROPIC) %s",
-                        tools_file_name)
 
-            # ========================================
-            # PREPARAR TOOLS PARA COMBINAR CON SYSTEM
-            # ========================================
-            tools_text = ""
-            tools_tokens = 0
-            if tools:
-                tools_text = f"\n\n<tools>\n{json.dumps(tools, ensure_ascii=False, indent=2)}\n</tools>\n\n"
-                tools_tokens = estimate_tokens(tools_text)
-                logger.info("🔧 Tools preparadas para combinar con system (%d tokens) para thread_id: %s",
-                           tools_tokens, thread_id)
-
-            # ========================================
-            # BLOQUE ÚNICO: TOOLS + SYSTEM CACHE (Prioridad 1)
-            # ========================================
-            # SOLO aplicar cache_control cuando hay reset (nueva conversación o TTL expirado)
-            should_apply_system_cache = conversations[thread_id].get("cache_reset", False)
-
-            if should_apply_system_cache and cache_blocks_used < max_cache_blocks:
-                # Combinar tools con system prompt para máxima eficiencia
-                combined_content = tools_text + assistant_content_text
-
-                # Separación inteligente estático/dinámico para maximizar cache hits
-                separators = ["Información del Cliente:", "<customer_info>", "Nombre del Cliente:"]
-                static_part = combined_content
-                dynamic_part = ""
-                separator_found = None
-
-                for separator in separators:
-                    if separator in combined_content:
-                        static_part = combined_content.split(separator)[0]
-                        dynamic_part = combined_content[len(static_part):]
-                        separator_found = separator
-                        break
-
-                # Verificar si la parte estática tiene suficientes tokens para cachear
-                static_tokens = estimate_tokens(static_part.strip())
-                total_tokens = estimate_tokens(combined_content)
-                combined_tokens = tools_tokens + estimate_tokens(assistant_content_text)
-
-                # Aplicar cache estratégico según contenido y tokens mínimos
-                if dynamic_part.strip() and cache_blocks_used < max_cache_blocks and static_tokens >= model_cache_minimum:
-                    # Contenido mixto: cachear solo parte estática SI supera el mínimo
-                    assistant_content = [
-                        {
-                            "type": "text",
-                            "text": static_part.strip(),
-                            "cache_control": {"type": "ephemeral"}
-                        },
-                        {
-                            "type": "text",
-                            "text": dynamic_part.strip()  # Variables no se cachean
-                        }
-                    ]
-                    cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached (bloque %d/4) - separación estático/dinámico en '%s' (%d+%d=%d tokens) para thread_id: %s",
-                               cache_blocks_used, separator_found, tools_tokens, static_tokens-tools_tokens, static_tokens, thread_id)
-                elif not dynamic_part.strip() and cache_blocks_used < max_cache_blocks and total_tokens >= model_cache_minimum:
-                    # Contenido completamente estático
-                    assistant_content = [{
-                        "type": "text",
-                        "text": combined_content,
-                        "cache_control": {"type": "ephemeral"}
-                    }]
-                    cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - sin variables (%d+%d=%d tokens) para thread_id: %s",
-                               cache_blocks_used, tools_tokens, total_tokens-tools_tokens, total_tokens, thread_id)
-                elif dynamic_part.strip() and static_tokens < model_cache_minimum and total_tokens >= model_cache_minimum:
-                    # Parte estática muy pequeña: cachear todo junto
-                    assistant_content = [{
-                        "type": "text",
-                        "text": combined_content,
-                        "cache_control": {"type": "ephemeral"}
-                    }]
-                    cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - estático insuficiente, cacheando todo (%d+%d=%d tokens) para thread_id: %s",
-                               cache_blocks_used, tools_tokens, total_tokens-tools_tokens, total_tokens, thread_id)
-                else:
-                    # Sin cache: no hay espacio o no alcanza tokens mínimos
-                    assistant_content = [{
-                        "type": "text",
-                        "text": assistant_content_text
-                    }]
-                    reason = "límite bloques" if cache_blocks_used >= max_cache_blocks else f"tokens insuficientes ({total_tokens}<{model_cache_minimum})"
-                    logger.info("📝 System prompt sin cache para thread_id: %s (%s)", thread_id, reason)
-            else:
-                # Mantener cache existente del sistema si no hay reset
-                if not conversations[thread_id].get("cache_reset", False):
-                    # Reusar cache del sistema existente
-                    combined_content = tools_text + assistant_content_text
-                    assistant_content = [{
-                        "type": "text",
-                        "text": combined_content,
-                        "cache_control": {"type": "ephemeral"}
-                    }]
-                    cache_blocks_used += 1
-                    logger.info("📝 System cache reutilizado para thread_id: %s (bloque %d/4)",
-                               thread_id, cache_blocks_used)
-                else:
-                    assistant_content = [{
-                        "type": "text",
-                        "text": assistant_content_text
-                    }]
-                    logger.info("📝 System prompt sin cache para thread_id: %s (límite bloques alcanzado: %d/4)",
-                               thread_id, cache_blocks_used)
-
-            # ========================================
-            # RESUMEN CACHE MANAGEMENT AUTOMÁTICO
-            # ========================================
-            # Determinar estado de cache para tools y system
-            tools_cache_applied = any("cache_control" in tool for tool in tools) if tools else False
-            system_cache_applied = any("cache_control" in item for item in assistant_content)
-
-            # Calcular TTL restante basado en inactividad (4 min 50 seg = 290 segundos)
-            cache_ttl_seconds = 290
-            time_elapsed = current_time - conversations[thread_id].get("last_activity", current_time)
-            ttl_remaining = max(0, cache_ttl_seconds - int(time_elapsed))
-
-            cache_summary = {
-                "bloques_usados": cache_blocks_used,
-                "maximo_permitido": max_cache_blocks,
-                "modelo": llmID,
-                "tokens_minimos_requeridos": model_cache_minimum,
-                "stage_actual": current_stage,
-                "mensajes_count": messages_count,
-                "cache_reset": conversations[thread_id].get("cache_reset", False),
-                "tools_cache": "applied" if tools_cache_applied else "no_applied",
-                "system_cache": "applied" if system_cache_applied else "no_applied",
-                "tools_tokens": tools_tokens if 'tools_tokens' in locals() else 0,
-                "system_tokens": (static_tokens - tools_tokens) if 'static_tokens' in locals() and 'tools_tokens' in locals() else (total_tokens - tools_tokens) if 'total_tokens' in locals() and 'tools_tokens' in locals() else 0,
-                "cache_ttl_remaining_seconds": ttl_remaining
-            }
-
-            logger.info("🎯 CACHE SUMMARY para thread_id %s: %s", thread_id, cache_summary)
-
-            # Actualizar estadísticas del hilo
-            conversations[thread_id]["cache_stats"] = cache_summary
+            # Configurar sistema
+            assistant_content = [{"type": "text", "text": assistant_content_text}]
 
             # Mapear herramientas a funciones
             tool_functions = {
@@ -1024,154 +650,65 @@ def generate_response(api_key,
                 "eleccion_forma_pago": eleccion_forma_pago,
                 "facturacion_electronica": facturacion_electronica,
                 "pqrs": pqrs,
-                "reserva_mesa": reserva_mesa,
-                "enviar_ubicacion": enviar_ubicacion,
             }
 
             # Iniciar interacción con el modelo
             while True:
                 # Validar estructura de mensajes antes de enviar
                 if not validate_conversation_history(conversation_history):
-                    logger.error("Estructura de mensajes inválida: %s",
-                                 conversation_history)
+                    logger.error("Estructura de mensajes inválida: %s", conversation_history)
                     raise ValueError("Estructura de conversación inválida")
 
                 try:
-                    if ANTHROPIC_DEBUG:
-                        logger.info("⤴️ PAYLOAD ANTHROPIC: %s", conversation_history)
+                    logger.info("PAYLOAD ANTHROPIC: %s", conversation_history)
                     # Llamar a la API con reintentos
-                    logger.info("Llamando a Anthropic API para thread_id: %s",
-                                thread_id)
-                    api_call_started = time.time()
-                    if ANTHROPIC_DEBUG:
-                        logger.info(
-                            "⏱️ Inicio llamada Anthropic | thread_id=%s | modelo=%s | mensajes=%d",
-                            thread_id, llmID, len(conversation_history))
-                    # Preparar headers para cache TTL extendido si es necesario
-                    extra_headers = {}
-                    if use_cache_control and any(
-                        tool.get("cache_control", {}).get("ttl") == "1h"
-                        for tool in tools if isinstance(tool, dict)
-                    ):
-                        extra_headers["anthropic-beta"] = "extended-cache-ttl-2025-04-11"
-                        logger.info("Header beta agregado para cache TTL extendido en thread_id: %s", thread_id)
+                    logger.info("Llamando a Anthropic API para thread_id: %s", thread_id)
                     response = call_anthropic_api(
                         client=client,
                         model=llmID,
-                        max_tokens=2000,
-                        #temperature=0.8,
-                        thinking={
-                        "type": "enabled",
-                        "budget_tokens": 1200
-                        },
+                        max_tokens=1000,
+                        temperature=0.8,
                         system=assistant_content,
-                        tools=tools,  # Mantenemos tools por separado para funcionalidad
-                        tool_choice={
-                            "type": "auto",
-                            "disable_parallel_tool_use": True
-                        },
-                        messages=conversation_history,
-                        **extra_headers)
-                    api_call_elapsed = time.time() - api_call_started
-                    usage_obj = get_field(response, "usage")
-                    tier = get_field(usage_obj, "service_tier") or "unknown"
-                    in_tok = get_field(usage_obj, "input_tokens")
-                    out_tok = get_field(usage_obj, "output_tokens")
-                    cache_read_tok = get_field(usage_obj, "cache_read_input_tokens")
-                    cache_create_tok = get_field(usage_obj, "cache_creation_input_tokens")
-                    if ANTHROPIC_DEBUG:
-                        logger.info(
-                            "✅ Fin llamada Anthropic (%.2fs) | tier=%s | in=%s | out=%s | cache_read=%s | cache_create=%s",
-                            api_call_elapsed, tier, in_tok, out_tok, cache_read_tok, cache_create_tok)
-                        logger.info("📣 RESPUESTA RAW ANTHROPIC: %s", response)
+                        tools=tools,
+                        messages=conversation_history
+                    )
+                    logger.info("RESPUESTA RAW ANTHROPIC: %s", response)
                     # Procesar respuesta
                     conversation_history.append({
                         "role": "assistant",
                         "content": response.content
                     })
 
-                    # Almacenar tokens del turno actual
-                    current_usage = {
-                        "input_tokens":
-                        response.usage.input_tokens,
-                        "output_tokens":
-                        response.usage.output_tokens,
-                        "cache_creation_input_tokens":
-                        response.usage.cache_creation_input_tokens,
-                        "cache_read_input_tokens":
-                        response.usage.cache_read_input_tokens,
+                    # Almacenar tokens
+                    usage = {
+                        "input_tokens": response.usage.input_tokens,
+                        "output_tokens": response.usage.output_tokens,
+                        "cache_creation_input_tokens": response.usage.cache_creation_input_tokens,
+                        "cache_read_input_tokens": response.usage.cache_read_input_tokens,
                     }
-
-                    # Actualizar contadores acumulativos del thread
-                    if "total_usage" not in conversations[thread_id]:
-                        conversations[thread_id]["total_usage"] = {
-                            "total_input_tokens": 0,
-                            "total_output_tokens": 0,
-                            "total_cache_creation_tokens": 0,
-                            "total_cache_read_tokens": 0
-                        }
-
-                    # Acumular tokens
-                    conversations[thread_id]["total_usage"]["total_input_tokens"] += current_usage["input_tokens"]
-                    conversations[thread_id]["total_usage"]["total_output_tokens"] += current_usage["output_tokens"]
-                    conversations[thread_id]["total_usage"]["total_cache_creation_tokens"] += current_usage["cache_creation_input_tokens"]
-                    conversations[thread_id]["total_usage"]["total_cache_read_tokens"] += current_usage["cache_read_input_tokens"]
-
-                    # Calcular costos del turno actual (en USD)
-                    def calculate_costs(tokens, cost_per_mtok):
-                        return (tokens / 1_000_000) * cost_per_mtok
-
-                    current_cost_input = calculate_costs(current_usage["input_tokens"], cost_base_input)
-                    current_cost_output = calculate_costs(current_usage["output_tokens"], cost_output)
-                    current_cost_cache_creation = calculate_costs(current_usage["cache_creation_input_tokens"], cost_cache_write_5m)
-                    current_cost_cache_read = calculate_costs(current_usage["cache_read_input_tokens"], cost_cache_read)
-                    current_total_cost = current_cost_input + current_cost_output + current_cost_cache_creation + current_cost_cache_read
-
-                    # Inicializar costos acumulativos si no existen
-                    if "total_costs" not in conversations[thread_id]:
-                        conversations[thread_id]["total_costs"] = {
-                            "total_cost_input": 0.0,
-                            "total_cost_output": 0.0,
-                            "total_cost_cache_creation": 0.0,
-                            "total_cost_cache_read": 0.0,
-                            "total_cost_all": 0.0
-                        }
-
-                    # Acumular costos
-                    conversations[thread_id]["total_costs"]["total_cost_input"] += current_cost_input
-                    conversations[thread_id]["total_costs"]["total_cost_output"] += current_cost_output
-                    conversations[thread_id]["total_costs"]["total_cost_cache_creation"] += current_cost_cache_creation
-                    conversations[thread_id]["total_costs"]["total_cost_cache_read"] += current_cost_cache_read
-                    conversations[thread_id]["total_costs"]["total_cost_all"] += current_total_cost
-
-                    usage = current_usage
                     conversations[thread_id]["usage"] = usage
 
-                    logger.info("Tokens utilizados - Input: %d, Output: %d",
-                                usage["input_tokens"], usage["output_tokens"])
-                    logger.info("Cache Creation Input Tokens: %d",
+                    logger.info(
+                        "Tokens utilizados - Input: %d, Output: %d",
+                        usage["input_tokens"],
+                        usage["output_tokens"]
+                    )
+                    logger.info("Cache Creation Input Tokens: %d", 
                                 usage["cache_creation_input_tokens"])
-                    logger.info("Cache Read Input Tokens: %d",
+                    logger.info("Cache Read Input Tokens: %d", 
                                 usage["cache_read_input_tokens"])
 
                     # Procesar herramientas
                     if response.stop_reason == "tool_use":
-                        tool_use_blocks = [
-                            block for block in response.content
-                            if get_field(block, "type") == "tool_use"
-                        ]
-                        logger.info(
-                            "🧰 Respuesta con tool_calls detectada (ANTHROPIC): %s",
-                            tool_use_blocks)
+                        tool_use_blocks = [block for block in response.content if get_field(block, "type") == "tool_use"]
+
                         if not tool_use_blocks:
                             # Si no hay herramientas, procesamos la respuesta final
                             assistant_response_text = ""
                             for content_block in response.content:
                                 if get_field(content_block, "type") == "text":
-                                    assistant_response_text += (get_field(
-                                        content_block, "text") or "")
-                            conversations[thread_id][
-                                "response"] = assistant_response_text
+                                    assistant_response_text += (get_field(content_block, "text") or "")
+                            conversations[thread_id]["response"] = assistant_response_text
                             conversations[thread_id]["status"] = "completed"
                             break
 
@@ -1181,93 +718,45 @@ def generate_response(api_key,
                         tool_input = get_field(tool_use, "input")
 
                         if tool_name in tool_functions:
-                            try:
-                                result = tool_functions[tool_name](tool_input,
-                                                                   subscriber_id)
-                                result_json = json.dumps(result)
+                            result = tool_functions[tool_name](tool_input, subscriber_id)
+                            result_json = json.dumps(result)
 
-                                # Agregar resultado exitoso
-                                conversation_history.append({
-                                    "role": "user",
-                                    "content": [{
-                                        "type": "tool_result",
-                                        "tool_use_id": get_field(tool_use, "id"),
-                                        "content": result_json,
-                                    }],
-                                })
-                            except Exception as tool_error:
-                                logger.exception("Error ejecutando herramienta %s: %s", tool_name, tool_error)
-
-                                # Agregar tool_result de error cuando la función falla
-                                conversation_history.append({
-                                    "role": "user",
-                                    "content": [{
-                                        "type": "tool_result",
-                                        "tool_use_id": get_field(tool_use, "id"),
-                                        "content": f"Error ejecutando '{tool_name}': {str(tool_error)}",
-                                        "is_error": True
-                                    }],
-                                })
-                                logger.info("Tool_result de error agregado para función fallida: %s", tool_name)
-                        else:
-                            logger.warning("Herramienta desconocida: %s", tool_name)
-
-                            # Agregar tool_result de error para mantener balance tool_use/tool_result
+                            # Agregar resultado
                             conversation_history.append({
                                 "role": "user",
                                 "content": [{
                                     "type": "tool_result",
                                     "tool_use_id": get_field(tool_use, "id"),
-                                    "content": f"Error: Tool '{tool_name}' is not available or unknown in this context",
-                                    "is_error": True
+                                    "content": result_json,
                                 }],
                             })
-                            logger.info("Tool_result de error agregado para tool_use_id: %s", get_field(tool_use, "id"))
-                            # Continuar el bucle en lugar de break para permitir que Claude maneje el error
+                        else:
+                            logger.warning("Herramienta desconocida: %s", tool_name)
+                            break
                     else:
                         # Respuesta final
                         assistant_response_text = ""
                         for content_block in response.content:
                             if get_field(content_block, "type") == "text":
-                                assistant_response_text += (get_field(
-                                    content_block, "text") or "")
-                        conversations[thread_id][
-                            "response"] = assistant_response_text
+                                assistant_response_text += (get_field(content_block, "text") or "")
+                        conversations[thread_id]["response"] = assistant_response_text
                         conversations[thread_id]["status"] = "completed"
                         break
 
                 except Exception as api_error:
-                    if ANTHROPIC_DEBUG:
-                        try:
-                            elapsed_api = time.time() - api_call_started
-                            logger.warning(
-                                "❌ Error Anthropic tras %.2fs | thread_id=%s | %s",
-                                elapsed_api, thread_id, api_error)
-                        except Exception:
-                            logger.warning(
-                                "❌ Error Anthropic | thread_id=%s | %s",
-                                thread_id, api_error)
-                    logger.exception(
-                        "Error en llamada a API para thread_id %s: %s",
-                        thread_id, api_error)
-                    # Enviar el error con prefijo identificador seguido del error de la API
-                    conversations[thread_id]["response"] = f"error API anthropic: {str(api_error)}"
+                    logger.exception("Error en llamada a API para thread_id %s: %s", thread_id, api_error)
+                    conversations[thread_id]["response"] = f"Error de comunicación: {str(api_error)}"
                     conversations[thread_id]["status"] = "error"
                     break
 
         except Exception as e:
-            logger.exception(
-                "Error en generate_response para thread_id %s: %s", thread_id,
-                e)
-            # Enviar el error con prefijo identificador seguido del error
-            conversations[thread_id]["response"] = f"error API anthropic: {str(e)}"
+            logger.exception("Error en generate_response para thread_id %s: %s", thread_id, e)
+            conversations[thread_id]["response"] = f"Error: {str(e)}"
             conversations[thread_id]["status"] = "error"
         finally:
             event.set()
             elapsed_time = time.time() - start_time
-            logger.info(
-                "Generación completada en %.2f segundos para thread_id: %s",
-                elapsed_time, thread_id)
+            logger.info("Generación completada en %.2f segundos para thread_id: %s", elapsed_time, thread_id)
             # El lock se libera automáticamente al salir del bloque 'with'
 
 def generate_response_openai(
@@ -2104,6 +1593,7 @@ def send_message():
     data = request.json
 
     # Extraer parámetros principales
+    api_key = data.get('api_key')
     message = data.get('message')
     assistant_value = data.get('assistant')
     thread_id = data.get('thread_id')
@@ -2119,7 +1609,7 @@ def send_message():
     # Extraer variables adicionales para sustitución
     variables = data.copy()
     keys_to_remove = [
-        'message', 'assistant', 'thread_id', 'subscriber_id',
+        'api_key', 'message', 'assistant', 'thread_id', 'subscriber_id',
         'thinking', 'modelID', 'direccionCliente', 'use_cache_control'
     ]
     for key in keys_to_remove:
@@ -2225,12 +1715,8 @@ def send_message():
             logger.info("Ejecutando LLM para thread_id: %s", thread_id)
 
         else:  # Default to Anthropic
-            anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-            if not anthropic_api_key:
-                logger.error("API key de Anthropic no configurada en .env")
-                return jsonify({"error": "Configuración del servidor incompleta - ANTHROPIC_API_KEY"}), 500
             thread = Thread(target=generate_response,
-                            args=(anthropic_api_key, message, assistant_content,
+                            args=(api_key, message, assistant_content,
                                   thread_id, event, subscriber_id,
                                   use_cache_control, llmID))
             logger.info("Ejecutando Anthropic para thread_id: %s", thread_id)
