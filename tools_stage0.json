@@ -16,9 +16,10 @@
         "sede": {
           "type": "string",
           "enum": [
-            "La Pradera Dosquebradas"
+            "La Pradera Dosquebradas",
+            "Centro Comercial Victoria"
           ],
-          "description": "Sede del pedido (obligatorio: La Pradera Dosquebradas)"
+          "description": "Sede del pedido (obligatorio: La Pradera Dosquebradas O centro comercial Ciudada Victoria- pereira)"
         },
         "nombre_cliente": {
           "type": "string",
@@ -70,5 +71,22 @@
       "additionalProperties": false
     },
     "strict": true
+  },
+  {
+    "name": "reserva_mesa",
+    "description": "si el cliente desea reservar mesa debes enviarle un formulario en este chat ",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "envio_formulario": {
+          "type": "string",
+
+          "description": "Se ha enviado el formulario"
+        }
+      },
+      "required": [
+        "envio_formulario"
+      ]
+    }
   }
 ]

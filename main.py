@@ -126,10 +126,6 @@ class N8nAPI:
             "N8N_RESERVA_WEBHOOK_URL",
             "https://n8niass.cocinandosonrisas.co/webhook/herramientaEnviarFormularioReservaBandidosApi"
         )
-        self.enviar_ubicacion_webhook_url = os.environ.get(
-            "N8N_ENVIAR_UBICACION_WEBHOOK_URL",
-            "https://n8niass.cocinandosonrisas.co/webhook/herramientaEnviarUbicacionBandidosApi"
-        )
         # Puedes añadir más URLs de webhook si lo necesitas
         logger.info("Inicializado N8nAPI con las URLs")
 
@@ -201,15 +197,6 @@ class N8nAPI:
                      payload)
         response = requests.post(self.crear_reserva_webhook_url, json=payload)
         logger.info("Respuesta de n8n al enviar datos de reserva_mesa: %s %s",
-                    response.status_code, response.text)
-        return response
-
-    def enviar_ubicacion(self, payload):
-        """Envía los datos de ubicación al webhook de n8n"""
-        logger.debug("Enviando datos de ubicación a n8n con payload: %s",
-                     payload)
-        response = requests.post(self.enviar_ubicacion_webhook_url, json=payload)
-        logger.info("Respuesta de n8n al enviar datos de enviar_ubicacion: %s %s",
                     response.status_code, response.text)
         return response
 
@@ -608,54 +595,6 @@ def reserva_mesa(tool_input, subscriber_id):
         logger.exception("Error en reserva_mesa: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
-def enviar_ubicacion(tool_input, subscriber_id):
-    """
-    Función para enviar los datos del pedido al webhook de n8n y devolver su respuesta al modelo
-    """
-    logger.info("Iniciando enviar_ubicacion con datos: %s", tool_input)
-    logger.debug("subscriber_id en enviar_ubicacion: %s", subscriber_id)
-
-    try:
-        n8n_api = N8nAPI()
-
-        # Construir el payload con la información del tool_input y las variables adicionales
-        payload = {
-            "response": {
-                "tool_code": "enviar_ubicacion",
-                "subscriber_id": subscriber_id,
-                "sede": tool_input  # Datos provenientes del LLM
-            }
-        }
-
-        logger.debug("Payload para enviar al webhook de n8n: %s", payload)
-
-        # Enviar el payload al webhook de n8n
-        response = n8n_api.enviar_ubicacion(payload)
-
-        # Verificar si la respuesta es exitosa
-        if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s",
-                         response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
-            result = {"error": response.text}
-        else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json(
-            ) if 'application/json' in response.headers.get(
-                'Content-Type', '') else {
-                    "message": response.text
-                }
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message')
-
-        logger.info("enviar_ubicacion result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
-
-    except Exception as e:
-        logger.exception("Error en enviar_ubicacion: %s", e)
-        return {"error": f"Error al procesar la solicitud: {str(e)}"}
-
 def validate_conversation_history(history):
     """Valida que la estructura del historial sea correcta para Anthropic."""
     if not isinstance(history, list):
@@ -866,8 +805,6 @@ def generate_response(api_key,
                 tools_file_name = "tools_stage2.json"
             elif assistant_str in ["4", "5"]:
                 tools_file_name = "tools_stage3.json"
-            elif assistant_str in ["20"]:
-                tools_file_name = "tools_stage20.json"
             else:
                 tools_file_name = "default_tools.json"
 
@@ -1025,7 +962,6 @@ def generate_response(api_key,
                 "facturacion_electronica": facturacion_electronica,
                 "pqrs": pqrs,
                 "reserva_mesa": reserva_mesa,
-                "enviar_ubicacion": enviar_ubicacion,
             }
 
             # Iniciar interacción con el modelo
