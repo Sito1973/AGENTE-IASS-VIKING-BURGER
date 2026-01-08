@@ -904,8 +904,8 @@ def generate_response(api_key,
                     reason = "límite bloques" if cache_blocks_used >= max_cache_blocks else f"tokens insuficientes ({total_tokens}<{model_cache_minimum})"
                     logger.info("📝 System prompt sin cache para thread_id: %s (%s)", thread_id, reason)
             else:
-                # Mantener cache existente del sistema si no hay reset
-                if not conversations[thread_id].get("cache_reset", False):
+                # Mantener cache existente del sistema si no hay reset Y hay espacio disponible
+                if not conversations[thread_id].get("cache_reset", False) and cache_blocks_used < max_cache_blocks:
                     # Reusar cache del sistema existente
                     combined_content = tools_text + assistant_content_text
                     assistant_content = [{
@@ -917,12 +917,15 @@ def generate_response(api_key,
                     logger.info("📝 System cache reutilizado para thread_id: %s (bloque %d/4)",
                                thread_id, cache_blocks_used)
                 else:
+                    # Sin cache: límite alcanzado o es un reset
+                    combined_content = tools_text + assistant_content_text
                     assistant_content = [{
                         "type": "text",
-                        "text": assistant_content_text
+                        "text": combined_content
                     }]
-                    logger.info("📝 System prompt sin cache para thread_id: %s (límite bloques alcanzado: %d/4)",
-                               thread_id, cache_blocks_used)
+                    reason = "límite bloques alcanzado" if cache_blocks_used >= max_cache_blocks else "cache reset"
+                    logger.info("📝 System prompt sin cache para thread_id: %s (%s: %d/4)",
+                               thread_id, reason, cache_blocks_used)
 
             # ========================================
             # RESUMEN CACHE MANAGEMENT AUTOMÁTICO
