@@ -346,10 +346,14 @@ def generate_response(api_key,
                         logger.info("Fin llamada Anthropic (%.2fs)", api_call_elapsed)
                         logger.info("RESPUESTA RAW ANTHROPIC: %s", response)
 
-                    # Agregar respuesta al historial
+                    # Agregar respuesta al historial - Filtrar bloques de texto vacíos
+                    filtered_content = [
+                        block for block in response.content
+                        if not (get_field(block, "type") == "text" and not get_field(block, "text"))
+                    ]
                     conversation_history.append({
                         "role": "assistant",
-                        "content": response.content
+                        "content": filtered_content if filtered_content else response.content
                     })
 
                     # Almacenar tokens

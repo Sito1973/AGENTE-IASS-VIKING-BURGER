@@ -1020,10 +1020,14 @@ def generate_response(api_key,
                             "✅ Fin llamada Anthropic (%.2fs) | tier=%s | in=%s | out=%s | cache_read=%s | cache_create=%s",
                             api_call_elapsed, tier, in_tok, out_tok, cache_read_tok, cache_create_tok)
                         logger.info("📣 RESPUESTA RAW ANTHROPIC: %s", response)
-                    # Procesar respuesta
+                    # Procesar respuesta - Filtrar bloques de texto vacíos para evitar error de API
+                    filtered_content = [
+                        block for block in response.content
+                        if not (get_field(block, "type") == "text" and not get_field(block, "text"))
+                    ]
                     conversation_history.append({
                         "role": "assistant",
-                        "content": response.content
+                        "content": filtered_content if filtered_content else response.content
                     })
 
                     # Almacenar tokens del turno actual
