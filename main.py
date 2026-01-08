@@ -1020,14 +1020,37 @@ def generate_response(api_key,
                             "✅ Fin llamada Anthropic (%.2fs) | tier=%s | in=%s | out=%s | cache_read=%s | cache_create=%s",
                             api_call_elapsed, tier, in_tok, out_tok, cache_read_tok, cache_create_tok)
                         logger.info("📣 RESPUESTA RAW ANTHROPIC: %s", response)
-                    # Procesar respuesta - Filtrar bloques de texto vacíos para evitar error de API
-                    filtered_content = [
-                        block for block in response.content
-                        if not (get_field(block, "type") == "text" and not get_field(block, "text"))
-                    ]
+                    # Procesar respuesta - Serializar bloques a dict y filtrar text vacíos
+                    def serialize_block(block):
+                        """Convierte un bloque de respuesta a diccionario."""
+                        if hasattr(block, 'model_dump'):
+                            return block.model_dump()
+                        elif isinstance(block, dict):
+                            return block
+                        else:
+                            block_type = get_field(block, "type")
+                            result = {"type": block_type}
+                            if block_type == "text":
+                                result["text"] = get_field(block, "text")
+                            elif block_type == "thinking":
+                                result["thinking"] = get_field(block, "thinking")
+                            elif block_type == "tool_use":
+                                result["id"] = get_field(block, "id")
+                                result["name"] = get_field(block, "name")
+                                result["input"] = get_field(block, "input")
+                            return result
+
+                    filtered_content = []
+                    for block in response.content:
+                        block_dict = serialize_block(block)
+                        # Filtrar bloques de texto vacíos
+                        if block_dict.get("type") == "text" and not block_dict.get("text"):
+                            continue
+                        filtered_content.append(block_dict)
+
                     conversation_history.append({
                         "role": "assistant",
-                        "content": filtered_content if filtered_content else response.content
+                        "content": filtered_content
                     })
 
                     # Almacenar tokens del turno actual
