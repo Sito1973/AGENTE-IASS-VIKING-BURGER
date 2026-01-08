@@ -650,10 +650,10 @@ def generate_response(api_key,
                       subscriber_id,
                       use_cache_control,
                       llmID=None,
-                      cost_base_input=3.0,
-                      cost_cache_write_5m=3.75,
-                      cost_cache_read=0.30,
-                      cost_output=15.0):
+                      cost_base_input=1.0,
+                      cost_cache_write_5m=1.25,
+                      cost_cache_read=0.10,
+                      cost_output=5.0):
     if not llmID:
         llmID = "claude-haiku-4-5-20251001"  # Modelo por defecto
 
