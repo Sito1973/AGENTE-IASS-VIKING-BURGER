@@ -346,25 +346,34 @@ def generate_response(api_key,
                         logger.info("Fin llamada Anthropic (%.2fs)", api_call_elapsed)
                         logger.info("RESPUESTA RAW ANTHROPIC: %s", response)
 
-                    # Agregar respuesta al historial - Serializar bloques a dict y filtrar text vacíos
+                    # Agregar respuesta al historial - Serializar bloques solo con campos permitidos
                     def serialize_block(block):
-                        """Convierte un bloque de respuesta a diccionario."""
-                        if hasattr(block, 'model_dump'):
-                            return block.model_dump()
-                        elif isinstance(block, dict):
-                            return block
+                        """Convierte un bloque a dict con solo campos permitidos por Anthropic."""
+                        block_type = get_field(block, "type")
+                        if block_type == "thinking":
+                            return {
+                                "type": "thinking",
+                                "thinking": get_field(block, "thinking")
+                            }
+                        elif block_type == "text":
+                            return {
+                                "type": "text",
+                                "text": get_field(block, "text") or ""
+                            }
+                        elif block_type == "tool_use":
+                            return {
+                                "type": "tool_use",
+                                "id": get_field(block, "id"),
+                                "name": get_field(block, "name"),
+                                "input": get_field(block, "input")
+                            }
                         else:
-                            block_type = get_field(block, "type")
-                            result = {"type": block_type}
-                            if block_type == "text":
-                                result["text"] = get_field(block, "text")
-                            elif block_type == "thinking":
-                                result["thinking"] = get_field(block, "thinking")
-                            elif block_type == "tool_use":
-                                result["id"] = get_field(block, "id")
-                                result["name"] = get_field(block, "name")
-                                result["input"] = get_field(block, "input")
-                            return result
+                            # Para otros tipos, usar model_dump pero limpiar cache_control
+                            if hasattr(block, 'model_dump'):
+                                d = block.model_dump()
+                                d.pop("cache_control", None)
+                                return d
+                            return dict(block) if isinstance(block, dict) else {"type": block_type}
 
                     filtered_content = []
                     for block in response.content:
