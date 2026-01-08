@@ -1027,7 +1027,8 @@ def generate_response(api_key,
                         if block_type == "thinking":
                             return {
                                 "type": "thinking",
-                                "thinking": get_field(block, "thinking")
+                                "thinking": get_field(block, "thinking"),
+                                "signature": get_field(block, "signature")
                             }
                         elif block_type == "text":
                             return {
