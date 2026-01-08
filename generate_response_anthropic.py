@@ -248,7 +248,11 @@ def generate_response(api_key,
                 previous_message = conversation_history[-2]
                 if "content" in previous_message and isinstance(previous_message["content"], list):
                     for content_item in previous_message["content"]:
+                        # NO agregar cache_control a bloques thinking (Anthropic no lo permite)
                         if isinstance(content_item, dict) and "cache_control" not in content_item:
+                            block_type = content_item.get("type", "")
+                            if block_type == "thinking":
+                                continue  # Skip thinking blocks
                             content_item["cache_control"] = {"type": "ephemeral"}
                             cache_blocks_used += 1
                             logger.info("Historial cached (bloque %d/4) para thread_id: %s", cache_blocks_used, thread_id)
