@@ -2089,15 +2089,23 @@ def send_message():
     modelID = data.get('modelID', '').lower()
     telefono = data.get('telefono')
     direccionCliente = data.get('direccionCliente')
-    use_cache_control = data.get('use_cache_control', False)
+    # Cache control siempre habilitado internamente - no depende del request
+    #use_cache_control = True
     llmID = data.get('llmID')
+
+    # Parámetros de costo (precios por millón de tokens - MTok)
+    cost_base_input = data.get('cost_base_input', 1.0)  # Claude Sonnet 4: $3/MTok
+    cost_cache_write_5m = data.get('cost_cache_write_5m', 1.25)  # $3.75/MTok (TTL por defecto)
+    cost_cache_read = data.get('cost_cache_read', 0.10)  # $0.30/MTok
+    cost_output = data.get('cost_output', 5.0)  # $15/MTok
 
     logger.info("MENSAJE CLIENTE: %s", message)
     # Extraer variables adicionales para sustitución
     variables = data.copy()
     keys_to_remove = [
         'message', 'assistant', 'thread_id', 'subscriber_id',
-        'thinking', 'modelID', 'direccionCliente', 'use_cache_control'
+        'thinking', 'modelID', 'direccionCliente', 'use_cache_control', 'llmID',
+        'cost_base_input', 'cost_cache_write_5m', 'cost_cache_read', 'cost_output'
     ]
     for key in keys_to_remove:
         variables.pop(key, None)
@@ -2209,7 +2217,9 @@ def send_message():
             thread = Thread(target=generate_response,
                             args=(anthropic_api_key, message, assistant_content,
                                   thread_id, event, subscriber_id,
-                                  use_cache_control, llmID))
+                                  use_cache_control, llmID,
+                                  cost_base_input, cost_cache_write_5m,
+                                  cost_cache_read, cost_output))
             logger.info("Ejecutando Anthropic para thread_id: %s", thread_id)
 
         thread.start()
@@ -2221,6 +2231,67 @@ def send_message():
             "usage": conversations[thread_id].get("usage"),
             "finish_reason": conversations[thread_id].get("finish_reason")
         }
+
+        # Agregar estadísticas de cache al usage si existen
+        if "cache_stats" in conversations[thread_id]:
+            cache_stats = conversations[thread_id]["cache_stats"]
+            if "usage" in response_data and response_data["usage"]:
+                response_data["usage"].update({
+                    "cache_blocks_used": cache_stats.get("bloques_usados", 0),
+                    "cache_blocks_max": cache_stats.get("maximo_permitido", 4),
+                    "tools_cache_status": cache_stats.get("tools_cache", "no_applied"),
+                    "system_cache_status": cache_stats.get("system_cache", "no_applied"),
+                    "tools_cache_tokens": cache_stats.get("tools_tokens", 0),
+                    "system_cache_tokens": cache_stats.get("system_tokens", 0),
+                    "combined_cache_tokens": cache_stats.get("tools_tokens", 0) + cache_stats.get("system_tokens", 0),
+                    "cache_reset": cache_stats.get("cache_reset", False),
+                    "cache_ttl_remaining_seconds": cache_stats.get("cache_ttl_remaining_seconds", 0)
+                })
+
+        # Agregar totales acumulativos del thread si existen
+        if "total_usage" in conversations[thread_id]:
+            total_usage = conversations[thread_id]["total_usage"]
+            if "usage" in response_data and response_data["usage"]:
+                response_data["usage"].update({
+                    "thread_total_input_tokens": total_usage.get("total_input_tokens", 0),
+                    "thread_total_output_tokens": total_usage.get("total_output_tokens", 0),
+                    "thread_total_cache_creation_tokens": total_usage.get("total_cache_creation_tokens", 0),
+                    "thread_total_cache_read_tokens": total_usage.get("total_cache_read_tokens", 0),
+                    "thread_total_all_tokens": (
+                        total_usage.get("total_input_tokens", 0) +
+                        total_usage.get("total_output_tokens", 0) +
+                        total_usage.get("total_cache_creation_tokens", 0) +
+                        total_usage.get("total_cache_read_tokens", 0)
+                    )
+                })
+
+        # Agregar costos del turno actual y totales acumulativos si existen
+        if "total_costs" in conversations[thread_id]:
+            total_costs = conversations[thread_id]["total_costs"]
+            if "usage" in response_data and response_data["usage"]:
+                # Calcular costos del turno actual
+                current_usage = response_data["usage"]
+                current_cost_input = (current_usage.get("input_tokens", 0) / 1_000_000) * cost_base_input
+                current_cost_output = (current_usage.get("output_tokens", 0) / 1_000_000) * cost_output
+                current_cost_cache_creation = (current_usage.get("cache_creation_input_tokens", 0) / 1_000_000) * cost_cache_write_5m
+                current_cost_cache_read = (current_usage.get("cache_read_input_tokens", 0) / 1_000_000) * cost_cache_read
+                current_total_cost = current_cost_input + current_cost_output + current_cost_cache_creation + current_cost_cache_read
+
+                response_data["usage"].update({
+                    # Costos del turno actual (USD)
+                    "current_cost_input_usd": round(current_cost_input, 6),
+                    "current_cost_output_usd": round(current_cost_output, 6),
+                    "current_cost_cache_creation_usd": round(current_cost_cache_creation, 6),
+                    "current_cost_cache_read_usd": round(current_cost_cache_read, 6),
+                    "current_total_cost_usd": round(current_total_cost, 6),
+
+                    # Costos acumulativos del thread (USD)
+                    "thread_total_cost_input_usd": round(total_costs.get("total_cost_input", 0), 6),
+                    "thread_total_cost_output_usd": round(total_costs.get("total_cost_output", 0), 6),
+                    "thread_total_cost_cache_creation_usd": round(total_costs.get("total_cost_cache_creation", 0), 6),
+                    "thread_total_cost_cache_read_usd": round(total_costs.get("total_cost_cache_read", 0), 6),
+                    "thread_total_cost_all_usd": round(total_costs.get("total_cost_all", 0), 6)
+                })
 
         if conversations[thread_id]["status"] == "completed":
             original_response = conversations[thread_id]["response"]
