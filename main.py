@@ -2090,7 +2090,7 @@ def send_message():
     telefono = data.get('telefono')
     direccionCliente = data.get('direccionCliente')
     # Cache control siempre habilitado internamente - no depende del request
-    #use_cache_control = True
+    use_cache_control = True
     llmID = data.get('llmID')
 
     # Parámetros de costo (precios por millón de tokens - MTok)
