@@ -1034,14 +1034,16 @@ def generate_response(api_key,
                         logger.info("📣 RESPUESTA RAW ANTHROPIC: %s", response)
                     # Procesar respuesta - Serializar bloques solo con campos permitidos
                     def serialize_block(block):
-                        """Convierte un bloque a dict con solo campos permitidos por Anthropic."""
+                        """Convierte un bloque a dict con solo campos permitidos por Anthropic.
+                        IMPORTANTE: Los bloques thinking/redacted_thinking NO se pueden modificar."""
                         block_type = get_field(block, "type")
-                        if block_type == "thinking":
-                            return {
-                                "type": "thinking",
-                                "thinking": get_field(block, "thinking"),
-                                "signature": get_field(block, "signature")
-                            }
+
+                        # CRITICO: thinking y redacted_thinking deben pasarse EXACTAMENTE como vienen
+                        # Segun docs Anthropic: "Include the complete unmodified block back to the API"
+                        if block_type in ["thinking", "redacted_thinking"]:
+                            if hasattr(block, 'model_dump'):
+                                return block.model_dump()  # Preservar TODOS los campos exactamente
+                            return dict(block) if isinstance(block, dict) else {"type": block_type}
                         elif block_type == "text":
                             return {
                                 "type": "text",
