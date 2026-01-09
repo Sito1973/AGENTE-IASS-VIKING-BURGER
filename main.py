@@ -987,6 +987,38 @@ def generate_response(api_key,
                 try:
                     if ANTHROPIC_DEBUG:
                         logger.info("⤴️ PAYLOAD ANTHROPIC: %s", conversation_history)
+                        # LOG: Monitoreo detallado de bloques en conversation_history
+                        logger.info("=" * 60)
+                        logger.info("📤 MONITOREO BLOQUES ENVIADOS A ANTHROPIC")
+                        logger.info("📊 Total mensajes en historial: %d", len(conversation_history))
+                        for msg_idx, msg in enumerate(conversation_history):
+                            role = msg.get("role", "unknown")
+                            content = msg.get("content", [])
+                            if isinstance(content, str):
+                                logger.info("  MSG[%d] role=%s | content=string (len=%d)", msg_idx, role, len(content))
+                            elif isinstance(content, list):
+                                logger.info("  MSG[%d] role=%s | content=list (%d bloques)", msg_idx, role, len(content))
+                                for blk_idx, blk in enumerate(content):
+                                    if isinstance(blk, dict):
+                                        blk_type = blk.get("type", "unknown")
+                                        if blk_type == "thinking":
+                                            has_signature = "signature" in blk
+                                            has_thinking = "thinking" in blk
+                                            logger.info("      [%d.%d] thinking | signature=%s | thinking_field=%s", msg_idx, blk_idx, has_signature, has_thinking)
+                                        elif blk_type == "redacted_thinking":
+                                            has_data = "data" in blk
+                                            logger.info("      [%d.%d] redacted_thinking | data=%s", msg_idx, blk_idx, has_data)
+                                        elif blk_type == "text":
+                                            text_len = len(blk.get("text", ""))
+                                            has_cache = "cache_control" in blk
+                                            logger.info("      [%d.%d] text (len=%d) | cache_control=%s", msg_idx, blk_idx, text_len, has_cache)
+                                        elif blk_type == "tool_use":
+                                            logger.info("      [%d.%d] tool_use: %s (id=%s)", msg_idx, blk_idx, blk.get("name"), blk.get("id"))
+                                        elif blk_type == "tool_result":
+                                            logger.info("      [%d.%d] tool_result (id=%s)", msg_idx, blk_idx, blk.get("tool_use_id"))
+                                        else:
+                                            logger.info("      [%d.%d] %s", msg_idx, blk_idx, blk_type)
+                        logger.info("=" * 60)
                     # Llamar a la API con reintentos
                     logger.info("Llamando a Anthropic API para thread_id: %s",
                                 thread_id)
@@ -1065,12 +1097,64 @@ def generate_response(api_key,
                             return dict(block) if isinstance(block, dict) else {"type": block_type}
 
                     filtered_content = []
-                    for block in response.content:
+
+                    # LOG: Monitoreo de bloques recibidos de Anthropic
+                    if ANTHROPIC_DEBUG:
+                        logger.info("=" * 60)
+                        logger.info("🔍 MONITOREO DE BLOQUES - Respuesta Anthropic")
+                        logger.info("📊 Total bloques recibidos: %d", len(response.content))
+                        for idx, block in enumerate(response.content):
+                            block_type = get_field(block, "type")
+                            logger.info("  [%d] Tipo: %s", idx, block_type)
+                            if block_type == "thinking":
+                                thinking_text = get_field(block, "thinking") or ""
+                                logger.info("      └─ thinking (len=%d chars)", len(thinking_text))
+                            elif block_type == "redacted_thinking":
+                                logger.info("      └─ redacted_thinking (data protegida)")
+                            elif block_type == "text":
+                                text_content = get_field(block, "text") or ""
+                                logger.info("      └─ text (len=%d chars): %.100s...", len(text_content), text_content[:100] if text_content else "")
+                            elif block_type == "tool_use":
+                                tool_name = get_field(block, "name")
+                                tool_id = get_field(block, "id")
+                                logger.info("      └─ tool_use: %s (id=%s)", tool_name, tool_id)
+                        logger.info("-" * 60)
+
+                    for idx, block in enumerate(response.content):
                         block_dict = serialize_block(block)
+                        block_type = block_dict.get("type", "unknown")
+
+                        # LOG: Detalle de serialización por bloque
+                        if ANTHROPIC_DEBUG:
+                            if block_type in ["thinking", "redacted_thinking"]:
+                                logger.info("  ✅ [%d] %s serializado con model_dump() - preservado exacto", idx, block_type)
+                            else:
+                                logger.info("  📝 [%d] %s serializado manualmente", idx, block_type)
+
                         # Filtrar bloques de texto vacíos
                         if block_dict.get("type") == "text" and not block_dict.get("text"):
+                            if ANTHROPIC_DEBUG:
+                                logger.info("  ⏭️  [%d] Bloque text vacío - IGNORADO", idx)
                             continue
                         filtered_content.append(block_dict)
+
+                    # LOG: Resumen del contenido filtrado
+                    if ANTHROPIC_DEBUG:
+                        logger.info("-" * 60)
+                        logger.info("📋 CONTENIDO FINAL (filtered_content): %d bloques", len(filtered_content))
+                        for idx, fc in enumerate(filtered_content):
+                            fc_type = fc.get("type", "unknown")
+                            if fc_type == "thinking":
+                                logger.info("  [%d] thinking - signature presente: %s", idx, "signature" in fc)
+                            elif fc_type == "redacted_thinking":
+                                logger.info("  [%d] redacted_thinking - data presente: %s", idx, "data" in fc)
+                            elif fc_type == "text":
+                                logger.info("  [%d] text (len=%d)", idx, len(fc.get("text", "")))
+                            elif fc_type == "tool_use":
+                                logger.info("  [%d] tool_use: %s", idx, fc.get("name"))
+                            else:
+                                logger.info("  [%d] %s", idx, fc_type)
+                        logger.info("=" * 60)
 
                     conversation_history.append({
                         "role": "assistant",

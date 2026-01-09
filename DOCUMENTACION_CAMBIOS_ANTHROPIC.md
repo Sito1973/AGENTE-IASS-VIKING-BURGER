@@ -498,7 +498,87 @@ TURNO despues de 5 min inactivo:
 
 ---
 
-## 9. Referencias
+## 9. Logs de Monitoreo de Bloques (ANTHROPIC_DEBUG)
+
+Para diagnosticar problemas con bloques thinking y cache_control, se agregaron logs detallados que se activan con `ANTHROPIC_DEBUG = True`.
+
+### 9.1 Log de bloques ENVIADOS a Anthropic (antes de API call)
+
+```
+============================================================
+📤 MONITOREO BLOQUES ENVIADOS A ANTHROPIC
+📊 Total mensajes en historial: 5
+  MSG[0] role=user | content=string (len=45)
+  MSG[1] role=assistant | content=list (3 bloques)
+      [1.0] thinking | signature=True | thinking_field=True
+      [1.1] text (len=120) | cache_control=False
+      [1.2] tool_use: crear_pedido (id=toolu_01abc)
+  MSG[2] role=user | content=list (1 bloques)
+      [2.0] tool_result (id=toolu_01abc)
+  MSG[3] role=assistant | content=list (2 bloques)
+      [3.0] thinking | signature=True | thinking_field=True
+      [3.1] text (len=85) | cache_control=True
+  MSG[4] role=user | content=string (len=30)
+============================================================
+```
+
+**Que verificar:**
+- Los bloques `thinking` deben tener `signature=True` y `thinking_field=True`
+- Los bloques `thinking` NO deben tener `cache_control`
+- Solo otros bloques (text, tool_use, etc.) deben tener `cache_control=True`
+
+### 9.2 Log de bloques RECIBIDOS de Anthropic (respuesta)
+
+```
+============================================================
+🔍 MONITOREO DE BLOQUES - Respuesta Anthropic
+📊 Total bloques recibidos: 3
+  [0] Tipo: thinking
+      └─ thinking (len=1245 chars)
+  [1] Tipo: text
+      └─ text (len=85 chars): Aqui esta el resumen de tu pedido...
+  [2] Tipo: tool_use
+      └─ tool_use: crear_pedido (id=toolu_02xyz)
+------------------------------------------------------------
+  ✅ [0] thinking serializado con model_dump() - preservado exacto
+  📝 [1] text serializado manualmente
+  📝 [2] tool_use serializado manualmente
+------------------------------------------------------------
+📋 CONTENIDO FINAL (filtered_content): 3 bloques
+  [0] thinking - signature presente: True
+  [1] text (len=85)
+  [2] tool_use: crear_pedido
+============================================================
+```
+
+**Que verificar:**
+- Los bloques `thinking` deben mostrar "✅ serializado con model_dump()"
+- El `filtered_content` debe mostrar `signature presente: True` para thinking
+- Si hay `redacted_thinking`, debe mostrar `data presente: True`
+
+### 9.3 Activar/Desactivar Logs
+
+En `main.py`, al inicio del archivo:
+
+```python
+ANTHROPIC_DEBUG = True   # Activar logs detallados
+ANTHROPIC_DEBUG = False  # Desactivar para produccion
+```
+
+### 9.4 Interpretacion de errores con logs
+
+**Si ves `signature=False` en thinking:**
+El bloque thinking no se esta preservando correctamente. Revisa `serialize_block`.
+
+**Si ves `cache_control=True` en un bloque thinking:**
+El cache se esta aplicando a thinking. Revisa `clean_existing_cache_controls` y el cache incremental.
+
+**Si el total de `cache_control=True` es mayor a 4:**
+Se excedio el limite. Revisa todas las secciones donde se agrega cache_control.
+
+---
+
+## 10. Referencias
 
 - [Documentacion Prompt Caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
 - [Extended Thinking con Tool Use](https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking)
@@ -506,7 +586,7 @@ TURNO despues de 5 min inactivo:
 
 ---
 
-## 10. Checklist de Implementacion
+## 11. Checklist de Implementacion
 
 - [ ] Agregar parametros de costo a `generate_response`
 - [ ] Proteger bloques `thinking` y `redacted_thinking` en `clean_existing_cache_controls`
@@ -518,7 +598,9 @@ TURNO despues de 5 min inactivo:
 - [ ] Agregar estructura de costos al response_data
 - [ ] Probar con conversacion larga (>4 mensajes) para verificar limite de bloques
 - [ ] Probar con tool_use para verificar que thinking blocks no se modifican
+- [ ] Activar `ANTHROPIC_DEBUG = True` para monitorear estructura de bloques
+- [ ] Verificar en logs que thinking muestre `signature=True` y `thinking_field=True`
 
 ---
 
-*Documento generado el 2026-01-09*
+*Documento actualizado el 2026-01-09 - Agregados logs de monitoreo*
