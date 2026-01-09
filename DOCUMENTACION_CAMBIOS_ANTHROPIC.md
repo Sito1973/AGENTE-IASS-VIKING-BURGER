@@ -439,16 +439,22 @@ if block_type in ["thinking", "redacted_thinking"]:
 
 ### Error: "thinking blocks in the latest assistant message cannot be modified" (tool_use)
 
-**Causa:** Se reconstruyo manualmente el bloque thinking al agregarlo al historial, en lugar de pasarlo exactamente como lo devolvio la API.
+**Causa 1:** Se reconstruyo manualmente el bloque thinking al agregarlo al historial, en lugar de pasarlo exactamente como lo devolvio la API.
+
+**Causa 2 (NUEVA):** Se filtro un bloque de texto vacio que estaba ENTRE bloques thinking. Ejemplo de respuesta de Anthropic:
+```
+[thinking] -> [text vacio] -> [thinking] -> [tool_use]
+```
+Si filtras el `[text vacio]`, Anthropic detecta que la estructura cambio.
 
 **Ejemplo del error:**
 ```
-messages.9.content.1: `thinking` or `redacted_thinking` blocks in the latest
+messages.19.content.1: `thinking` or `redacted_thinking` blocks in the latest
 assistant message cannot be modified. These blocks must remain as they were
 in the original response.
 ```
 
-**Solucion:** Usar `model_dump()` para preservar el bloque exactamente:
+**Solucion 1:** Usar `model_dump()` para preservar el bloque exactamente:
 
 ```python
 # INCORRECTO - reconstruir manualmente
@@ -463,6 +469,25 @@ if block_type == "thinking":
 if block_type in ["thinking", "redacted_thinking"]:
     if hasattr(block, 'model_dump'):
         return block.model_dump()  # Preservar TODOS los campos exactamente
+```
+
+**Solucion 2 (NUEVA):** NO filtrar bloques de texto vacios cuando hay thinking blocks:
+
+```python
+# Verificar si hay bloques thinking para preservar estructura exacta
+has_thinking_blocks = any(
+    get_field(block, "type") in ["thinking", "redacted_thinking"]
+    for block in response.content
+)
+
+# Filtrar bloques de texto vacíos SOLO si NO hay bloques thinking
+if block_dict.get("type") == "text" and not block_dict.get("text"):
+    if has_thinking_blocks:
+        # PRESERVAR bloque vacío para mantener estructura exacta
+        filtered_content.append(block_dict)
+    else:
+        # Sin thinking blocks, podemos filtrar
+        continue
 ```
 
 ---

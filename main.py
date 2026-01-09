@@ -1120,6 +1120,12 @@ def generate_response(api_key,
                                 logger.info("      └─ tool_use: %s (id=%s)", tool_name, tool_id)
                         logger.info("-" * 60)
 
+                    # IMPORTANTE: Verificar si hay bloques thinking para preservar estructura exacta
+                    has_thinking_blocks = any(
+                        get_field(block, "type") in ["thinking", "redacted_thinking"]
+                        for block in response.content
+                    )
+
                     for idx, block in enumerate(response.content):
                         block_dict = serialize_block(block)
                         block_type = block_dict.get("type", "unknown")
@@ -1131,10 +1137,18 @@ def generate_response(api_key,
                             else:
                                 logger.info("  📝 [%d] %s serializado manualmente", idx, block_type)
 
-                        # Filtrar bloques de texto vacíos
+                        # Filtrar bloques de texto vacíos SOLO si NO hay bloques thinking
+                        # Cuando hay thinking, Anthropic requiere estructura EXACTA (incluyendo text vacíos)
                         if block_dict.get("type") == "text" and not block_dict.get("text"):
-                            if ANTHROPIC_DEBUG:
-                                logger.info("  ⏭️  [%d] Bloque text vacío - IGNORADO", idx)
+                            if has_thinking_blocks:
+                                # PRESERVAR bloque vacío para mantener estructura exacta
+                                if ANTHROPIC_DEBUG:
+                                    logger.info("  ⚠️  [%d] Bloque text vacío - PRESERVADO (hay thinking blocks)", idx)
+                                filtered_content.append(block_dict)
+                            else:
+                                # Sin thinking blocks, podemos filtrar
+                                if ANTHROPIC_DEBUG:
+                                    logger.info("  ⏭️  [%d] Bloque text vacío - IGNORADO", idx)
                             continue
                         filtered_content.append(block_dict)
 
