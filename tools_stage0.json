@@ -1,7 +1,7 @@
 [
   {
     "name": "crear_direccion",
-    "description": "Crea una dirección de cliente. Esta herramienta debe usarse cuando ya se tiene toda la informacion de ubicacion y de detalles del pedido del cliente, para proseguir con la toma del pedido, debes tener mucho cuidado en la direccion del cliente. Ser preciso extrayendo la direcciion proporcionada, y los detalles e indicaciones ponerlos en indicaciones_direcccion_cliente. DEbes confirmar siempre la direccion guardada con el cliente cuando es para domicilio y si no es correcta modificarla con esta funcion",
+    "description": "OBLIGATORIO: Esta herramienta SIEMPRE debe usarse para registrar los datos iniciales del cliente, tanto para pedidos de Domicilio como para Recoger en local. Se usa cuando ya se tiene toda la información básica del cliente (nombre, sede, ciudad y tipo de pedido). Para Domicilio: ser preciso con la dirección completa proporcionada por el cliente. Para Recoger: usar 'Recoger en local' en direccion_cliente y 'N/A' en indicaciones. Esta herramienta NO guarda el pedido de comida, solo los datos del cliente. IMPORTANTE: Confirmar siempre los datos con el cliente antes de usar la herramienta.",
     "input_schema": {
       "type": "object",
       "required": [
@@ -27,11 +27,11 @@
         },
         "direccion_cliente": {
           "type": "string",
-          "description": "Dirección del cliente (obligatorio), solo la direccion exacta TIENE que ser: ya sea nombre de el edificio, unidad residencial, el nombre de la empresa o en el formato de Calle con Carrera y numero. Sin referencia de casa, bodega u oficina"
+          "description": "Dirección del cliente (obligatorio). Para Domicilio: direccion exacta como nombre del edificio, unidad residencial, empresa o formato Calle/Carrera con numero (sin incluir numero de casa/apartamento). Para Recoger: usar exactamente 'Recoger en local' o 'Recoger en sede'."
         },
         "indicaciones_direccion_cliente": {
           "type": "string",
-          "description": "Comentarios adicionales sobre la direccion proporcionada por el cliente, referencias, tiene que ser el numero de casa, oficina, o bodega puede incluir el barrio, pero siempre si hay referencias sobre donde queda la ubiccion del cliente debes ponerla en esta variable."
+          "description": "Comentarios adicionales sobre la dirección. Para Domicilio: numero de casa/apartamento/oficina, barrio, referencias, puntos de ubicación. Para Recoger: usar exactamente 'N/A'."
         },
         "ciudad_cliente": {
           "type": "string",
