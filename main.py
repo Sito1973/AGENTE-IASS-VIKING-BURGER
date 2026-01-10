@@ -751,6 +751,14 @@ def generate_response(api_key,
                                 cache_count += 1
                 return cache_count
 
+            def is_empty_text_block(block):
+                if not isinstance(block, dict) or block.get("type") != "text":
+                    return False
+                text_value = block.get("text")
+                if not isinstance(text_value, str):
+                    return True
+                return not text_value.strip()
+
             # Limpiar cache_control existentes SOLO cuando hay reset (nueva conversación o TTL expirado)
             if conversations[thread_id].get("cache_reset", False):
                 conversation_history = clean_existing_cache_controls(conversation_history)
@@ -986,9 +994,7 @@ def generate_response(api_key,
                         # Filtrar bloques de texto vacíos, preservar thinking y otros
                         msg["content"] = [
                             block for block in msg["content"]
-                            if not (isinstance(block, dict) and
-                                   block.get("type") == "text" and
-                                   not block.get("text"))
+                            if not is_empty_text_block(block)
                         ]
 
                 # Validar estructura de mensajes antes de enviar
@@ -1147,7 +1153,7 @@ def generate_response(api_key,
                         # SIEMPRE filtrar bloques de texto vacíos
                         # Anthropic genera text vacíos entre thinking blocks pero NO los permite en el historial
                         # Error si se envían: "messages: text content blocks must be non-empty"
-                        if block_dict.get("type") == "text" and not block_dict.get("text"):
+                        if is_empty_text_block(block_dict):
                             if ANTHROPIC_DEBUG:
                                 logger.info("  ⏭️  [%d] Bloque text vacío - FILTRADO (Anthropic no permite text vacíos)", idx)
                             continue

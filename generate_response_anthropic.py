@@ -215,6 +215,9 @@ def generate_response(api_key,
                     if "content" in msg and isinstance(msg["content"], list):
                         for content_item in msg["content"]:
                             if isinstance(content_item, dict) and "cache_control" in content_item:
+                                block_type = content_item.get("type", "")
+                                if block_type in ["thinking", "redacted_thinking"]:
+                                    continue
                                 del content_item["cache_control"]
                 return conv_history
 
