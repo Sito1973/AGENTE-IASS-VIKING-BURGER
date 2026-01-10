@@ -439,13 +439,7 @@ if block_type in ["thinking", "redacted_thinking"]:
 
 ### Error: "thinking blocks in the latest assistant message cannot be modified" (tool_use)
 
-**Causa 1:** Se reconstruyo manualmente el bloque thinking al agregarlo al historial, en lugar de pasarlo exactamente como lo devolvio la API.
-
-**Causa 2 (NUEVA):** Se filtro un bloque de texto vacio que estaba ENTRE bloques thinking. Ejemplo de respuesta de Anthropic:
-```
-[thinking] -> [text vacio] -> [thinking] -> [tool_use]
-```
-Si filtras el `[text vacio]`, Anthropic detecta que la estructura cambio.
+**Causa:** Se reconstruyo manualmente el bloque thinking al agregarlo al historial, en lugar de pasarlo exactamente como lo devolvio la API.
 
 **Ejemplo del error:**
 ```
@@ -454,7 +448,7 @@ assistant message cannot be modified. These blocks must remain as they were
 in the original response.
 ```
 
-**Solucion 1:** Usar `model_dump()` para preservar el bloque exactamente:
+**Solucion:** Usar `model_dump()` para preservar el bloque exactamente:
 
 ```python
 # INCORRECTO - reconstruir manualmente
@@ -471,24 +465,44 @@ if block_type in ["thinking", "redacted_thinking"]:
         return block.model_dump()  # Preservar TODOS los campos exactamente
 ```
 
-**Solucion 2 (NUEVA):** NO filtrar bloques de texto vacios cuando hay thinking blocks:
+---
+
+### Error: "messages: text content blocks must be non-empty"
+
+**Causa:** Anthropic genera bloques de texto vacios entre thinking blocks, pero NO permite enviarlos de vuelta en el historial.
+
+Ejemplo de respuesta de Anthropic:
+```
+[thinking] -> [text vacio] -> [thinking] -> [tool_use]
+```
+
+**Solucion 1:** Filtrar al procesar NUEVAS respuestas:
 
 ```python
-# Verificar si hay bloques thinking para preservar estructura exacta
-has_thinking_blocks = any(
-    get_field(block, "type") in ["thinking", "redacted_thinking"]
-    for block in response.content
-)
-
-# Filtrar bloques de texto vacíos SOLO si NO hay bloques thinking
+# Al serializar respuesta de Anthropic
 if block_dict.get("type") == "text" and not block_dict.get("text"):
-    if has_thinking_blocks:
-        # PRESERVAR bloque vacío para mantener estructura exacta
-        filtered_content.append(block_dict)
-    else:
-        # Sin thinking blocks, podemos filtrar
-        continue
+    continue  # No agregar al historial
+filtered_content.append(block_dict)
 ```
+
+**Solucion 2 (CRITICA):** Limpiar historial EXISTENTE antes de enviar a Anthropic:
+
+Los mensajes antiguos en el historial pueden tener bloques vacios. Se deben limpiar ANTES de cada llamada a la API:
+
+```python
+# ANTES de enviar a Anthropic (dentro del while True)
+for msg in conversation_history:
+    if msg.get("role") == "assistant" and isinstance(msg.get("content"), list):
+        # Filtrar bloques de texto vacíos, preservar thinking y otros
+        msg["content"] = [
+            block for block in msg["content"]
+            if not (isinstance(block, dict) and
+                   block.get("type") == "text" and
+                   not block.get("text"))
+        ]
+```
+
+**IMPORTANTE:** Esto NO afecta a los thinking blocks. Los thinking blocks se preservan exactamente con `model_dump()`, y solo los text vacios se filtran.
 
 ---
 

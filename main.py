@@ -978,6 +978,19 @@ def generate_response(api_key,
 
             # Iniciar interacción con el modelo
             while True:
+                # CRITICO: Limpiar bloques de texto vacíos del historial antes de enviar
+                # Anthropic genera text vacíos entre thinking blocks pero NO los acepta de vuelta
+                # Error si se envían: "messages: text content blocks must be non-empty"
+                for msg in conversation_history:
+                    if msg.get("role") == "assistant" and isinstance(msg.get("content"), list):
+                        # Filtrar bloques de texto vacíos, preservar thinking y otros
+                        msg["content"] = [
+                            block for block in msg["content"]
+                            if not (isinstance(block, dict) and
+                                   block.get("type") == "text" and
+                                   not block.get("text"))
+                        ]
+
                 # Validar estructura de mensajes antes de enviar
                 if not validate_conversation_history(conversation_history):
                     logger.error("Estructura de mensajes inválida: %s",
@@ -1120,12 +1133,6 @@ def generate_response(api_key,
                                 logger.info("      └─ tool_use: %s (id=%s)", tool_name, tool_id)
                         logger.info("-" * 60)
 
-                    # IMPORTANTE: Verificar si hay bloques thinking para preservar estructura exacta
-                    has_thinking_blocks = any(
-                        get_field(block, "type") in ["thinking", "redacted_thinking"]
-                        for block in response.content
-                    )
-
                     for idx, block in enumerate(response.content):
                         block_dict = serialize_block(block)
                         block_type = block_dict.get("type", "unknown")
@@ -1137,18 +1144,12 @@ def generate_response(api_key,
                             else:
                                 logger.info("  📝 [%d] %s serializado manualmente", idx, block_type)
 
-                        # Filtrar bloques de texto vacíos SOLO si NO hay bloques thinking
-                        # Cuando hay thinking, Anthropic requiere estructura EXACTA (incluyendo text vacíos)
+                        # SIEMPRE filtrar bloques de texto vacíos
+                        # Anthropic genera text vacíos entre thinking blocks pero NO los permite en el historial
+                        # Error si se envían: "messages: text content blocks must be non-empty"
                         if block_dict.get("type") == "text" and not block_dict.get("text"):
-                            if has_thinking_blocks:
-                                # PRESERVAR bloque vacío para mantener estructura exacta
-                                if ANTHROPIC_DEBUG:
-                                    logger.info("  ⚠️  [%d] Bloque text vacío - PRESERVADO (hay thinking blocks)", idx)
-                                filtered_content.append(block_dict)
-                            else:
-                                # Sin thinking blocks, podemos filtrar
-                                if ANTHROPIC_DEBUG:
-                                    logger.info("  ⏭️  [%d] Bloque text vacío - IGNORADO", idx)
+                            if ANTHROPIC_DEBUG:
+                                logger.info("  ⏭️  [%d] Bloque text vacío - FILTRADO (Anthropic no permite text vacíos)", idx)
                             continue
                         filtered_content.append(block_dict)
 
