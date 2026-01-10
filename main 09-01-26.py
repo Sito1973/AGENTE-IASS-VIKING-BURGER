@@ -595,7 +595,6 @@ def reserva_mesa(tool_input, subscriber_id):
         logger.exception("Error en reserva_mesa: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
-
 def validate_conversation_history(history):
     """Valida que la estructura del historial sea correcta para Anthropic."""
     if not isinstance(history, list):
@@ -608,9 +607,7 @@ def validate_conversation_history(history):
             logger.error("Mensaje no es un diccionario: %s", message)
             return False
 
-        if "role" not in message or message["role"] not in [
-                "user", "assistant"
-        ]:
+        if "role" not in message or message["role"] not in ["user", "assistant"]:
             logger.error("Rol inválido en mensaje: %s", message)
             return False
 
@@ -619,7 +616,6 @@ def validate_conversation_history(history):
             return False
 
     return True
-
 
 # Versión mejorada de get_field
 def get_field(item, key):
@@ -635,6 +631,12 @@ def get_field(item, key):
     except Exception as e:
         logger.warning("Error al acceder a atributo %s: %s", key, e)
         return None
+
+# Función auxiliar para acceder a un campo, ya sea en un diccionario o en un objeto
+#def get_field(item, key):
+    #if isinstance(item, dict):
+        #return item.get(key)
+    #return getattr(item, key, None)
 
 
 thread_locks = {}
@@ -679,23 +681,23 @@ def generate_response(api_key,
 
             # Agregar el mensaje del usuario al historial
             user_message_content = {"type": "text", "text": message}
-            
+
             # ========================================
-            # SISTEMA AUTOMÁTICO DE CACHE MANAGEMENT 
+            # SISTEMA AUTOMÁTICO DE CACHE MANAGEMENT
             # ========================================
             # Gestión inteligente de máximo 4 bloques cache por conversación
             # Reseteo automático cada 5 minutos, priorización estratégica
-            
+
             cache_blocks_used = 0
             max_cache_blocks = 4
             current_time = time.time()
-            
+
             # Verificar si necesitamos resetear cache (4 min 50 seg de INACTIVIDAD = 290 segundos)
             # Margen de seguridad de 10 segundos antes de que Anthropic expire el cache a los 5 min
             last_activity_time = conversations[thread_id].get("last_activity", 0)
             cache_expired_by_inactivity = (current_time - last_activity_time) > 290
             is_new_conversation = last_activity_time == 0 or len(conversation_history) == 0
-            
+
             if is_new_conversation:
                 conversations[thread_id]["cache_reset"] = True
                 conversations[thread_id]["last_activity"] = current_time
@@ -709,31 +711,36 @@ def generate_response(api_key,
                 conversations[thread_id]["last_activity"] = current_time  # Actualizar actividad
                 time_remaining = 290 - (current_time - last_activity_time)
                 logger.info("🔄 Cache activo para thread_id: %s (TTL restante: %.0f segundos)", thread_id, time_remaining)
-            
+
             # Análisis de conversación para cache inteligente
             messages_count = len(conversation_history)
             current_stage = conversations[thread_id].get("assistant", 0)
             is_conversation_established = messages_count >= 3
-            
+
             # Determinar tokens estimados para modelos (mínimos requeridos)
             model_cache_minimum = 2048 if "haiku" in llmID.lower() else 1024
-            
+
             # Función helper para estimar tokens (aproximadamente 4 caracteres = 1 token)
             def estimate_tokens(text):
                 return len(text) // 4
-            
+
             # ========================================
             # FUNCIONES DE CACHE MANAGEMENT
             # ========================================
             def clean_existing_cache_controls(conversation_history):
-                """Limpia cache_control existentes para implementar cache incremental"""
+                """Limpia cache_control existentes para implementar cache incremental.
+                NO modifica bloques thinking/redacted_thinking (prohibido por Anthropic)."""
                 for message in conversation_history:
                     if "content" in message and isinstance(message["content"], list):
                         for content_item in message["content"]:
                             if isinstance(content_item, dict) and "cache_control" in content_item:
+                                # No modificar bloques de thinking - Anthropic los requiere sin cambios
+                                block_type = content_item.get("type", "")
+                                if block_type in ["thinking", "redacted_thinking"]:
+                                    continue
                                 del content_item["cache_control"]
                 return conversation_history
-            
+
             def count_existing_cache_blocks(conversation_history):
                 """Cuenta cuántos bloques de cache están actualmente en uso"""
                 cache_count = 0
@@ -743,7 +750,15 @@ def generate_response(api_key,
                             if isinstance(content_item, dict) and "cache_control" in content_item:
                                 cache_count += 1
                 return cache_count
-            
+
+            def is_empty_text_block(block):
+                if not isinstance(block, dict) or block.get("type") != "text":
+                    return False
+                text_value = block.get("text")
+                if not isinstance(text_value, str):
+                    return True
+                return not text_value.strip()
+
             # Limpiar cache_control existentes SOLO cuando hay reset (nueva conversación o TTL expirado)
             if conversations[thread_id].get("cache_reset", False):
                 conversation_history = clean_existing_cache_controls(conversation_history)
@@ -753,29 +768,29 @@ def generate_response(api_key,
                 # Mantener cache existente, solo contar bloques usados
                 cache_blocks_used = count_existing_cache_blocks(conversation_history)
                 logger.info("🔄 Cache existente mantenido para thread_id: %s (%d bloques usados)", thread_id, cache_blocks_used)
-            
+
             # ============================================
             # BLOQUE 1: USER MESSAGE CACHE (Prioridad 4)
             # ============================================
             user_message_content = {"type": "text", "text": message}
-            
+
             # Cachear mensaje del usuario SOLO cuando hay reset (nueva conversación o TTL expirado)
             should_cache_user_message = False  # Por defecto NO cachear user messages
-            
+
             if should_cache_user_message:
                 user_message_content["cache_control"] = {"type": "ephemeral"}
                 cache_blocks_used += 1
-                logger.info("💬 User message cached (bloque %d/4) para thread_id: %s (maximizando uso de cache)", 
+                logger.info("💬 User message cached (bloque %d/4) para thread_id: %s (maximizando uso de cache)",
                            cache_blocks_used, thread_id)
             else:
                 reason = "cache reset por TTL/stage" if conversations[thread_id].get("cache_reset", False) else f"límite bloques alcanzado ({cache_blocks_used}/4)"
                 logger.info("💬 User message sin cache para thread_id: %s (%s)", thread_id, reason)
-            
+
             conversation_history.append({
                 "role": "user",
                 "content": [user_message_content]
             })
-            
+
             # ============================================
             # BLOQUE EXTRA: CACHE INCREMENTAL DEL HISTORIAL
             # ============================================
@@ -785,26 +800,28 @@ def generate_response(api_key,
                 previous_message = conversation_history[-2]
                 if "content" in previous_message and isinstance(previous_message["content"], list):
                     for content_item in previous_message["content"]:
+                        # NO agregar cache_control a bloques thinking/redacted_thinking (Anthropic no lo permite)
                         if isinstance(content_item, dict) and "cache_control" not in content_item:
+                            block_type = content_item.get("type", "")
+                            if block_type in ["thinking", "redacted_thinking"]:
+                                continue  # Skip thinking blocks - cannot be modified per Anthropic docs
                             content_item["cache_control"] = {"type": "ephemeral"}
                             cache_blocks_used += 1
-                            logger.info("📜 Historial cached (bloque %d/4) para thread_id: %s (cache incremental)", 
+                            logger.info("📜 Historial cached (bloque %d/4) para thread_id: %s (cache incremental)",
                                        cache_blocks_used, thread_id)
                             break  # Solo uno por mensaje
 
             # Cargar herramientas
             assistant_value = conversations[thread_id].get("assistant")
             assistant_str = str(assistant_value)
-            if assistant_str in ["0"]:
+            if assistant_str in ["0","5"]:
                 tools_file_name = "tools_stage0.json"
             elif assistant_str in ["1", "2"]:
                 tools_file_name = "tools_stage1.json"
             elif assistant_str in ["3"]:
                 tools_file_name = "tools_stage2.json"
-            elif assistant_str in ["4", "5"]:
+            elif assistant_str in ["4"]:
                 tools_file_name = "tools_stage3.json"
-            elif assistant_str in ["20"]:
-                tools_file_name = "tools_stage20.json"
             else:
                 tools_file_name = "default_tools.json"
 
@@ -823,7 +840,7 @@ def generate_response(api_key,
             if tools:
                 tools_text = f"\n\n<tools>\n{json.dumps(tools, ensure_ascii=False, indent=2)}\n</tools>\n\n"
                 tools_tokens = estimate_tokens(tools_text)
-                logger.info("🔧 Tools preparadas para combinar con system (%d tokens) para thread_id: %s", 
+                logger.info("🔧 Tools preparadas para combinar con system (%d tokens) para thread_id: %s",
                            tools_tokens, thread_id)
 
             # ========================================
@@ -831,29 +848,29 @@ def generate_response(api_key,
             # ========================================
             # SOLO aplicar cache_control cuando hay reset (nueva conversación o TTL expirado)
             should_apply_system_cache = conversations[thread_id].get("cache_reset", False)
-            
+
             if should_apply_system_cache and cache_blocks_used < max_cache_blocks:
                 # Combinar tools con system prompt para máxima eficiencia
                 combined_content = tools_text + assistant_content_text
-                
+
                 # Separación inteligente estático/dinámico para maximizar cache hits
                 separators = ["Información del Cliente:", "<customer_info>", "Nombre del Cliente:"]
                 static_part = combined_content
                 dynamic_part = ""
                 separator_found = None
-                
+
                 for separator in separators:
                     if separator in combined_content:
                         static_part = combined_content.split(separator)[0]
                         dynamic_part = combined_content[len(static_part):]
                         separator_found = separator
                         break
-                
+
                 # Verificar si la parte estática tiene suficientes tokens para cachear
                 static_tokens = estimate_tokens(static_part.strip())
                 total_tokens = estimate_tokens(combined_content)
                 combined_tokens = tools_tokens + estimate_tokens(assistant_content_text)
-                
+
                 # Aplicar cache estratégico según contenido y tokens mínimos
                 if dynamic_part.strip() and cache_blocks_used < max_cache_blocks and static_tokens >= model_cache_minimum:
                     # Contenido mixto: cachear solo parte estática SI supera el mínimo
@@ -864,12 +881,12 @@ def generate_response(api_key,
                             "cache_control": {"type": "ephemeral"}
                         },
                         {
-                            "type": "text", 
+                            "type": "text",
                             "text": dynamic_part.strip()  # Variables no se cachean
                         }
                     ]
                     cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached (bloque %d/4) - separación estático/dinámico en '%s' (%d+%d=%d tokens) para thread_id: %s", 
+                    logger.info("🔧📝 Tools+System cached (bloque %d/4) - separación estático/dinámico en '%s' (%d+%d=%d tokens) para thread_id: %s",
                                cache_blocks_used, separator_found, tools_tokens, static_tokens-tools_tokens, static_tokens, thread_id)
                 elif not dynamic_part.strip() and cache_blocks_used < max_cache_blocks and total_tokens >= model_cache_minimum:
                     # Contenido completamente estático
@@ -879,7 +896,7 @@ def generate_response(api_key,
                         "cache_control": {"type": "ephemeral"}
                     }]
                     cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - sin variables (%d+%d=%d tokens) para thread_id: %s", 
+                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - sin variables (%d+%d=%d tokens) para thread_id: %s",
                                cache_blocks_used, tools_tokens, total_tokens-tools_tokens, total_tokens, thread_id)
                 elif dynamic_part.strip() and static_tokens < model_cache_minimum and total_tokens >= model_cache_minimum:
                     # Parte estática muy pequeña: cachear todo junto
@@ -889,7 +906,7 @@ def generate_response(api_key,
                         "cache_control": {"type": "ephemeral"}
                     }]
                     cache_blocks_used += 1
-                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - estático insuficiente, cacheando todo (%d+%d=%d tokens) para thread_id: %s", 
+                    logger.info("🔧📝 Tools+System cached completo (bloque %d/4) - estático insuficiente, cacheando todo (%d+%d=%d tokens) para thread_id: %s",
                                cache_blocks_used, tools_tokens, total_tokens-tools_tokens, total_tokens, thread_id)
                 else:
                     # Sin cache: no hay espacio o no alcanza tokens mínimos
@@ -900,8 +917,8 @@ def generate_response(api_key,
                     reason = "límite bloques" if cache_blocks_used >= max_cache_blocks else f"tokens insuficientes ({total_tokens}<{model_cache_minimum})"
                     logger.info("📝 System prompt sin cache para thread_id: %s (%s)", thread_id, reason)
             else:
-                # Mantener cache existente del sistema si no hay reset
-                if not conversations[thread_id].get("cache_reset", False):
+                # Mantener cache existente del sistema si no hay reset Y hay espacio disponible
+                if not conversations[thread_id].get("cache_reset", False) and cache_blocks_used < max_cache_blocks:
                     # Reusar cache del sistema existente
                     combined_content = tools_text + assistant_content_text
                     assistant_content = [{
@@ -910,28 +927,31 @@ def generate_response(api_key,
                         "cache_control": {"type": "ephemeral"}
                     }]
                     cache_blocks_used += 1
-                    logger.info("📝 System cache reutilizado para thread_id: %s (bloque %d/4)", 
+                    logger.info("📝 System cache reutilizado para thread_id: %s (bloque %d/4)",
                                thread_id, cache_blocks_used)
                 else:
+                    # Sin cache: límite alcanzado o es un reset
+                    combined_content = tools_text + assistant_content_text
                     assistant_content = [{
                         "type": "text",
-                        "text": assistant_content_text
+                        "text": combined_content
                     }]
-                    logger.info("📝 System prompt sin cache para thread_id: %s (límite bloques alcanzado: %d/4)", 
-                               thread_id, cache_blocks_used)
+                    reason = "límite bloques alcanzado" if cache_blocks_used >= max_cache_blocks else "cache reset"
+                    logger.info("📝 System prompt sin cache para thread_id: %s (%s: %d/4)",
+                               thread_id, reason, cache_blocks_used)
 
-            # ========================================  
+            # ========================================
             # RESUMEN CACHE MANAGEMENT AUTOMÁTICO
             # ========================================
             # Determinar estado de cache para tools y system
             tools_cache_applied = any("cache_control" in tool for tool in tools) if tools else False
             system_cache_applied = any("cache_control" in item for item in assistant_content)
-            
+
             # Calcular TTL restante basado en inactividad (4 min 50 seg = 290 segundos)
             cache_ttl_seconds = 290
             time_elapsed = current_time - conversations[thread_id].get("last_activity", current_time)
             ttl_remaining = max(0, cache_ttl_seconds - int(time_elapsed))
-            
+
             cache_summary = {
                 "bloques_usados": cache_blocks_used,
                 "maximo_permitido": max_cache_blocks,
@@ -946,9 +966,9 @@ def generate_response(api_key,
                 "system_tokens": (static_tokens - tools_tokens) if 'static_tokens' in locals() and 'tools_tokens' in locals() else (total_tokens - tools_tokens) if 'total_tokens' in locals() and 'tools_tokens' in locals() else 0,
                 "cache_ttl_remaining_seconds": ttl_remaining
             }
-            
+
             logger.info("🎯 CACHE SUMMARY para thread_id %s: %s", thread_id, cache_summary)
-            
+
             # Actualizar estadísticas del hilo
             conversations[thread_id]["cache_stats"] = cache_summary
 
@@ -961,12 +981,22 @@ def generate_response(api_key,
                 "eleccion_forma_pago": eleccion_forma_pago,
                 "facturacion_electronica": facturacion_electronica,
                 "pqrs": pqrs,
-                "reserva_mesa":reserva_mesa,
-                "enviar_ubicacion":enviar_ubicacion,
+                "reserva_mesa": reserva_mesa,
             }
 
             # Iniciar interacción con el modelo
             while True:
+                # CRITICO: Limpiar bloques de texto vacíos del historial antes de enviar
+                # Anthropic genera text vacíos entre thinking blocks pero NO los acepta de vuelta
+                # Error si se envían: "messages: text content blocks must be non-empty"
+                for msg in conversation_history:
+                    if msg.get("role") == "assistant" and isinstance(msg.get("content"), list):
+                        # Filtrar bloques de texto vacíos, preservar thinking y otros
+                        msg["content"] = [
+                            block for block in msg["content"]
+                            if not is_empty_text_block(block)
+                        ]
+
                 # Validar estructura de mensajes antes de enviar
                 if not validate_conversation_history(conversation_history):
                     logger.error("Estructura de mensajes inválida: %s",
@@ -976,6 +1006,38 @@ def generate_response(api_key,
                 try:
                     if ANTHROPIC_DEBUG:
                         logger.info("⤴️ PAYLOAD ANTHROPIC: %s", conversation_history)
+                        # LOG: Monitoreo detallado de bloques en conversation_history
+                        logger.info("=" * 60)
+                        logger.info("📤 MONITOREO BLOQUES ENVIADOS A ANTHROPIC")
+                        logger.info("📊 Total mensajes en historial: %d", len(conversation_history))
+                        for msg_idx, msg in enumerate(conversation_history):
+                            role = msg.get("role", "unknown")
+                            content = msg.get("content", [])
+                            if isinstance(content, str):
+                                logger.info("  MSG[%d] role=%s | content=string (len=%d)", msg_idx, role, len(content))
+                            elif isinstance(content, list):
+                                logger.info("  MSG[%d] role=%s | content=list (%d bloques)", msg_idx, role, len(content))
+                                for blk_idx, blk in enumerate(content):
+                                    if isinstance(blk, dict):
+                                        blk_type = blk.get("type", "unknown")
+                                        if blk_type == "thinking":
+                                            has_signature = "signature" in blk
+                                            has_thinking = "thinking" in blk
+                                            logger.info("      [%d.%d] thinking | signature=%s | thinking_field=%s", msg_idx, blk_idx, has_signature, has_thinking)
+                                        elif blk_type == "redacted_thinking":
+                                            has_data = "data" in blk
+                                            logger.info("      [%d.%d] redacted_thinking | data=%s", msg_idx, blk_idx, has_data)
+                                        elif blk_type == "text":
+                                            text_len = len(blk.get("text", ""))
+                                            has_cache = "cache_control" in blk
+                                            logger.info("      [%d.%d] text (len=%d) | cache_control=%s", msg_idx, blk_idx, text_len, has_cache)
+                                        elif blk_type == "tool_use":
+                                            logger.info("      [%d.%d] tool_use: %s (id=%s)", msg_idx, blk_idx, blk.get("name"), blk.get("id"))
+                                        elif blk_type == "tool_result":
+                                            logger.info("      [%d.%d] tool_result (id=%s)", msg_idx, blk_idx, blk.get("tool_use_id"))
+                                        else:
+                                            logger.info("      [%d.%d] %s", msg_idx, blk_idx, blk_type)
+                        logger.info("=" * 60)
                     # Llamar a la API con reintentos
                     logger.info("Llamando a Anthropic API para thread_id: %s",
                                 thread_id)
@@ -987,7 +1049,7 @@ def generate_response(api_key,
                     # Preparar headers para cache TTL extendido si es necesario
                     extra_headers = {}
                     if use_cache_control and any(
-                        tool.get("cache_control", {}).get("ttl") == "1h" 
+                        tool.get("cache_control", {}).get("ttl") == "1h"
                         for tool in tools if isinstance(tool, dict)
                     ):
                         extra_headers["anthropic-beta"] = "extended-cache-ttl-2025-04-11"
@@ -1021,17 +1083,103 @@ def generate_response(api_key,
                             "✅ Fin llamada Anthropic (%.2fs) | tier=%s | in=%s | out=%s | cache_read=%s | cache_create=%s",
                             api_call_elapsed, tier, in_tok, out_tok, cache_read_tok, cache_create_tok)
                         logger.info("📣 RESPUESTA RAW ANTHROPIC: %s", response)
-                    
-                     # Procesar respuesta - Filtrar bloques de texto vacíos para evitar error de API
-                    filtered_content = [
-                        block for block in response.content
-                        if not (get_field(block, "type") == "text" and not get_field(block, "text"))
-                    ]
-                    
-                    # Procesar respuesta
+                    # Procesar respuesta - Serializar bloques solo con campos permitidos
+                    def serialize_block(block):
+                        """Convierte un bloque a dict con solo campos permitidos por Anthropic.
+                        IMPORTANTE: Los bloques thinking/redacted_thinking NO se pueden modificar."""
+                        block_type = get_field(block, "type")
+
+                        # CRITICO: thinking y redacted_thinking deben pasarse EXACTAMENTE como vienen
+                        # Segun docs Anthropic: "Include the complete unmodified block back to the API"
+                        if block_type in ["thinking", "redacted_thinking"]:
+                            if hasattr(block, 'model_dump'):
+                                return block.model_dump()  # Preservar TODOS los campos exactamente
+                            return dict(block) if isinstance(block, dict) else {"type": block_type}
+                        elif block_type == "text":
+                            return {
+                                "type": "text",
+                                "text": get_field(block, "text") or ""
+                            }
+                        elif block_type == "tool_use":
+                            return {
+                                "type": "tool_use",
+                                "id": get_field(block, "id"),
+                                "name": get_field(block, "name"),
+                                "input": get_field(block, "input")
+                            }
+                        else:
+                            # Para otros tipos, usar model_dump pero limpiar cache_control
+                            if hasattr(block, 'model_dump'):
+                                d = block.model_dump()
+                                d.pop("cache_control", None)
+                                return d
+                            return dict(block) if isinstance(block, dict) else {"type": block_type}
+
+                    filtered_content = []
+
+                    # LOG: Monitoreo de bloques recibidos de Anthropic
+                    if ANTHROPIC_DEBUG:
+                        logger.info("=" * 60)
+                        logger.info("🔍 MONITOREO DE BLOQUES - Respuesta Anthropic")
+                        logger.info("📊 Total bloques recibidos: %d", len(response.content))
+                        for idx, block in enumerate(response.content):
+                            block_type = get_field(block, "type")
+                            logger.info("  [%d] Tipo: %s", idx, block_type)
+                            if block_type == "thinking":
+                                thinking_text = get_field(block, "thinking") or ""
+                                logger.info("      └─ thinking (len=%d chars)", len(thinking_text))
+                            elif block_type == "redacted_thinking":
+                                logger.info("      └─ redacted_thinking (data protegida)")
+                            elif block_type == "text":
+                                text_content = get_field(block, "text") or ""
+                                logger.info("      └─ text (len=%d chars): %.100s...", len(text_content), text_content[:100] if text_content else "")
+                            elif block_type == "tool_use":
+                                tool_name = get_field(block, "name")
+                                tool_id = get_field(block, "id")
+                                logger.info("      └─ tool_use: %s (id=%s)", tool_name, tool_id)
+                        logger.info("-" * 60)
+
+                    for idx, block in enumerate(response.content):
+                        block_dict = serialize_block(block)
+                        block_type = block_dict.get("type", "unknown")
+
+                        # LOG: Detalle de serialización por bloque
+                        if ANTHROPIC_DEBUG:
+                            if block_type in ["thinking", "redacted_thinking"]:
+                                logger.info("  ✅ [%d] %s serializado con model_dump() - preservado exacto", idx, block_type)
+                            else:
+                                logger.info("  📝 [%d] %s serializado manualmente", idx, block_type)
+
+                        # SIEMPRE filtrar bloques de texto vacíos
+                        # Anthropic genera text vacíos entre thinking blocks pero NO los permite en el historial
+                        # Error si se envían: "messages: text content blocks must be non-empty"
+                        if is_empty_text_block(block_dict):
+                            if ANTHROPIC_DEBUG:
+                                logger.info("  ⏭️  [%d] Bloque text vacío - FILTRADO (Anthropic no permite text vacíos)", idx)
+                            continue
+                        filtered_content.append(block_dict)
+
+                    # LOG: Resumen del contenido filtrado
+                    if ANTHROPIC_DEBUG:
+                        logger.info("-" * 60)
+                        logger.info("📋 CONTENIDO FINAL (filtered_content): %d bloques", len(filtered_content))
+                        for idx, fc in enumerate(filtered_content):
+                            fc_type = fc.get("type", "unknown")
+                            if fc_type == "thinking":
+                                logger.info("  [%d] thinking - signature presente: %s", idx, "signature" in fc)
+                            elif fc_type == "redacted_thinking":
+                                logger.info("  [%d] redacted_thinking - data presente: %s", idx, "data" in fc)
+                            elif fc_type == "text":
+                                logger.info("  [%d] text (len=%d)", idx, len(fc.get("text", "")))
+                            elif fc_type == "tool_use":
+                                logger.info("  [%d] tool_use: %s", idx, fc.get("name"))
+                            else:
+                                logger.info("  [%d] %s", idx, fc_type)
+                        logger.info("=" * 60)
+
                     conversation_history.append({
                         "role": "assistant",
-                        "content": filtered_content if filtered_content else response.content
+                        "content": filtered_content
                     })
 
                     # Almacenar tokens del turno actual
@@ -1045,7 +1193,7 @@ def generate_response(api_key,
                         "cache_read_input_tokens":
                         response.usage.cache_read_input_tokens,
                     }
-                    
+
                     # Actualizar contadores acumulativos del thread
                     if "total_usage" not in conversations[thread_id]:
                         conversations[thread_id]["total_usage"] = {
@@ -1054,23 +1202,23 @@ def generate_response(api_key,
                             "total_cache_creation_tokens": 0,
                             "total_cache_read_tokens": 0
                         }
-                    
+
                     # Acumular tokens
                     conversations[thread_id]["total_usage"]["total_input_tokens"] += current_usage["input_tokens"]
-                    conversations[thread_id]["total_usage"]["total_output_tokens"] += current_usage["output_tokens"] 
+                    conversations[thread_id]["total_usage"]["total_output_tokens"] += current_usage["output_tokens"]
                     conversations[thread_id]["total_usage"]["total_cache_creation_tokens"] += current_usage["cache_creation_input_tokens"]
                     conversations[thread_id]["total_usage"]["total_cache_read_tokens"] += current_usage["cache_read_input_tokens"]
-                    
+
                     # Calcular costos del turno actual (en USD)
                     def calculate_costs(tokens, cost_per_mtok):
                         return (tokens / 1_000_000) * cost_per_mtok
-                    
+
                     current_cost_input = calculate_costs(current_usage["input_tokens"], cost_base_input)
                     current_cost_output = calculate_costs(current_usage["output_tokens"], cost_output)
                     current_cost_cache_creation = calculate_costs(current_usage["cache_creation_input_tokens"], cost_cache_write_5m)
                     current_cost_cache_read = calculate_costs(current_usage["cache_read_input_tokens"], cost_cache_read)
                     current_total_cost = current_cost_input + current_cost_output + current_cost_cache_creation + current_cost_cache_read
-                    
+
                     # Inicializar costos acumulativos si no existen
                     if "total_costs" not in conversations[thread_id]:
                         conversations[thread_id]["total_costs"] = {
@@ -1080,14 +1228,14 @@ def generate_response(api_key,
                             "total_cost_cache_read": 0.0,
                             "total_cost_all": 0.0
                         }
-                    
+
                     # Acumular costos
                     conversations[thread_id]["total_costs"]["total_cost_input"] += current_cost_input
                     conversations[thread_id]["total_costs"]["total_cost_output"] += current_cost_output
                     conversations[thread_id]["total_costs"]["total_cost_cache_creation"] += current_cost_cache_creation
                     conversations[thread_id]["total_costs"]["total_cost_cache_read"] += current_cost_cache_read
                     conversations[thread_id]["total_costs"]["total_cost_all"] += current_total_cost
-                    
+
                     usage = current_usage
                     conversations[thread_id]["usage"] = usage
 
@@ -1141,7 +1289,7 @@ def generate_response(api_key,
                                 })
                             except Exception as tool_error:
                                 logger.exception("Error ejecutando herramienta %s: %s", tool_name, tool_error)
-                                
+
                                 # Agregar tool_result de error cuando la función falla
                                 conversation_history.append({
                                     "role": "user",
@@ -1155,7 +1303,7 @@ def generate_response(api_key,
                                 logger.info("Tool_result de error agregado para función fallida: %s", tool_name)
                         else:
                             logger.warning("Herramienta desconocida: %s", tool_name)
-                            
+
                             # Agregar tool_result de error para mantener balance tool_use/tool_result
                             conversation_history.append({
                                 "role": "user",
@@ -1213,7 +1361,6 @@ def generate_response(api_key,
                 "Generación completada en %.2f segundos para thread_id: %s",
                 elapsed_time, thread_id)
             # El lock se libera automáticamente al salir del bloque 'with'
-
 
 def generate_response_openai(
     message,
