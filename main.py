@@ -961,7 +961,7 @@ def generate_response(api_key,
                 "eleccion_forma_pago": eleccion_forma_pago,
                 "facturacion_electronica": facturacion_electronica,
                 "pqrs": pqrs,
-                "reserva_mesa":reserva_mesa
+                #"reserva_mesa":reserva_mesa
                 
             }
 
