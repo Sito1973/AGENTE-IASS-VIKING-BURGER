@@ -1852,7 +1852,7 @@ def generate_response_gemini(
                                     genai_types.Part.from_text(text=assistant_content_text),
                                 ],
                                 thinking_config=genai_types.ThinkingConfig(
-                                    thinking_level="MEDIUM",
+                                    thinking_level="HIGH",
                                 ),
                                 temperature=1.0,
                                 max_output_tokens=3000,
