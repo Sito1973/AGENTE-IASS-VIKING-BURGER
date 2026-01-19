@@ -1972,10 +1972,9 @@ def generate_response_gemini(
                             logger.debug(
                                 "Resultado de la herramienta %s (Gemini): %s",
                                 tool_name, result)
-                            result_json = json.dumps(result)
                             logger.info(
                                 "Resultado de la herramienta %s (Gemini): %s",
-                                tool_name, result_json)
+                                tool_name, result)
 
                             # Add function response to history según documentación oficial de Gemini
                             # Paso 1: Agregar la respuesta del modelo (con function call)
@@ -1985,7 +1984,7 @@ def generate_response_gemini(
                             function_response_part = genai_types.Part.from_function_response(
                                 name=tool_name,
                                 response={
-                                    "result": result_json
+                                    "output": result
                                 }
                             )
                             # Según la documentación: role="user" para function responses
