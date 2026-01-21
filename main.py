@@ -1379,6 +1379,16 @@ def generate_response_openai(
                         temperature=0.7,
                         max_output_tokens=2000,
                         top_p=1,
+                        text={
+    "format": {
+      "type": "text"
+    },
+    "verbosity": "low"
+  },
+  reasoning={
+    "effort": "none",
+    "summary": "auto"
+                        },
                         store=True
                     )
                     logger.info("✅RESPUESTA OPENAI: %s", response)
