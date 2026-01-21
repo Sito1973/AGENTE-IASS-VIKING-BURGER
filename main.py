@@ -1282,11 +1282,19 @@ def generate_response_openai(
             # Convertir herramientas al formato de OpenAI Function Calling
             tools_openai_format = []
             for tool in tools_anthropic_format:
+                # Obtener parámetros del formato Anthropic o input_schema
+                parameters = tool.get("parameters", tool.get("input_schema", {}))
+
+                # Si se usa strict mode, asegurar que additionalProperties esté en false
+                if tool.get("strict", True):
+                    if "additionalProperties" not in parameters:
+                        parameters["additionalProperties"] = False
+
                 openai_tool = {
                     "type": "function",
                     "name": tool["name"],
                     "description": tool["description"],
-                    "parameters": tool.get("parameters", tool.get("input_schema", {})),
+                    "parameters": parameters,
                     "strict": tool.get("strict", True)
                 }
                 tools_openai_format.append(openai_tool)
