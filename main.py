@@ -359,7 +359,15 @@ def enviar_menu(tool_input, subscriber_id):
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            try:
+                # Intentar parsear JSON solo si hay contenido
+                if response.text and 'application/json' in response.headers.get('Content-Type', ''):
+                    response_content = response.json()
+                else:
+                    response_content = {"message": response.text if response.text else 'MENU Operación exitosa.'}
+            except ValueError:
+                # Si falla el parseo JSON, usar el texto directo
+                response_content = {"message": response.text if response.text else 'MENU Operación exitosa.'}
 
             # Extraer directamente el mensaje sin envolverlo en "result"
             result = response_content.get('message', 'MENU Operación exitosa.')
@@ -403,16 +411,24 @@ def crear_direccion(tool_input, subscriber_id ):
             result = {"error": response.text}
         else:
             # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            try:
+                # Intentar parsear JSON solo si hay contenido
+                if response.text and 'application/json' in response.headers.get('Content-Type', ''):
+                    response_content = response.json()
+                else:
+                    response_content = {"message": response.text if response.text else 'Operación exitosa.'}
+            except ValueError:
+                # Si falla el parseo JSON, usar el texto directo
+                response_content = {"message": response.text if response.text else 'Operación exitosa.'}
 
             # Extraer directamente el mensaje sin envolverlo en "result"
             result = response_content.get('message', 'Operación exitosa.')
 
-        logger.info("enviar_menu result: %s", result)
+        logger.info("crear_direccion result: %s", result)
         return result  # Retornamos el resultado como diccionario con 'result' o 'error'
 
     except Exception as e:
-        logger.exception("Error en enviar_menu: %s", e)
+        logger.exception("Error en crear_direccion: %s", e)
         return {"error": f"Error al procesar la solicitud: {str(e)}"}
 
 def eleccion_forma_pago(tool_input, subscriber_id ):
@@ -1386,7 +1402,7 @@ def generate_response_openai(
     "verbosity": "low"
   },
   reasoning={
-    "effort": "none",
+    "effort": "low",
     "summary": "auto"
                         },
                         store=True
