@@ -1237,7 +1237,8 @@ def generate_response_openai(
     thread_id,
     event,
     subscriber_id,
-    llmID=None
+    llmID=None,
+    developer_content=None
 ):
     if not llmID:
         llmID = "gpt-4.1"
@@ -1338,7 +1339,13 @@ def generate_response_openai(
 
             # Preparar los mensajes para la nueva API
             input_messages = []
-
+            # Agregar mensaje developer si se proporciona (solo para gpt-5.2+)
+            if developer_content:
+                logger.info("Agregando mensaje con rol 'developer' al inicio de la conversación")
+                input_messages.append({
+                    "role": "developer",
+                    "content": [{"type": "input_text", "text": developer_content}]
+                })
             # Agregar mensajes de la conversación
             for i, msg in enumerate(conversation_history):
                 # Validar que msg sea un diccionario
@@ -2084,6 +2091,7 @@ def send_message():
     # Cache control siempre habilitado internamente - no depende del request
     use_cache_control = False
     llmID = data.get('llmID')
+    developer_content = data.get('developer') 
 
     # Parámetros de costo (precios por millón de tokens - MTok)
     cost_base_input = data.get('cost_base_input', 1.0)  # Claude Sonnet 4: $3/MTok
@@ -2096,7 +2104,7 @@ def send_message():
     variables = data.copy()
     keys_to_remove = [
         'message', 'assistant', 'thread_id', 'subscriber_id',
-        'thinking', 'modelID', 'direccionCliente', 'use_cache_control', 'llmID',
+        'thinking', 'modelID', 'direccionCliente', 'use_cache_control', 'llmID','developer',
         'cost_base_input', 'cost_cache_write_5m', 'cost_cache_read', 'cost_output'
     ]
     for key in keys_to_remove:
@@ -2198,7 +2206,7 @@ def send_message():
         elif modelID == 'llm':
             thread = Thread(target=generate_response_openai,
                             args=(message, assistant_content,
-                                  thread_id, event, subscriber_id, llmID))
+                                  thread_id, event, subscriber_id, llmID, developer_content))
             logger.info("Ejecutando LLM para thread_id: %s", thread_id)
 
         else:  # Default to Anthropic
