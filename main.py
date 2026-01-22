@@ -1398,7 +1398,7 @@ def generate_response_openai(
                        
                         store=True
                     )
-                    logger.info("✅RESPUESTA OPENAI: %s", response)
+                    logger.info("✅RESPUESTA OPENAI: %s", response.output)
                     # Imprimir la estructura completa para debug
                     #print("✅RESPUESTA RAW OPENAI: %s", response.output)
                     print("💰💰 TOKENIZACION: %s", response.usage)  # Deshabilitado
