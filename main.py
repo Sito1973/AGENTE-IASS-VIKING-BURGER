@@ -6,6 +6,7 @@ import random
 import base64
 import os
 import re
+import copy
 from flask import Flask, request, jsonify, redirect
 import anthropic
 from threading import Thread, Event
@@ -1296,16 +1297,38 @@ def generate_response_openai(
                 tools_anthropic_format = json.load(tools_file)
             logger.info("Herramientas cargadas desde (OPENAI) %s", tools_file_name)
 
+            # Función recursiva para agregar additionalProperties: false a todos los objetos
+            def add_additional_properties_false(schema):
+                """Agrega additionalProperties: false recursivamente a todos los objetos del schema."""
+                if not isinstance(schema, dict):
+                    return schema
+
+                # Si es un objeto, agregar additionalProperties: false
+                if schema.get("type") == "object":
+                    if "additionalProperties" not in schema:
+                        schema["additionalProperties"] = False
+                    # Procesar propiedades del objeto
+                    if "properties" in schema:
+                        for prop_name, prop_value in schema["properties"].items():
+                            add_additional_properties_false(prop_value)
+
+                # Si es un array, procesar los items
+                if schema.get("type") == "array" and "items" in schema:
+                    add_additional_properties_false(schema["items"])
+
+                return schema
+
             # Convertir herramientas al formato de OpenAI Function Calling
             tools_openai_format = []
             for tool in tools_anthropic_format:
                 # Obtener parámetros del formato Anthropic o input_schema
                 parameters = tool.get("parameters", tool.get("input_schema", {}))
 
-                # Si se usa strict mode, asegurar que additionalProperties esté en false
+                # Si se usa strict mode, aplicar additionalProperties: false recursivamente
                 if tool.get("strict", True):
-                    if "additionalProperties" not in parameters:
-                        parameters["additionalProperties"] = False
+                    # Hacer una copia profunda para no modificar el original
+                    parameters = copy.deepcopy(parameters)
+                    add_additional_properties_false(parameters)
 
                 openai_tool = {
                     "type": "function",
@@ -1339,11 +1362,11 @@ def generate_response_openai(
 
             # Preparar los mensajes para la nueva API
             input_messages = []
-            # Agregar mensaje developer si se proporciona (solo para gpt-5.2+)
+            # Agregar mensaje system si se proporciona (para gpt-5.2+)
             if developer_content:
-                logger.info("Agregando mensaje con rol 'developer' al inicio de la conversación")
+                logger.info("Agregando mensaje con rol 'system' al inicio de la conversación")
                 input_messages.append({
-                    "role": "developer",
+                    "role": "system",
                     "content": [{"type": "input_text", "text": developer_content}]
                 })
             # Agregar mensajes de la conversación
@@ -1371,7 +1394,7 @@ def generate_response_openai(
 
                         input_messages.append(assistant_input)
 
-                # Verificar si el mensaje tiene 'type' (function calls y outputs)
+                # Verificar si el mensaje tiene 'type' (function calls, outputs y reasoning)
                 elif "type" in msg:
                     if msg["type"] == "function_call":
                         # Agregar function calls directamente
@@ -1379,6 +1402,10 @@ def generate_response_openai(
                     elif msg["type"] == "function_call_output":
                         # Agregar function call outputs directamente
                         input_messages.append(msg)
+                    elif msg["type"] == "reasoning":
+                        # Agregar bloques reasoning directamente (requerido por OpenAI gpt-5.2+)
+                        input_messages.append(msg)
+                        logger.debug(f"Reasoning agregado a input_messages con ID: {msg.get('id')}")
 
                 # Si no tiene ni 'role' ni 'type', ignorar el mensaje y log warning
                 else:
@@ -1399,11 +1426,12 @@ def generate_response_openai(
                         instructions=assistant_content_text,
                         input=input_messages,
                         tools=tools,
-                        temperature=0.7,
                         max_output_tokens=2000,
-                        top_p=1,
-                       
-                        store=True
+                        reasoning={
+                            "summary": None
+                        },
+                        store=True,
+                        include=["reasoning.encrypted_content"]
                     )
                     logger.info("✅RESPUESTA OPENAI: %s", response.output)
                     # Imprimir la estructura completa para debug
@@ -1440,9 +1468,22 @@ def generate_response_openai(
                     assistant_response_text = None
                     message_id = None
                     function_called = False
+                    reasoning_item = None  # Para capturar el bloque reasoning
 
                     # Procesar la respuesta
                     if hasattr(response, 'output') and response.output:
+                        # Primero, buscar y capturar el bloque reasoning
+                        for output_item in response.output:
+                            if hasattr(output_item, 'type') and output_item.type == 'reasoning':
+                                reasoning_item = {
+                                    "type": "reasoning",
+                                    "id": getattr(output_item, 'id', None),
+                                    "summary": getattr(output_item, 'summary', []),
+                                    "encrypted_content": getattr(output_item, 'encrypted_content', None)
+                                }
+                                logger.info("Bloque reasoning capturado con ID: %s", reasoning_item.get('id'))
+                                break
+
                         # Caso 1: La respuesta es un texto normal
                         for output_item in response.output:
                             if hasattr(output_item, 'type'):
@@ -1497,6 +1538,12 @@ def generate_response_openai(
                                             "output": result_str
                                         }
 
+                                        # IMPORTANTE: Guardar reasoning ANTES del function_call
+                                        if reasoning_item:
+                                            conversation_history.append(reasoning_item)
+                                            input_messages.append(reasoning_item)
+                                            logger.info("Reasoning guardado en historial antes del function_call")
+
                                         conversation_history.append(function_call_entry)
                                         conversation_history.append(function_output_entry)
 
@@ -1510,10 +1557,12 @@ def generate_response_openai(
                                             instructions=assistant_content_text,
                                             input=input_messages,
                                             tools=tools,
-                                            temperature=0.7,
                                             max_output_tokens=2000,
-                                            top_p=1,
-                                            store=True
+                                            reasoning={
+                                                "summary": None
+                                            },
+                                            store=True,
+                                            include=["reasoning.encrypted_content"]
                                         )
 
                                         logger.info("✅✅Respuesta después de la llamada a la función: %s", continue_response.output)
@@ -1553,7 +1602,22 @@ def generate_response_openai(
 
                                         # Procesar la respuesta de continuación
                                         continue_message_id = None
+                                        continue_reasoning_item = None  # Capturar reasoning de la continuación
+
                                         if hasattr(continue_response, 'output') and continue_response.output:
+                                            # Primero buscar el reasoning de la continuación
+                                            for continue_item in continue_response.output:
+                                                if hasattr(continue_item, 'type') and continue_item.type == 'reasoning':
+                                                    continue_reasoning_item = {
+                                                        "type": "reasoning",
+                                                        "id": getattr(continue_item, 'id', None),
+                                                        "summary": getattr(continue_item, 'summary', []),
+                                                        "encrypted_content": getattr(continue_item, 'encrypted_content', None)
+                                                    }
+                                                    logger.info("Bloque reasoning de continuación capturado con ID: %s", continue_reasoning_item.get('id'))
+                                                    break
+
+                                            # Luego buscar el mensaje
                                             for continue_item in continue_response.output:
                                                 if hasattr(continue_item, 'type') and continue_item.type == 'message':
                                                     # Extraer ID de continuación
@@ -1567,10 +1631,16 @@ def generate_response_openai(
                                                                 logger.info("Respuesta de texto después de la función: %s", assistant_response_text)
                                                                 break
 
-                                        # Si obtuvimos una respuesta de texto, guardémosla CON ID
+                                        # Si obtuvimos una respuesta de texto, guardémosla CON reasoning
                                         if assistant_response_text:
                                             conversations[thread_id]["response"] = assistant_response_text
                                             conversations[thread_id]["status"] = "completed"
+
+                                            # IMPORTANTE: Guardar reasoning de continuación ANTES del mensaje assistant
+                                            if continue_reasoning_item:
+                                                conversation_history.append(continue_reasoning_item)
+                                                logger.info("Reasoning de continuación guardado en historial")
+
                                             # Crear mensaje con ID de continuación
                                             final_message = {
                                                 "role": "assistant",
@@ -1609,6 +1679,11 @@ def generate_response_openai(
 
                     # Si encontramos un texto de respuesta y no hubo llamada a función, estamos listos
                     if assistant_response_text and not function_called:
+                        # IMPORTANTE: Guardar reasoning ANTES del mensaje assistant
+                        if reasoning_item:
+                            conversation_history.append(reasoning_item)
+                            logger.info("Reasoning guardado en historial antes del mensaje assistant")
+
                         # Crear mensaje con ID
                         assistant_message = {
                             "role": "assistant",
