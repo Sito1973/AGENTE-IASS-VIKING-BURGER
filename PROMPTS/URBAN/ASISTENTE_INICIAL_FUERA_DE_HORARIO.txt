@@ -354,15 +354,15 @@ Adicionales,Mozarrella,Porcion Adicional,3000
 Adicionales,Salchicha americana,Porcion Adicional,14000
 Adicionales,Tocineta,Porcion Adicional,4000
 postre ,Bola de helado artesanal,"helado de snickers, helado de chocolate con nutella, yogur de coco con galleta cocosette, vainilla de madagascar, yogur de frutos rojos, yogur de maracuya, moca con caramelo, chocolate amargo  ",6500
-Bowls (Almuerzo 12-3 PM),Asgard,"(Solo 12-3 PM) Jugosos shonks de pollo crispy baÃ±ados en bbq, arroz, maÃ­z tierno, guacamole, pico de gallo, lechuga y nachos.",23000
-Bowls (Almuerzo 12-3 PM),Aesir,"(Solo12-3 PM) Jugosa carne desmechada, pasta con aderezo ranchs, lechuga, maÃ­z tierno, guacamole, pico de gallo.",23000
-Bowls (Almuerzo 12-3 PM),Midgard,"(Solo12-3 PM) Jugosos trozos de carne de res, pasta con aderezo ranchs, lechuga, maÃ­z tierno, guacamole y aros de cebolla.",23000
-Bowls (Almuerzo 12-3 PM),Valhalla Bowl,"(Solo 12-3 PM) Trozos de costilla de cerdo en bbq, cama de papas en casco cubiertas en queso cheddar, guacamole, pico de gallo y lechuga.",25000
-Bowls (Almuerzo 12-3 PM),Mojarra Boreal,"(Solo 12-3 PM) Pesca frita de rÃ­o, acompaÃ±ada de arroz, ensalada de mango y chips de plÃ¡tano.",28000
-Bowls (Almuerzo 12-3 PM),Jötuheimr,"(Solo 12-3 PM) Camarones crispy baÃ±ados en mayo spice, elige entre arroz o pasta en aderezo ranchs, lechuga, maÃ­z tierno, guacamole, platanitos maduros.",26000
-Bowls (Almuerzo 12-3 PM),kattegat,"(Solo 12-3 PM) 5 alitas baÃ±adas en bbq de la casa, pasta con aderezo ranch, lechuga, maÃ­z tierno, apio y zanahoria.",23000
-Bowls (Almuerzo 12-3 PM),Hellheim,"(Solo 12-3 PM) Cama de lechuga, pollo a la plancha, topping de frutos secos, aguacate, mango, tomate y maÃ­z tierno.",20000
-Bowls (Almuerzo 12-3 PM),Torvi,"(Solo 12-3 PM) Jugosa carne de cerdo en adobo especial, arroz, lechuga, guacamole, pico de gallo, queso fresco, maÃ­z tierno, totopos fritos y frÃ­joles.",28000
+Bowls ,Asgard," Jugosos shonks de pollo crispy baÃ±ados en bbq, arroz, maÃ­z tierno, guacamole, pico de gallo, lechuga y nachos.",23000
+Bowls ,Aesir,"Jugosa carne desmechada, pasta con aderezo ranchs, lechuga, maÃ­z tierno, guacamole, pico de gallo.",23000
+Bowls ,Midgard," Jugosos trozos de carne de res, pasta con aderezo ranchs, lechuga, maÃ­z tierno, guacamole y aros de cebolla.",23000
+Bowls ,Valhalla Bowl," Trozos de costilla de cerdo en bbq, cama de papas en casco cubiertas en queso cheddar, guacamole, pico de gallo y lechuga.",25000
+Bowls ,Mojarra Boreal," Pesca frita de rÃ­o, acompaÃ±ada de arroz, ensalada de mango y chips de plÃ¡tano.",28000
+Bowls ,Jötuheimr," Camarones crispy baÃ±ados en mayo spice, elige entre arroz o pasta en aderezo ranchs, lechuga, maÃ­z tierno, guacamole, platanitos maduros.",26000
+Bowls ,kattegat," 5 alitas baÃ±adas en bbq de la casa, pasta con aderezo ranch, lechuga, maÃ­z tierno, apio y zanahoria.",23000
+Bowls ,Hellheim," Cama de lechuga, pollo a la plancha, topping de frutos secos, aguacate, mango, tomate y maÃ­z tierno.",20000
+Bowls ,Torvi," Jugosa carne de cerdo en adobo especial, arroz, lechuga, guacamole, pico de gallo, queso fresco, maÃ­z tierno, totopos fritos y frÃ­joles.",28000
 Bebidas,Gaseosa,"coca cola, coca cola zero, sprite , cuatro, ginger y soda, en presentacion personal",5900
 Bebidas,Jugos naturales agua,"mango, mora, guanabana, maracuya o lulo",7500
 Bebidas,Jugos naturales leche,"mango, mora, guanabana, maracuya o lulo",9000
