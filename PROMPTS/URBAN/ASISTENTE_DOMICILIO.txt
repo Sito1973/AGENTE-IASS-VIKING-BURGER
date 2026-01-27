@@ -522,6 +522,7 @@ Categoria,nombre,descripcion,valor
 Parrilla Vikinga,Rib Eye,Corte de Res de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,48000
 Parrilla Vikinga,Baby beef,Corte de Res al magro de 400 gramos a la parrilla acompaÃ±ado de papas en casco y arepa.,48000
 Parrilla Vikinga,Loki Ribs,"Costilla de cerdo de corte grueso en cocción lenta, bañadas en nuestra inigualable bbq hecha por los dioses. Acompañada de papas.",45000
+Parrilla Vikinga,Tomahawk de cerdo,"400 gramos de delicioso corte de cerdo a la parrilla con adobo de la casa, cocción lenta en el fuego de Odín, padre de todos los dioses, acompañado de ricas papas y arepa de yuca con queso.",40000
 Entradas,Camarones Spice,,21000
 Entradas,Nachos con carne,,21000
 Entradas,Papas Vikingas,,16000
