@@ -67,21 +67,6 @@
         }
       }
     }
-  },
-  {
-    "name": "reserva_mesa",
-    "description": "Si el cliente desea reservar mesa debes enviarle un formulario en este chat",
-    "input_schema": {
-      "type": "object",
-      "required": [
-        "envio_formulario"
-      ],
-      "properties": {
-        "envio_formulario": {
-          "type": "string",
-          "description": "Se ha enviado el formulario"
-        }
-      }
-    }
   }
+  
 ]
