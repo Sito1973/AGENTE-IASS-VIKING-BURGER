@@ -268,16 +268,20 @@ def crear_pedido(tool_input, subscriber_id):
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
             logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
+                    response_content = response.json()
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'Operación exitosa.')
         logger.info("crear_pedido result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
+        return result
 
     except Exception as e:
         logger.exception("Error en crear_pedido: %s", e)
@@ -311,17 +315,20 @@ def crear_link_pago(tool_input, subscriber_id):
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
             logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'LInk de pago generado exitosamente')
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
+                    response_content = response.json()
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
         logger.info("crear_link_pago result: %s", result)
-        return result  # Retornamos el resultado al modelo
+        return result
 
     except Exception as e:
         logger.exception("Error en crear_link_pago: %s", e)
@@ -356,25 +363,20 @@ def enviar_menu(tool_input, subscriber_id):
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
             logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            try:
-                # Intentar parsear JSON solo si hay contenido
-                if response.text and 'application/json' in response.headers.get('Content-Type', ''):
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
                     response_content = response.json()
-                else:
-                    response_content = {"message": response.text if response.text else 'MENU Operación exitosa.'}
-            except ValueError:
-                # Si falla el parseo JSON, usar el texto directo
-                response_content = {"message": response.text if response.text else 'MENU Operación exitosa.'}
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'MENU Operación exitosa.')
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
         logger.info("enviar_menu result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
+        return result
 
     except Exception as e:
         logger.exception("Error en enviar_menu: %s", e)
@@ -408,25 +410,20 @@ def crear_direccion(tool_input, subscriber_id ):
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
             logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            try:
-                # Intentar parsear JSON solo si hay contenido
-                if response.text and 'application/json' in response.headers.get('Content-Type', ''):
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
                     response_content = response.json()
-                else:
-                    response_content = {"message": response.text if response.text else 'Operación exitosa.'}
-            except ValueError:
-                # Si falla el parseo JSON, usar el texto directo
-                response_content = {"message": response.text if response.text else 'Operación exitosa.'}
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'Operación exitosa.')
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
         logger.info("crear_direccion result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
+        return result
 
     except Exception as e:
         logger.exception("Error en crear_direccion: %s", e)
@@ -460,17 +457,20 @@ def eleccion_forma_pago(tool_input, subscriber_id ):
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
             logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
+                    response_content = response.json()
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'Eleccion FPG Operación exitosa.')
-
-        logger.info("eleccion_forma_pagoresult: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
+        logger.info("eleccion_forma_pago result: %s", result)
+        return result
 
     except Exception as e:
         logger.exception("Error en enviar_menu: %s", e)
@@ -504,17 +504,20 @@ def facturacion_electronica(tool_input, subscriber_id ):
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
             logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'Fact Elect Operación exitosa.')
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
+                    response_content = response.json()
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
         logger.info("facturacion_electronica result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
+        return result
 
     except Exception as e:
         logger.exception("Error en facturacion electronica: %s", e)
@@ -548,17 +551,20 @@ def pqrs(tool_input, subscriber_id ):
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
             logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json() if 'application/json' in response.headers.get('Content-Type', '') else {"message": response.text}
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'Operación exitosa.')
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
+                    response_content = response.json()
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
         logger.info("pqrs result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
+        return result
 
     except Exception as e:
         logger.exception("Error en pqrs: %s", e)
@@ -590,23 +596,21 @@ def reserva_mesa(tool_input, subscriber_id):
 
         # Verificar si la respuesta es exitosa
         if response.status_code not in [200, 201]:
-            logger.error("Error al enviar datos al webhook de n8n: %s",
-                         response.text)
-            # Retornar la respuesta de n8n al modelo para que lo informe al usuario
+            logger.error("Error al enviar datos al webhook de n8n: %s", response.text)
             result = {"error": response.text}
         else:
-            # Si todo va bien, extraemos directamente el mensaje sin envolverlo en otro objeto
-            response_content = response.json(
-            ) if 'application/json' in response.headers.get(
-                'Content-Type', '') else {
-                    "message": response.text
-                }
-
-            # Extraer directamente el mensaje sin envolverlo en "result"
-            result = response_content.get('message', 'formulario enviado exitosamente.')
+            # Retornar la respuesta COMPLETA de n8n al modelo
+            if 'application/json' in response.headers.get('Content-Type', ''):
+                try:
+                    response_content = response.json()
+                    result = {"result": json.dumps(response_content, ensure_ascii=False)}
+                except Exception:
+                    result = {"result": response.text}
+            else:
+                result = {"result": response.text}
 
         logger.info("reserva_mesa result: %s", result)
-        return result  # Retornamos el resultado como diccionario con 'result' o 'error'
+        return result
 
     except Exception as e:
         logger.exception("Error en reserva_mesa: %s", e)
@@ -1518,7 +1522,7 @@ def generate_response_openai(
                                     if tool_name in tool_functions:
                                         # Ejecutar la función
                                         result = tool_functions[tool_name](tool_arguments, subscriber_id)
-                                        result_str = str(result)
+                                        result_str = json.dumps(result, ensure_ascii=False)
                                         logger.info("Resultado de la llamada a función: %s", result_str)
 
                                         # Agregar function call y output al historial en formato correcto
@@ -1655,8 +1659,9 @@ def generate_response_openai(
                                             logger.info("Respuesta final obtenida después de llamada a función, saliendo del bucle")
                                             break  # Salir del bucle for
                                         else:
-                                            # Si no obtuvimos respuesta, usemos un mensaje genérico
-                                            assistant_response_text = f"He procesado tu solicitud correctamente. ¿En qué más puedo ayudarte?"
+                                            # Si no obtuvimos respuesta del LLM, usar el resultado de la herramienta directamente
+                                            logger.warning("No se obtuvo respuesta del LLM despues de la funcion, usando resultado de herramienta")
+                                            assistant_response_text = result.get("result", result.get("error", "He procesado tu solicitud. ¿En qué más puedo ayudarte?"))
                                             conversations[thread_id]["response"] = assistant_response_text
                                             conversations[thread_id]["status"] = "completed"
                                             conversation_history.append({
@@ -1719,13 +1724,8 @@ def generate_response_openai(
                                 if tool_name in tool_functions:
                                     # Ejecutar la función
                                     result = tool_functions[tool_name](tool_arguments, subscriber_id)
-                                    result_str = str(result)
-                                    logger.info("Resultado de la llamada a función: %s", result_str)
-
-                                    # Mensaje genérico después de ejecutar la función
-                                    assistant_response_text = f"He procesado tu solicitud correctamente. ¿En qué más puedo ayudarte?"
-                                    conversations[thread_id]["response"] = assistant_response_text
-                                    conversations[thread_id]["status"] = "completed"
+                                    result_str = json.dumps(result, ensure_ascii=False)
+                                    logger.info("Resultado de la llamada a función (path alternativo): %s", result_str)
 
                                     # Agregar function call y output al historial
                                     function_call_entry = {
@@ -1743,13 +1743,83 @@ def generate_response_openai(
                                         "output": result_str
                                     }
 
+                                    conversation_history.append(function_call_entry)
+                                    conversation_history.append(function_output_entry)
+
+                                    # Reenviar resultado al LLM para que genere respuesta basada en el resultado de n8n
+                                    input_messages.append(function_call_entry)
+                                    input_messages.append(function_output_entry)
+
+                                    try:
+                                        continue_response_alt = client.responses.create(
+                                            model=llmID,
+                                            instructions=assistant_content_text,
+                                            input=input_messages,
+                                            tools=tools,
+                                            max_output_tokens=2000,
+                                            reasoning={
+                                                "summary": None
+                                            },
+                                            store=True,
+                                            include=["reasoning.encrypted_content"]
+                                        )
+
+                                        logger.info("Respuesta despues de funcion (path alternativo): %s", continue_response_alt.output)
+
+                                        # Actualizar tokens
+                                        if hasattr(continue_response_alt, 'usage'):
+                                            if not conversations[thread_id].get("usage"):
+                                                conversations[thread_id]["usage"] = {
+                                                    "input_tokens": 0,
+                                                    "output_tokens": 0,
+                                                    "cache_creation_input_tokens": 0,
+                                                    "cache_read_input_tokens": 0
+                                                }
+                                            current_usage = conversations[thread_id]["usage"]
+                                            current_usage["input_tokens"] += continue_response_alt.usage.input_tokens
+                                            current_usage["output_tokens"] += continue_response_alt.usage.output_tokens
+                                            current_usage["cache_read_input_tokens"] += continue_response_alt.usage.total_tokens
+
+                                        # Extraer respuesta de texto del LLM
+                                        alt_response_text = None
+                                        alt_reasoning_item = None
+                                        if hasattr(continue_response_alt, 'output') and continue_response_alt.output:
+                                            for alt_item in continue_response_alt.output:
+                                                if hasattr(alt_item, 'type') and alt_item.type == 'reasoning':
+                                                    alt_reasoning_item = {
+                                                        "type": "reasoning",
+                                                        "id": getattr(alt_item, 'id', None),
+                                                        "summary": getattr(alt_item, 'summary', []),
+                                                        "encrypted_content": getattr(alt_item, 'encrypted_content', None)
+                                                    }
+                                            for alt_item in continue_response_alt.output:
+                                                if hasattr(alt_item, 'type') and alt_item.type == 'message':
+                                                    if hasattr(alt_item, 'content'):
+                                                        for content_item in alt_item.content:
+                                                            if hasattr(content_item, 'type') and content_item.type == 'output_text':
+                                                                alt_response_text = content_item.text
+                                                                break
+
+                                        if alt_response_text:
+                                            assistant_response_text = alt_response_text
+                                        else:
+                                            # Fallback: usar el resultado de la herramienta directamente
+                                            assistant_response_text = result.get("result", result.get("error", "He procesado tu solicitud."))
+
+                                    except Exception as e:
+                                        logger.exception("Error al reenviar resultado al LLM (path alternativo): %s", e)
+                                        assistant_response_text = result.get("result", result.get("error", "He procesado tu solicitud."))
+
+                                    conversations[thread_id]["response"] = assistant_response_text
+                                    conversations[thread_id]["status"] = "completed"
+
+                                    if alt_reasoning_item:
+                                        conversation_history.append(alt_reasoning_item)
+
                                     final_message = {
                                         "role": "assistant",
                                         "content": assistant_response_text
                                     }
-
-                                    conversation_history.append(function_call_entry)
-                                    conversation_history.append(function_output_entry)
                                     conversation_history.append(final_message)
 
                                     break
