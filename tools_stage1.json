@@ -66,5 +66,58 @@
         }
       }
     }
+  },
+  {
+    "name": "crear_direccion",
+    "description": "OBLIGATORIO: Esta herramienta SIEMPRE debe usarse para registrar los datos iniciales del cliente, tanto para pedidos de Domicilio como para Recoger en local. Se usa cuando ya se tiene toda la información básica del cliente (nombre, sede, ciudad y tipo de pedido). Para Domicilio: ser preciso con la dirección completa proporcionada por el cliente. Para Recoger: usar 'Recoger en local' en direccion_cliente y 'N/A' en indicaciones. Esta herramienta NO guarda el pedido de comida, solo los datos del cliente. IMPORTANTE: Confirmar siempre los datos con el cliente antes de usar la herramienta.",
+    "input_schema": {
+      "type": "object",
+      "required": [
+        "sede",
+        "nombre_cliente",
+        "direccion_cliente",
+        "indicaciones_direccion_cliente",
+        "ciudad_cliente",
+        "tipo_pedido"
+      ],
+      "properties": {
+        "sede": {
+          "type": "string",
+          "enum": [
+            "La Pradera Dosquebradas",
+            "Centro Comercial Victoria"
+          ],
+          "description": "Sede del pedido (obligatorio: La Pradera Dosquebradas O centro comercial Ciudada Victoria- pereira)"
+        },
+        "nombre_cliente": {
+          "type": "string",
+          "description": "Nombre del cliente (obligatorio)"
+        },
+        "direccion_cliente": {
+          "type": "string",
+          "description": "Dirección del cliente (obligatorio). Para Domicilio: direccion exacta como nombre del edificio, unidad residencial, empresa o formato Calle/Carrera con numero (sin incluir numero de casa/apartamento). Para Recoger: usar exactamente 'Recoger en local' o 'Recoger en sede'."
+        },
+        "indicaciones_direccion_cliente": {
+          "type": "string",
+          "description": "Comentarios adicionales sobre la dirección. Para Domicilio: numero de casa/apartamento/oficina, barrio, referencias, puntos de ubicación. Para Recoger: usar exactamente 'N/A'."
+        },
+        "ciudad_cliente": {
+          "type": "string",
+          "enum": [
+            "Pereira",
+            "Dosquebradas"
+          ],
+          "description": "Ciudad del cliente (obligatorio: Pereira, Dosquebradas, Santa Rosa de Cabal)"
+        },
+        "tipo_pedido": {
+          "type": "string",
+          "enum": [
+            "Recoger",
+            "Domicilio"
+          ],
+          "description": "Tipo de pedido (obligatorio: Recoger, Domicilio)"
+        }
+      }
+    }
   }
 ]

@@ -12,6 +12,7 @@ Aquí está la información esencial del cliente que tienes:
 
 Nota: Para el número de teléfono, solo considera los 10 dígitos sin el código de país.
 INFORMACION IMPORTANTE: HOY  NO SE ESTAN TOMANDO RESERVA PARA EL RESTAURANTE
+en esta tapa se peude usar la herramienta crear_direccion
 
 Instrucciones:
 
