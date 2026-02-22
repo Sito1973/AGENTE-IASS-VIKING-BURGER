@@ -176,6 +176,9 @@ def generate_response_programatic_tool(
     container_id = _get_container()  # Reutilizar si hay uno vivo
     max_iterations = 15
 
+    # Acumulador de tokens
+    total_usage = {"input_tokens": 0, "output_tokens": 0}
+
     for iteration in range(max_iterations):
         create_kwargs = dict(
             model="claude-opus-4-6",
@@ -188,6 +191,11 @@ def generate_response_programatic_tool(
             create_kwargs["container"] = container_id
 
         response = _call_anthropic(client, **create_kwargs)
+
+        # Acumular tokens de cada iteración
+        if hasattr(response, "usage") and response.usage:
+            total_usage["input_tokens"] += getattr(response.usage, "input_tokens", 0) or 0
+            total_usage["output_tokens"] += getattr(response.usage, "output_tokens", 0) or 0
 
         container_id = _update_container(response)
 
@@ -209,6 +217,7 @@ def generate_response_programatic_tool(
                         json_match = re.search(r'\{.*\}', stdout, re.DOTALL)
                         if json_match:
                             result = json.loads(json_match.group())
+                            result["usage"] = total_usage
                             logger.info("geocodificacion resultado: %s", result)
                             return result
                     except Exception:
@@ -220,6 +229,7 @@ def generate_response_programatic_tool(
                         json_match = re.search(r'\{.*\}', text, re.DOTALL)
                         if json_match:
                             result = json.loads(json_match.group())
+                            result["usage"] = total_usage
                             logger.info("geocodificacion resultado (text): %s", result)
                             return result
                     except Exception:
@@ -292,7 +302,8 @@ def generate_response_programatic_tool(
         "latitud": 0,
         "longitud": 0,
         "precision": 0,
-        "fuente": 0
+        "fuente": 0,
+        "usage": total_usage
     }
 
 
