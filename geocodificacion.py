@@ -174,14 +174,14 @@ def generate_response_programatic_tool(
 
     messages = [{"role": "user", "content": address_query}]
     container_id = _get_container()  # Reutilizar si hay uno vivo
-    max_iterations = 15
+    max_iterations = 8
 
     # Acumulador de tokens
     total_usage = {"input_tokens": 0, "output_tokens": 0}
 
     for iteration in range(max_iterations):
         create_kwargs = dict(
-            model="claude-opus-4-6",
+            model="claude-sonnet-4-6",
             max_tokens=4096,
             system=system_prompt,
             tools=tools,
