@@ -190,7 +190,22 @@ def generate_response_programatic_tool(
         if container_id:
             create_kwargs["container"] = container_id
 
-        response = _call_anthropic(client, **create_kwargs)
+        try:
+            response = _call_anthropic(client, **create_kwargs)
+        except Exception as e:
+            # Si falla con container, descartar y reintentar sin él (crea uno nuevo)
+            if container_id:
+                logger.warning(
+                    "geocodificacion: error con container %s (%s), reintentando sin container",
+                    container_id, e
+                )
+                with _container_lock:
+                    _container_cache["id"] = None
+                container_id = None
+                create_kwargs.pop("container", None)
+                response = _call_anthropic(client, **create_kwargs)
+            else:
+                raise
 
         # Acumular tokens de cada iteración
         if hasattr(response, "usage") and response.usage:
