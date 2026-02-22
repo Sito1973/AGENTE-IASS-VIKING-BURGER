@@ -204,9 +204,14 @@ def generate_response_programatic_tool(
             iteration + 1, response.stop_reason, container_id
         )
 
-        # Serializar content a dicts para que server_tool_use se reenvíe correctamente
-        content_dicts = response.model_dump()["content"]
+        # Serializar content a dicts limpios (exclude_none elimina campos null que la API rechaza)
+        content_dicts = response.model_dump(exclude_none=True, mode="json")["content"]
         messages.append({"role": "assistant", "content": content_dicts})
+
+        # Log detallado para debug
+        block_types = [b.get("type") for b in content_dicts]
+        tool_use_ids = [b.get("id") for b in content_dicts if b.get("type") == "tool_use"]
+        logger.info("geocodificacion content_blocks: %s | tool_use_ids: %s", block_types, tool_use_ids)
 
         # ── Resultado final ──
         if response.stop_reason == "end_turn":
@@ -293,7 +298,11 @@ def generate_response_programatic_tool(
             })
 
         if tool_results:
+            result_ids = [r["tool_use_id"] for r in tool_results]
+            logger.info("geocodificacion tool_results ids: %s", result_ids)
             messages.append({"role": "user", "content": tool_results})
+        else:
+            logger.warning("geocodificacion: NO se encontraron tool_use blocks para responder!")
 
     logger.warning("geocodificacion: fallback para '%s'", address_query)
     return {
