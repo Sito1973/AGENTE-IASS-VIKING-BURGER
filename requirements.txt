@@ -1,5 +1,5 @@
 flask
-anthropic
+anthropic>=0.81.0
 requests
 pytz
 beautifulsoup4
