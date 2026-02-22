@@ -1,0 +1,42 @@
+{
+  "tools": [
+    {
+      "name": "buscar_por_lugar",
+      "description": "Busca latitud/longitud usando Google Places API. Usar para nombres de lugares (barrios, restaurantes, etc.) SIN número de vía. El parámetro 'lugar' debe incluir la ciudad. Retorna JSON con campo 'candidates[].geometry.location' con lat y lng.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "lugar": {
+            "type": "string",
+            "description": "Nombre del lugar SIN dirección vial, CON ciudad"
+          }
+        },
+        "required": ["lugar"]
+      },
+      "allowed_callers": ["code_execution_20260120"]
+    },
+    {
+      "name": "buscar_por_direccion",
+      "description": "Busca latitud/longitud usando Google Maps Geocoding API. Usar para direcciones con CALLE, CARRERA, NÚMERO, TRANSVERSAL, DIAGONAL, etc. El parámetro 'direccion' debe incluir la ciudad. Retorna JSON con campo 'results[].geometry.location' con lat y lng, y 'results[].geometry.location_type' con la precisión.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "direccion": {
+            "type": "string",
+            "description": "Dirección completa (CALLE/CARRERA/etc.) con ciudad"
+          }
+        },
+        "required": ["direccion"]
+      },
+      "allowed_callers": ["code_execution_20260120"]
+    }
+  ],
+  "output_schema": {
+    "direccion_consultada": "[dirección original]",
+    "direccion_formateada": "[dirección normalizada]",
+    "latitud": "valor",
+    "longitud": "valor",
+    "precision": "[nivel de precisión]",
+    "fuente": "[herramienta que proporcionó el mejor resultado]"
+  }
+}

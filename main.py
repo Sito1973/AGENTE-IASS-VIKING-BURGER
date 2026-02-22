@@ -2218,7 +2218,277 @@ def generate_response_gemini(
             logger.info("Liberando lock para thread_id (Gemini): %s",
                         thread_id)
             # Lock is automatically released when exiting 'with' block
-   
+
+
+def generate_response_programatic_tool(
+    direccion_cliente,
+    indicaciones_direccion,
+    ciudad_cliente,
+    latitud_restaurante,
+    longitud_restaurante
+):
+    """
+    Geocodificación con Anthropic Programmatic Tool Calling (code_execution_20260120).
+
+    Claude escribe código Python en un sandbox que llama a Google Maps/Places.
+    Cada tool_use del sandbox pausa la ejecución y retorna para que este código
+    ejecute la API de Google y devuelva el resultado al sandbox.
+
+    Retorna dict: direccion_consultada, direccion_formateada, latitud, longitud,
+    precision, fuente  (campos en 0 si no se geocodifica).
+    """
+    GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+    address_query = (
+        f"{direccion_cliente}, {indicaciones_direccion}, "
+        f"{ciudad_cliente}, risaralda, Colombia"
+    )
+
+    # Cargar system prompt desde archivo externo
+    prompt_path = os.path.join(
+        os.path.dirname(__file__), "PROMPTS", "URBAN", "PROMPT_GEOCODIFICACION.txt"
+    )
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        system_prompt = f.read()
+    logger.info("Prompt geocodificación cargado desde: %s", prompt_path)
+
+    # Cargar tools y output_schema desde archivo JSON externo
+    tools_path = os.path.join(os.path.dirname(__file__), "tools_geocodificacion.json")
+    with open(tools_path, "r", encoding="utf-8") as f:
+        tools_data = json.load(f)
+    custom_tools = tools_data["tools"]
+    output_schema = tools_data["output_schema"]
+    logger.info("Tools geocodificación cargadas desde: %s", tools_path)
+
+    # Inyectar output_schema en el prompt (como el Structured Output Parser de N8N)
+    schema_str = json.dumps(output_schema, ensure_ascii=False, indent=2)
+    system_prompt += f"\n\nEsquema de salida obligatorio:\n```json\n{schema_str}\n```"
+
+    # --- Programmatic Tool Calling: code_execution + tools con allowed_callers ---
+    tools = [
+        # Sandbox de ejecución de código donde Claude escribe Python
+        {"type": "code_execution_20260120", "name": "code_execution"},
+        # Herramientas cargadas desde tools_geocodificacion.json
+        *custom_tools
+    ]
+
+    messages = [{"role": "user", "content": address_query}]
+    container_id = None
+    max_iterations = 15  # Máx round-trips sandbox ↔ tu código
+
+    for iteration in range(max_iterations):
+
+        # --- Paso 1: Llamar a la API de Anthropic ---
+        create_kwargs = dict(
+            model="claude-opus-4-6",
+            max_tokens=4096,
+            system=system_prompt,
+            tools=tools,
+            messages=messages
+        )
+        # Reutilizar el mismo sandbox entre turnos (el código continúa donde pausó)
+        if container_id:
+            create_kwargs["container"] = container_id
+
+        response = call_anthropic_api(client, **create_kwargs)
+
+        # Capturar container_id para reutilizar el sandbox en el siguiente turno
+        raw_container = getattr(response, "container", None)
+        if raw_container:
+            container_id = (
+                raw_container.get("id") if isinstance(raw_container, dict)
+                else getattr(raw_container, "id", None)
+            )
+
+        logger.info(
+            "geocodificacion_programatic - iter %d, stop_reason: %s, container: %s",
+            iteration + 1, response.stop_reason, container_id
+        )
+
+        # Agregar respuesta del asistente al historial
+        messages.append({"role": "assistant", "content": response.content})
+
+        # --- Paso 2: Si stop_reason es "end_turn" → extraer resultado final ---
+        if response.stop_reason == "end_turn":
+            for block in response.content:
+                block_type = (
+                    block.get("type") if isinstance(block, dict)
+                    else getattr(block, "type", None)
+                )
+
+                # Primero: buscar stdout del code_execution_tool_result
+                if block_type == "code_execution_tool_result":
+                    block_content = (
+                        block.get("content") if isinstance(block, dict)
+                        else getattr(block, "content", None)
+                    )
+                    stdout = (
+                        block_content.get("stdout", "") if isinstance(block_content, dict)
+                        else getattr(block_content, "stdout", "")
+                    )
+                    try:
+                        json_match = re.search(r'\{.*\}', stdout, re.DOTALL)
+                        if json_match:
+                            result = json.loads(json_match.group())
+                            logger.info("geocodificacion_programatic resultado: %s", result)
+                            return result
+                    except Exception:
+                        pass
+
+                # Fallback: leer texto plano del último bloque text
+                if block_type == "text":
+                    text = (
+                        block.get("text", "").strip() if isinstance(block, dict)
+                        else getattr(block, "text", "").strip()
+                    )
+                    try:
+                        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+                        if json_match:
+                            result = json.loads(json_match.group())
+                            logger.info("geocodificacion_programatic resultado (text): %s", result)
+                            return result
+                    except Exception:
+                        pass
+            break
+
+        # Si no es tool_use ni end_turn, salir
+        if response.stop_reason != "tool_use":
+            logger.warning(
+                "geocodificacion_programatic stop_reason inesperado: %s",
+                response.stop_reason
+            )
+            break
+
+        # --- Paso 3: Ejecutar las herramientas que el sandbox solicitó ---
+        # Según la doc: la respuesta SOLO debe contener tool_result blocks
+        tool_results = []
+        for block in response.content:
+            block_type = (
+                block.get("type") if isinstance(block, dict)
+                else getattr(block, "type", None)
+            )
+            if block_type != "tool_use":
+                continue
+
+            tool_name = (
+                block.get("name") if isinstance(block, dict)
+                else getattr(block, "name")
+            )
+            tool_input = (
+                block.get("input") if isinstance(block, dict)
+                else getattr(block, "input")
+            )
+            tool_use_id = (
+                block.get("id") if isinstance(block, dict)
+                else getattr(block, "id")
+            )
+
+            logger.info(
+                "geocodificacion_programatic tool_use: %s | input: %s",
+                tool_name, tool_input
+            )
+
+            try:
+                if tool_name == "buscar_por_lugar":
+                    api_resp = requests.get(
+                        "https://maps.googleapis.com/maps/api/place/findplacefromtext/json",
+                        params={
+                            "input": tool_input.get("lugar", ""),
+                            "inputtype": "textquery",
+                            "locationbias": (
+                                f"circle:8000@{latitud_restaurante},{longitud_restaurante}"
+                            ),
+                            "fields": "formatted_address,name,rating,opening_hours,geometry",
+                            "key": GOOGLE_MAPS_API_KEY
+                        },
+                        timeout=10
+                    )
+                    tool_result = api_resp.text
+
+                elif tool_name == "buscar_por_direccion":
+                    api_resp = requests.get(
+                        "https://maps.googleapis.com/maps/api/geocode/json",
+                        params={
+                            "address": tool_input.get("direccion", ""),
+                            "components": "country:CO",
+                            "key": GOOGLE_MAPS_API_KEY
+                        },
+                        timeout=10
+                    )
+                    tool_result = api_resp.text
+
+                else:
+                    tool_result = json.dumps(
+                        {"error": f"Herramienta desconocida: {tool_name}"}
+                    )
+
+            except Exception as e:
+                logger.error("Error herramienta geocodificacion %s: %s", tool_name, e)
+                tool_result = json.dumps({"error": str(e)})
+
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": tool_use_id,
+                "content": tool_result
+            })
+
+        # --- Paso 4: Devolver resultados al sandbox para que continúe ---
+        if tool_results:
+            messages.append({"role": "user", "content": tool_results})
+
+    # Fallback: no se pudo geocodificar
+    logger.warning(
+        "generate_response_programatic_tool: fallback para '%s'", address_query
+    )
+    return {
+        "direccion_consultada": 0,
+        "direccion_formateada": 0,
+        "latitud": 0,
+        "longitud": 0,
+        "precision": 0,
+        "fuente": 0
+    }
+
+
+@app.route('/geocodificar', methods=['POST'])
+def geocodificar():
+    """
+    Endpoint para geocodificar una dirección usando Programmatic Tool Calling.
+    Recibe dirección → llama a Google Maps/Places via Claude → retorna coordenadas.
+    """
+    logger.info("Endpoint /geocodificar llamado")
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "Body JSON requerido"}), 400
+
+        direccion_cliente = data.get("direccion_cliente", "")
+        indicaciones_direccion = data.get("indicaciones_direccion", "")
+        ciudad_cliente = data.get("ciudad_cliente", "")
+        latitud_restaurante = data.get("latitud_restaurante", "")
+        longitud_restaurante = data.get("longitud_restaurante", "")
+
+        if not direccion_cliente or not ciudad_cliente:
+            return jsonify({"error": "direccion_cliente y ciudad_cliente son obligatorios"}), 400
+
+        resultado = generate_response_programatic_tool(
+            direccion_cliente=direccion_cliente,
+            indicaciones_direccion=indicaciones_direccion,
+            ciudad_cliente=ciudad_cliente,
+            latitud_restaurante=latitud_restaurante,
+            longitud_restaurante=longitud_restaurante
+        )
+
+        logger.info("Geocodificación completada: %s", resultado)
+        return jsonify(resultado)
+
+    except Exception as e:
+        logger.exception("Error en /geocodificar: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/sendmensaje', methods=['POST'])
 def send_message():
     logger.info("Endpoint /sendmensaje llamado")
