@@ -196,25 +196,15 @@ def generate_response_programatic_tool(
             iteration + 1, response.stop_reason, container_id
         )
 
-        messages.append({"role": "assistant", "content": response.content})
+        # Serializar content a dicts para que server_tool_use se reenvíe correctamente
+        content_dicts = response.model_dump()["content"]
+        messages.append({"role": "assistant", "content": content_dicts})
 
         # ── Resultado final ──
         if response.stop_reason == "end_turn":
-            for block in response.content:
-                block_type = (
-                    block.get("type") if isinstance(block, dict)
-                    else getattr(block, "type", None)
-                )
-
-                if block_type == "code_execution_tool_result":
-                    block_content = (
-                        block.get("content") if isinstance(block, dict)
-                        else getattr(block, "content", None)
-                    )
-                    stdout = (
-                        block_content.get("stdout", "") if isinstance(block_content, dict)
-                        else getattr(block_content, "stdout", "")
-                    )
+            for block in content_dicts:
+                if block.get("type") == "code_execution_tool_result":
+                    stdout = block.get("content", {}).get("stdout", "")
                     try:
                         json_match = re.search(r'\{.*\}', stdout, re.DOTALL)
                         if json_match:
@@ -224,11 +214,8 @@ def generate_response_programatic_tool(
                     except Exception:
                         pass
 
-                if block_type == "text":
-                    text = (
-                        block.get("text", "").strip() if isinstance(block, dict)
-                        else getattr(block, "text", "").strip()
-                    )
+                if block.get("type") == "text":
+                    text = block.get("text", "").strip()
                     try:
                         json_match = re.search(r'\{.*\}', text, re.DOTALL)
                         if json_match:
@@ -245,17 +232,13 @@ def generate_response_programatic_tool(
 
         # ── Ejecutar herramientas que el sandbox solicitó ──
         tool_results = []
-        for block in response.content:
-            block_type = (
-                block.get("type") if isinstance(block, dict)
-                else getattr(block, "type", None)
-            )
-            if block_type != "tool_use":
+        for block in content_dicts:
+            if block.get("type") != "tool_use":
                 continue
 
-            tool_name = block.get("name") if isinstance(block, dict) else getattr(block, "name")
-            tool_input = block.get("input") if isinstance(block, dict) else getattr(block, "input")
-            tool_use_id = block.get("id") if isinstance(block, dict) else getattr(block, "id")
+            tool_name = block.get("name")
+            tool_input = block.get("input", {})
+            tool_use_id = block.get("id")
 
             logger.info("geocodificacion tool_use: %s | input: %s", tool_name, tool_input)
 
